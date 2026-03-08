@@ -1,12 +1,14 @@
 services:
   app:
     image: ghcr.io/oxon1um/melodarr:latest
+    restart: unless-stopped
     ports:
       - "30000:3000"
     environment:
-      DATABASE_URL: postgresql://melodarr:melodarr@db:5432/melodarr?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
       REDIS_URL: redis://redis:6379
-      SESSION_SECRET: ${SESSION_SECRET}
+      # Generate a new secret with: openssl rand -hex 64
+      SESSION_SECRET:
     depends_on:
       db:
         condition: service_healthy
@@ -17,12 +19,13 @@ services:
     image: postgres:18-alpine
     environment:
       POSTGRES_DB: melodarr
-      POSTGRES_USER: melodarr
-      POSTGRES_PASSWORD: melodarr
+      # REQUIRED: Set these before starting
+      POSTGRES_USER:
+      POSTGRES_PASSWORD:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U melodarr -d melodarr"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
