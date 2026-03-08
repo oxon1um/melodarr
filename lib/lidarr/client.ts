@@ -45,6 +45,19 @@ type LidarrArtist = {
   foreignArtistId?: string;
   metadataProfileId?: number;
   qualityProfileId?: number;
+  overview?: string;
+  images?: LidarrImage[];
+  albumCount?: number;
+};
+
+type LidarrArtistAlbum = {
+  id: number;
+  title: string;
+  foreignAlbumId?: string;
+  artistName?: string;
+  foreignArtistId?: string;
+  releaseDate?: string;
+  images?: LidarrImage[];
 };
 
 type LidarrAlbum = {
@@ -256,6 +269,44 @@ export class LidarrClient {
 
     const all = await this.request<LidarrAlbum[]>("/api/v1/album");
     return all.find((album) => album.foreignAlbumId === foreignAlbumId) ?? null;
+  }
+
+  async getArtistByForeignId(foreignArtistId: string): Promise<LidarrArtist | null> {
+    const encoded = encodeURIComponent(foreignArtistId);
+    return this.tryRequest<LidarrArtist>(`/api/v1/artist/lookup?foreignArtistId=${encoded}`);
+  }
+
+  async getAlbumsByArtistForeignId(foreignArtistId: string): Promise<LidarrArtistAlbum[]> {
+    const encoded = encodeURIComponent(foreignArtistId);
+    const albums = await this.tryRequest<LidarrArtistAlbum[]>(`/api/v1/album/lookup?term=${encoded}&artistid=${encodeURIComponent(foreignArtistId)}`);
+
+    if (!albums || albums.length === 0) {
+      // Fallback: search by artist name in albums
+      const artist = await this.getArtistByForeignId(foreignArtistId);
+      if (!artist) return [];
+
+      const allAlbums = await this.tryRequest<LidarrArtistAlbum[]>("/api/v1/album");
+      if (!allAlbums) return [];
+
+      return allAlbums.filter(
+        (album) => album.artistName?.toLowerCase() === artist.artistName.toLowerCase()
+      );
+    }
+
+    return albums;
+  }
+
+  async getAllAlbums(): Promise<LidarrAlbum[]> {
+    const result = await this.tryRequest<LidarrAlbum[]>("/api/v1/album");
+    return result ?? [];
+  }
+
+  async getExistingArtistAlbums(foreignArtistId: string): Promise<LidarrArtistAlbum[]> {
+    const existingArtist = await this.getExistingArtistByForeignId(foreignArtistId);
+    if (!existingArtist) return [];
+
+    const allAlbums = await this.request<LidarrArtistAlbum[]>("/api/v1/album");
+    return allAlbums.filter((album) => album.foreignArtistId === foreignArtistId);
   }
 
   async addArtist(input: AddArtistInput): Promise<LidarrArtist> {

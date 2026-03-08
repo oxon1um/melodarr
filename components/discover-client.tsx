@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { IconAlbum, IconDownload, IconSearch } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
@@ -20,6 +21,7 @@ type Album = {
   foreignArtistId?: string;
   overview?: string;
   images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
+  isExisting?: boolean;
 };
 
 type Song = {
@@ -287,7 +289,7 @@ export function DiscoverClient() {
 
       <form onSubmit={runSearch} className="panel relative flex flex-col gap-3 p-4 sm:p-5 md:flex-row">
         <div className="relative min-w-0 flex-1">
-          <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted/50">
+          <div className="pointer-events-none absolute left-[3.5rem] top-1/2 -translate-y-1/2 text-muted/50">
             <IconSearch className="h-5 w-5" />
           </div>
           <input
@@ -321,11 +323,11 @@ export function DiscoverClient() {
               }
             }}
             placeholder="Search for music..."
-            className="field w-full pl-12 pr-4"
+            className="field w-full pl-14 pr-4"
           />
 
           {showSuggestions && suggestions.length > 0 ? (
-            <div className="absolute left-0 right-0 top-[3.75rem] z-20 rounded-2xl border border-white/[0.1] bg-[#060c1a]/95 p-1 shadow-panel backdrop-blur-xl">
+            <div className="absolute left-0 right-0 top-[3.75rem] z-[10000] rounded-2xl border border-white/[0.1] bg-[#060c1a]/95 p-1 shadow-panel backdrop-blur-xl">
               <ul className="soft-scroll max-h-72 overflow-auto">
                 {suggestions.map((suggestion, index) => (
                   <li key={suggestion.id}>
@@ -414,7 +416,16 @@ export function DiscoverClient() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold tracking-tight">{artist.artistName}</h3>
+                      {artist.foreignArtistId ? (
+                        <Link
+                          href={`/discover/${artist.foreignArtistId}`}
+                          className="text-lg font-semibold tracking-tight hover:text-accent-glow"
+                        >
+                          {artist.artistName}
+                        </Link>
+                      ) : (
+                        <h3 className="text-lg font-semibold tracking-tight">{artist.artistName}</h3>
+                      )}
                       <p className="mt-1.5 line-clamp-2 text-sm text-muted">
                         {artist.overview ?? "No description provided by Lidarr metadata."}
                       </p>
@@ -453,6 +464,13 @@ export function DiscoverClient() {
                                   </div>
                                 )}
                               </div>
+                              {album.isExisting && (
+                                <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                                  <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
                               <button
                                 type="button"
                                 onClick={() =>
@@ -466,10 +484,10 @@ export function DiscoverClient() {
                                     `artist-album:${aKey}`
                                   )
                                 }
-                                disabled={submitting === `artist-album:${aKey}`}
+                                disabled={submitting === `artist-album:${aKey}` || album.isExisting}
                                 className="quick-icon"
                                 aria-label={`Quick download ${album.title}`}
-                                title="Quick download album"
+                                title={album.isExisting ? "Already in library" : "Quick download album"}
                               >
                                 {submitting === `artist-album:${aKey}` ? (
                                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -493,10 +511,14 @@ export function DiscoverClient() {
                                   `artist-album:${aKey}`
                                 )
                               }
-                              disabled={submitting === `artist-album:${aKey}`}
+                              disabled={submitting === `artist-album:${aKey}` || album.isExisting}
                               className="btn-primary mt-2.5 w-full py-2 text-sm"
                             >
-                              {submitting === `artist-album:${aKey}` ? "Requesting..." : "Download Album"}
+                              {album.isExisting
+                                ? "In Library"
+                                : submitting === `artist-album:${aKey}`
+                                  ? "Requesting..."
+                                  : "Download Album"}
                             </button>
                           </div>
                         );
@@ -536,6 +558,13 @@ export function DiscoverClient() {
                       ) : (
                         <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
                       )}
+                      {album.isExisting && (
+                        <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                          <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() =>
@@ -549,10 +578,10 @@ export function DiscoverClient() {
                             `album:${key}`
                           )
                         }
-                        disabled={submitting === `album:${key}`}
+                        disabled={submitting === `album:${key}` || album.isExisting}
                         className="quick-icon"
                         aria-label={`Quick download ${album.title}`}
-                        title="Quick download album"
+                        title={album.isExisting ? "Already in library" : "Quick download album"}
                       >
                         {submitting === `album:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -581,10 +610,14 @@ export function DiscoverClient() {
                             `album:${key}`
                           )
                         }
-                        disabled={submitting === `album:${key}`}
+                        disabled={submitting === `album:${key}` || album.isExisting}
                         className="btn-primary mt-3 py-2 text-sm"
                       >
-                        {submitting === `album:${key}` ? "Requesting..." : "Download Album"}
+                        {album.isExisting
+                          ? "In Library"
+                          : submitting === `album:${key}`
+                            ? "Requesting..."
+                            : "Download Album"}
                       </button>
                     </div>
                   </div>

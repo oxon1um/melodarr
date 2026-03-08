@@ -45,8 +45,8 @@ See `.env.example`.
 
 ## Notes
 
-- **Default port**: 30000 (internal container port is always 3000, exposed as 30000 by default in docker-compose.yml)
-- **Changing the port**: Edit the host port in docker-compose.yml (first number before the colon)
+- **Default port**: 30000 (host port). The container internally always uses port 3000, but this is exposed as 30000 on the host by default in docker-compose.yml.
+- **Port mapping**: In docker-compose.yml, the format is `HOST_PORT:CONTAINER_PORT`. The container port (after the colon) should remain 3000. Change the host port (before the colon) to access the UI from a different port on your host machine.
 - Setup must be completed before sign-in.
 - Service API keys saved in settings are encrypted using a runtime secret.
 - `SESSION_SECRET` must be set in docker-compose.yml or environment variables.
