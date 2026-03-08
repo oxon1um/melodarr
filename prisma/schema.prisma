@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUBMITTED
+  FAILED
+  ALREADY_EXISTS
+}
+
+enum RequestType {
+  ARTIST
+  ALBUM
+}
+
+model User {
+  id             String    @id @default(cuid())
+  jellyfinUserId String?   @unique
+  username       String    @unique
+  passwordHash   String?
+  role           Role      @default(USER)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastLoginAt    DateTime?
+  sessions       Session[]
+  requests       Request[]
+  auditLogs      AuditLog[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Request {
+  id               String        @id @default(cuid())
+  requestedById    String
+  requestType      RequestType   @default(ARTIST)
+  artistName       String
+  albumTitle       String?
+  foreignArtistId  String?
+  foreignAlbumId   String?
+  mbid             String?
+  status           RequestStatus @default(PENDING)
+  lidarrArtistId   Int?
+  lidarrAlbumId    Int?
+  lidarrResponse   Json?
+  failureReason    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  requestedBy      User          @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([requestedById])
+  @@index([status])
+  @@index([foreignArtistId])
+  @@index([foreignAlbumId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String
+  action      String
+  meta        Json?
+  createdAt   DateTime @default(now())
+  actor       User     @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorUserId])
+}
+
+model AppConfig {
+  id                       Int      @id @default(1)
+  appUrl                   String?
+  runtimeSecret            String?
+  jellyfinUrl              String?
+  jellyfinApiKeyEncrypted  String?
+  lidarrUrl                String?
+  lidarrApiKeyEncrypted    String?
+  lidarrRootFolder         String?
+  lidarrQualityProfileId   Int?
+  lidarrMetadataProfileId  Int?
+  lidarrMonitorMode        String?  @default("all")
+  requestAutoApprove       Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
