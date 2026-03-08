@@ -2,9 +2,11 @@ services:
   app:
     image: ghcr.io/oxon1um/melodarr:latest
     ports:
-      - "3000:3000"
-    env_file:
-      - .env
+      - "30000:3000"
+    environment:
+      DATABASE_URL: postgresql://melodarr:melodarr@db:5432/melodarr?schema=public
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET}
     depends_on:
       db:
         condition: service_healthy
@@ -17,8 +19,6 @@ services:
       POSTGRES_DB: melodarr
       POSTGRES_USER: melodarr
       POSTGRES_PASSWORD: melodarr
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -29,8 +29,7 @@ services:
 
   redis:
     image: redis:8-alpine
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
 
 volumes:
   pgdata:

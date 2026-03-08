@@ -14,16 +14,16 @@ Dockerized request app for Lidarr with a Seerr-inspired UI and first-run setup w
 
 ## Quick Start
 
-1. Copy `.env.example` to `.env` and adjust values if desired.
+1. Copy `.env.example` to `.env` and set `SESSION_SECRET` (generate with `openssl rand -hex 64`).
 2. Start services:
 
 ```bash
 docker compose up --build
 ```
 
-3. Open `http://localhost:3000`.
+3. Open `http://localhost:30000` (default port, can be changed in docker-compose.yml).
 4. On first run, complete setup by creating the administrator account.
-5. Then go to **Settings** and connect Jellyfin + Lidarr services.
+5. Then go to **Settings** and configure Jellyfin + Lidarr services (URLs and API keys).
 
 ## Environment Variables
 
@@ -45,8 +45,9 @@ See `.env.example`.
 
 ## Notes
 
+- **Default port**: 30000 (internal container port is always 3000, exposed as 30000 by default in docker-compose.yml)
+- **Changing the port**: Edit the host port in docker-compose.yml (first number before the colon)
 - Setup must be completed before sign-in.
 - Service API keys saved in settings are encrypted using a runtime secret.
-- If `SESSION_SECRET` is not set, Melodarr generates one and stores it on first run.
-- If `SESSION_SECRET` is set, it overrides the stored runtime secret.
-- `APP_URL` can be set in Admin Settings and is used for HTTPS-aware login/cookie behavior.
+- `SESSION_SECRET` must be set in docker-compose.yml or environment variables.
+- `APP_URL`, Jellyfin, and Lidarr settings are configured in the Admin Settings UI after initial setup.
