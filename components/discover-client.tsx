@@ -369,8 +369,8 @@ export function DiscoverClient() {
       </form>
 
       <section className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="chip">{sectionTitle(filter)}</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="chip border-accent/25 bg-accent/10 text-accent-glow">{sectionTitle(filter)}</span>
           <span className="chip">{totalCount} results</span>
         </div>
 
@@ -380,7 +380,11 @@ export function DiscoverClient() {
               key={item.id}
               type="button"
               onClick={() => setFilter(item.id)}
-              className={filter === item.id ? "btn-ghost-active rounded-lg" : "btn-ghost rounded-lg"}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                filter === item.id
+                  ? "bg-accent/15 text-accent-glow border border-accent/40 shadow-[0_0_12px_rgba(94,186,255,0.15)]"
+                  : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
+              }`}
             >
               {item.label}
             </button>
@@ -438,7 +442,7 @@ export function DiscoverClient() {
                   </div>
 
                   {artistAlbums.length > 0 ? (
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                       {artistAlbums.map((album, albumIndex) => {
                         const aKey = albumKey({
                           foreignAlbumId: album.foreignAlbumId,
@@ -705,13 +709,13 @@ export function DiscoverClient() {
 
       {totalCount === 0 && query.trim().length > 0 && !loading ? (
         <div className="empty-state">
-          <div className="mb-4 flex h-16 w-16 mx-auto items-center justify-center rounded-full bg-panel-2/50">
-            <svg className="h-8 w-8 text-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-white/[0.08] bg-panel-2/30">
+            <svg className="h-10 w-10 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <p className="text-muted">No results found for "{query}"</p>
-          <p className="mt-1 text-xs text-muted/70">Try a different search term</p>
+          <p className="text-base font-medium text-muted">No results found</p>
+          <p className="mt-1.5 text-sm text-muted/70">Try a different search term for "{query}"</p>
         </div>
       ) : null}
     </div>

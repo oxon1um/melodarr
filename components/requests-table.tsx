@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { IconCheck, IconRefresh, IconX } from "@/components/ui/icons";
+import { IconCheck, IconRefresh, IconX, IconAlbum, IconUser } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast-provider";
 
@@ -88,13 +88,13 @@ export function RequestsTable({ admin = false }: Props) {
       <Card className="space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
-            <div className="skeleton h-8 w-48" />
-            <div className="skeleton h-4 w-72" />
+            <div className="skeleton-shimmer h-8 w-48 rounded-lg" />
+            <div className="skeleton-shimmer h-4 w-72 rounded-lg" />
           </div>
         </div>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-24 w-full" />
+            <div key={i} className="skeleton-shimmer h-24 w-full rounded-2xl" />
           ))}
         </div>
       </Card>
@@ -122,13 +122,13 @@ export function RequestsTable({ admin = false }: Props) {
 
       {!items.length ? (
         <div className="empty-state">
-          <div className="mb-4 flex h-16 w-16 mx-auto items-center justify-center rounded-full bg-panel-2/50">
-            <svg className="h-8 w-8 text-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-white/[0.08] bg-panel-2/30">
+            <svg className="h-10 w-10 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <p className="text-muted">No requests found.</p>
-          <p className="mt-1 text-xs text-muted/70">Start by discovering and requesting music.</p>
+          <p className="text-base font-medium text-muted">No requests found</p>
+          <p className="mt-1.5 text-sm text-muted/70">Start by discovering and requesting music</p>
         </div>
       ) : (
         <div className="soft-scroll max-h-[68vh] space-y-3 overflow-auto pr-1">
@@ -153,7 +153,14 @@ export function RequestsTable({ admin = false }: Props) {
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate text-base font-medium text-text">{label}</p>
-                      <span className="chip">{item.requestType === "ALBUM" ? "Album" : "Artist"}</span>
+                      <span className="inline-flex items-center gap-1.5 chip">
+                        {item.requestType === "ALBUM" ? (
+                          <IconAlbum className="h-3 w-3" />
+                        ) : (
+                          <IconUser className="h-3 w-3" />
+                        )}
+                        {item.requestType === "ALBUM" ? "Album" : "Artist"}
+                      </span>
                     </div>
                     <p className="text-xs text-muted/80">
                       {admin && item.requestedBy ? (
