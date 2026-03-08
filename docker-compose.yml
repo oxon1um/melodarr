@@ -11,7 +11,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-}
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_started
 
@@ -23,19 +23,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-melodarr}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-melodarr}
     volumes:
-      - melodarr_postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-melodarr} -d ${POSTGRES_DB:-melodarr}"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+      - /mnt/fast/apps-config/melodarr/postgres:/var/lib/postgresql
 
   redis:
     image: redis:8-alpine
     restart: always
     volumes:
-      - melodarr_redis:/data
-
-volumes:
-  melodarr_postgres:
-  melodarr_redis:
+      - /mnt/fast/apps-config/melodarr/redis:/data
