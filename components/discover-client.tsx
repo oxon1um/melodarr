@@ -289,9 +289,6 @@ export function DiscoverClient() {
 
       <form onSubmit={runSearch} className="panel relative flex flex-col gap-3 p-4 sm:p-5 md:flex-row">
         <div className="relative min-w-0 flex-1">
-          <div className="pointer-events-none absolute left-[3.5rem] top-1/2 -translate-y-1/2 text-muted/50">
-            <IconSearch className="h-5 w-5" />
-          </div>
           <input
             value={query}
             onChange={(event) => {
@@ -323,7 +320,7 @@ export function DiscoverClient() {
               }
             }}
             placeholder="Search for music..."
-            className="field w-full pl-14 pr-4"
+            className="field w-full pl-4 pr-4"
           />
 
           {showSuggestions && suggestions.length > 0 ? (
@@ -360,10 +357,7 @@ export function DiscoverClient() {
               Searching...
             </span>
           ) : (
-            <>
-              <IconSearch className="h-4 w-4" />
-              Search
-            </>
+            "Search"
           )}
         </button>
       </form>

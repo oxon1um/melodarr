@@ -35,4 +35,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  pgdata:
+  pgdata: melodarr_pgdata
