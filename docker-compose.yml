@@ -22,11 +22,21 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-melodarr}
       POSTGRES_USER: ${POSTGRES_USER:-melodarr}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-melodarr}
+    # For persistent host path (e.g., TrueNAS), uncomment below:
+    # volumes:
+    #   - /mnt/pool/apps/melodarr/postgres:/var/lib/postgresql
     volumes:
-      - /mnt/fast/apps-config/melodarr/postgres:/var/lib/postgresql
+      - melodarr_postgres:/var/lib/postgresql
 
   redis:
     image: redis:8-alpine
     restart: always
+    # For persistent host path (e.g., TrueNAS), uncomment below:
+    # volumes:
+    #   - /mnt/pool/apps/melodarr/redis:/data
     volumes:
-      - /mnt/fast/apps-config/melodarr/redis:/data
+      - melodarr_redis:/data
+
+volumes:
+  melodarr_postgres:
+  melodarr_redis:

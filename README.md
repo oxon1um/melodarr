@@ -1,53 +1,76 @@
 # Melodarr
 
-Dockerized request app for Lidarr with a Seerr-inspired UI and first-run setup wizard.
+Dockerized music request app for Lidarr with a Seerr-inspired UI.
 
 ## Features
 
-- First-run setup flow (create local administrator account)
-- Services configuration from UI (App URL + Jellyfin + Lidarr URL/API key)
-- Discover search for artists, albums, and tracks (with live suggestions)
-- Track results map to album downloads (no individual track request in Lidarr)
-- Album request pipeline with dedupe + submission to Lidarr
-- Optional moderation flow (`REQUEST_AUTO_APPROVE=false`)
-- Docker Compose deployment with Postgres + Redis
+- First-run setup wizard (create admin account)
+- Discover music by artists, albums, and tracks
+- Album request pipeline with automatic submission to Lidarr
+- Optional moderation flow for admin approval
+- Persistent storage for database and Redis
 
 ## Quick Start
 
-1. Copy `.env.example` to `.env` and set `SESSION_SECRET` (generate with `openssl rand -hex 64`).
-2. Start services:
+### Docker Compose (Recommended)
 
 ```bash
-docker compose up --build
+# Generate a session secret
+openssl rand -hex 64
 ```
 
-3. Open `http://localhost:30000` (default port, can be changed in docker-compose.yml).
-4. On first run, complete setup by creating the administrator account.
-5. Then go to **Settings** and configure Jellyfin + Lidarr services (URLs and API keys).
+Edit `docker-compose.yml` and set `SESSION_SECRET`, then:
+
+```bash
+docker compose up -d
+```
+
+Open `http://localhost:30000` and complete the setup wizard.
+
+### TrueNAS Scale
+
+1. Create a dataset for persistent storage (e.g., `/mnt/pool/apps/melodarr/`)
+2. In TrueNAS Apps, select "Custom App"
+3. Set the following environment variables:
+   - `SESSION_SECRET`: Generate with `openssl rand -hex 64`
+   - `POSTGRES_USER`: melodarr (or your custom username)
+   - `POSTGRES_PASSWORD`: Your secure password
+   - `POSTGRES_DB`: melodarr
+4. Map volumes:
+   - `/mnt/pool/apps/melodarr/postgres` → `/var/lib/postgresql` (postgres:18-alpine)
+   - `/mnt/pool/apps/melodarr/redis` → `/data` (redis:8-alpine)
 
 ## Environment Variables
 
-See `.env.example`.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SESSION_SECRET` | - | Required. Generate with `openssl rand -hex 64` |
+| `POSTGRES_USER` | melodarr | Database username |
+| `POSTGRES_PASSWORD` | melodarr | Database password |
+| `POSTGRES_DB` | melodarr | Database name |
 
-## API Overview
+## Ports
 
-- `POST /api/setup`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
-- `GET /api/search/artists?q=`
-- `GET /api/requests`
-- `POST /api/requests`
-- `PATCH /api/requests/:id` (admin)
-- `GET/PUT /api/settings` (admin)
-- `GET /api/health/live`
-- `GET /api/health/ready`
+- **30000** (host) → **3000** (container)
 
-## Notes
+## Data Persistence
 
-- **Default port**: 30000 (host port). The container internally always uses port 3000, but this is exposed as 30000 on the host by default in docker-compose.yml.
-- **Port mapping**: In docker-compose.yml, the format is `HOST_PORT:CONTAINER_PORT`. The container port (after the colon) should remain 3000. Change the host port (before the colon) to access the UI from a different port on your host machine.
-- Setup must be completed before sign-in.
-- Service API keys saved in settings are encrypted using a runtime secret.
-- `SESSION_SECRET` must be set in docker-compose.yml or environment variables.
-- `APP_URL`, Jellyfin, and Lidarr settings are configured in the Admin Settings UI after initial setup.
+Data is stored in:
+- PostgreSQL database
+- Redis for sessions
+
+To persist data between updates, use host path volumes or named volumes.
+
+## First Run Setup
+
+1. Open the app URL
+2. Create your admin account
+3. Go to **Settings** and configure:
+   - App URL
+   - Jellyfin server + API key
+   - Lidarr server + API key
+4. Start discovering and requesting music!
+
+## Updating
+
+When updating the container, your data persists if using named volumes or host paths. The database and settings will be preserved.
