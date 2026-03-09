@@ -17,6 +17,7 @@ type SettingsPayload = {
   lidarrMetadataProfileId: number | null;
   lidarrMonitorMode: string;
   requestAutoApprove: boolean;
+  debugMode: boolean;
 };
 
 type PasswordPayload = {
@@ -35,7 +36,8 @@ const defaultState: SettingsPayload = {
   lidarrQualityProfileId: null,
   lidarrMetadataProfileId: null,
   lidarrMonitorMode: "all",
-  requestAutoApprove: true
+  requestAutoApprove: true,
+  debugMode: false
 };
 
 const defaultPasswordState: PasswordPayload = {
@@ -85,7 +87,8 @@ export function AdminSettingsForm() {
     lidarrQualityProfileId: state.lidarrQualityProfileId,
     lidarrMetadataProfileId: state.lidarrMetadataProfileId,
     lidarrMonitorMode: state.lidarrMonitorMode?.trim() ? state.lidarrMonitorMode.trim() : "all",
-    requestAutoApprove: state.requestAutoApprove
+    requestAutoApprove: state.requestAutoApprove,
+    debugMode: state.debugMode
   });
 
   const sendUpdate = async (extra?: { testJellyfin?: boolean; testLidarr?: boolean }) => {
@@ -398,6 +401,31 @@ export function AdminSettingsForm() {
           <span className="leading-none">
             <span className="font-medium text-text">Automatically approve requests</span>
             <span className="ml-2 text-xs text-muted">(Skip moderation queue)</span>
+          </span>
+        </button>
+
+        {/* Debug Mode Toggle */}
+        <button
+          type="button"
+          aria-pressed={state.debugMode}
+          onClick={() =>
+            setState((prev) => ({ ...prev, debugMode: !prev.debugMode }))
+          }
+          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(86,177,255,0.15)]"
+        >
+          <span
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
+              state.debugMode
+                ? "border-accent/60 bg-accent/20 text-accent"
+                : "border-white/[0.15] bg-transparent text-transparent"
+            }`}
+            aria-hidden
+          >
+            <IconCheck className="h-4 w-4" />
+          </span>
+          <span className="leading-none">
+            <span className="font-medium text-text">Debug mode</span>
+            <span className="ml-2 text-xs text-muted">(Enable verbose logging)</span>
           </span>
         </button>
 

@@ -15,6 +15,7 @@ export type RuntimeConfig = {
   lidarrMetadataProfileId: number | null;
   lidarrMonitorMode: string;
   requestAutoApprove: boolean;
+  debugMode: boolean;
 };
 
 const fromAppConfig = async (config: AppConfig): Promise<RuntimeConfig> => {
@@ -37,7 +38,8 @@ const fromAppConfig = async (config: AppConfig): Promise<RuntimeConfig> => {
     lidarrQualityProfileId: config.lidarrQualityProfileId,
     lidarrMetadataProfileId: config.lidarrMetadataProfileId,
     lidarrMonitorMode: config.lidarrMonitorMode ?? "all",
-    requestAutoApprove: config.requestAutoApprove
+    requestAutoApprove: config.requestAutoApprove,
+    debugMode: config.debugMode ?? false
   };
 };
 
@@ -55,7 +57,8 @@ export const getRuntimeConfig = async (): Promise<RuntimeConfig> => {
     lidarrQualityProfileId: env.lidarrQualityProfileId ?? base.lidarrQualityProfileId,
     lidarrMetadataProfileId: env.lidarrMetadataProfileId ?? base.lidarrMetadataProfileId,
     lidarrMonitorMode: env.lidarrMonitorMode ?? base.lidarrMonitorMode,
-    requestAutoApprove: env.requestAutoApprove ?? base.requestAutoApprove
+    requestAutoApprove: env.requestAutoApprove ?? base.requestAutoApprove,
+    debugMode: base.debugMode
   };
 };
 
@@ -70,6 +73,7 @@ export type UpdateConfigInput = {
   lidarrMetadataProfileId?: number | null;
   lidarrMonitorMode?: string | null;
   requestAutoApprove?: boolean;
+  debugMode?: boolean;
 };
 
 export const updateConfig = async (input: UpdateConfigInput): Promise<RuntimeConfig> => {
@@ -110,6 +114,9 @@ export const updateConfig = async (input: UpdateConfigInput): Promise<RuntimeCon
   }
   if (Object.prototype.hasOwnProperty.call(input, "requestAutoApprove")) {
     updateData.requestAutoApprove = input.requestAutoApprove;
+  }
+  if (Object.prototype.hasOwnProperty.call(input, "debugMode")) {
+    updateData.debugMode = input.debugMode;
   }
 
   await prisma.appConfig.update({

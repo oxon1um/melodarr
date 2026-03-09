@@ -18,6 +18,7 @@ const settingsSchema = z.object({
   lidarrMetadataProfileId: z.number().int().positive().nullable().optional(),
   lidarrMonitorMode: z.string().min(1).nullable().optional(),
   requestAutoApprove: z.boolean().optional(),
+  debugMode: z.boolean().optional(),
   testJellyfin: z.boolean().optional(),
   testLidarr: z.boolean().optional()
 });
@@ -92,6 +93,9 @@ export async function PUT(req: NextRequest) {
     }
     if (Object.prototype.hasOwnProperty.call(payload, "requestAutoApprove")) {
       updateInput.requestAutoApprove = payload.requestAutoApprove;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "debugMode")) {
+      updateInput.debugMode = payload.debugMode;
     }
 
     if (

@@ -18,20 +18,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ arti
       return jsonError("Lidarr is not configured", 500);
     }
 
-    const lidarr = new LidarrClient(config.lidarrUrl, config.lidarrApiKey);
+    const lidarr = new LidarrClient(config.lidarrUrl, config.lidarrApiKey, config.debugMode);
 
     // Debug: log what we're looking up
-    console.log("[artist-detail] Looking up artistId:", artistId);
+    if (config.debugMode) console.log("[artist-detail] Looking up artistId:", artistId);
 
     // Get artist details from lookup
     const artist = await lidarr.getArtistByForeignId(artistId);
-    console.log("[artist-detail] Artist result:", artist);
+    if (config.debugMode) console.log("[artist-detail] Artist result:", artist);
 
     // Get albums (from lookup or from existing library)
     const albums = await lidarr.getAlbumsByArtistForeignId(artistId);
-    console.log("[artist-detail] Albums result:", JSON.stringify(albums, null, 2));
+    if (config.debugMode) console.log("[artist-detail] Albums result:", JSON.stringify(albums, null, 2));
     const existingAlbums = await lidarr.getExistingArtistAlbums(artistId);
-    console.log("[artist-detail] Existing albums:", JSON.stringify(existingAlbums, null, 2));
+    if (config.debugMode) console.log("[artist-detail] Existing albums:", JSON.stringify(existingAlbums, null, 2));
 
     // Mark which albums are already in the library
     const existingAlbumIds = new Set(existingAlbums.map((a) => a.foreignAlbumId));

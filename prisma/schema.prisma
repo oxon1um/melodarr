@@ -98,6 +98,7 @@ model AppConfig {
   lidarrMetadataProfileId  Int?
   lidarrMonitorMode        String?  @default("all")
   requestAutoApprove       Boolean  @default(true)
+  debugMode                Boolean  @default(false)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 }
