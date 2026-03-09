@@ -279,9 +279,22 @@ export default function ArtistDetailPage() {
                         In Library
                       </div>
                     )}
+                  </div>
+                  <div className="mt-3 space-y-1">
+                    <p className="truncate text-sm font-medium text-text">{album.title}</p>
+                    {album.releaseDate && (
+                      <p className="text-xs text-muted/70">
+                        {new Date(album.releaseDate).getFullYear()}
+                      </p>
+                    )}
+                  </div>
+                  </Link>
+                  <div className="mt-3 flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         void requestAlbum(
                           {
                             title: album.title,
@@ -290,8 +303,8 @@ export default function ArtistDetailPage() {
                             foreignAlbumId: album.foreignAlbumId
                           },
                           `album:${key}`
-                        )
-                      }
+                        );
+                      }}
                       disabled={submitting === `album:${key}` || album.isExisting}
                       className="quick-icon"
                       aria-label={`Quick download ${album.title}`}
@@ -304,38 +317,17 @@ export default function ArtistDetailPage() {
                       )}
                       <span className="sr-only">Quick download album</span>
                     </button>
-                  </div>
-                  <div className="mt-3 space-y-1">
-                    <p className="truncate text-sm font-medium text-text">{album.title}</p>
-                    {album.releaseDate && (
-                      <p className="text-xs text-muted/70">
-                        {new Date(album.releaseDate).getFullYear()}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void requestAlbum(
-                        {
-                          title: album.title,
-                          artistName: album.artistName ?? artist.artistName,
-                          foreignArtistId: album.foreignArtistId,
-                          foreignAlbumId: album.foreignAlbumId
-                        },
-                        `album:${key}`
-                      )
-                    }
-                    disabled={submitting === `album:${key}` || album.isExisting}
-                    className="btn-primary mt-3 w-full py-2 text-sm"
-                  >
-                    {album.isExisting
-                      ? "Already Downloaded"
-                      : submitting === `album:${key}`
+                    <Link
+                      href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}` as const}
+                      className="btn-primary flex-1 py-2 text-sm"
+                    >
+                      {submitting === `album:${key}`
                         ? "Requesting..."
-                        : "Download Album"}
-                  </button>
-                  </Link>
+                        : album.isExisting
+                          ? "In Library"
+                          : "Download Album"}
+                    </Link>
+                  </div>
                 </Card>
               );
             })}

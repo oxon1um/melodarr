@@ -268,7 +268,7 @@ export default function AlbumDetailPage() {
                 Requesting...
               </>
             ) : isExisting ? (
-              "Already Downloaded"
+              "In Library"
             ) : (
               <>
                 <IconDownload className="mr-2 h-4 w-4" />
@@ -303,7 +303,7 @@ export default function AlbumDetailPage() {
                     className="border-b border-white/[0.05] text-sm last:border-0 hover:bg-white/[0.02]"
                   >
                     <td className="px-4 py-3 text-muted">
-                      {track.trackNumber ?? index + 1}
+                      {(track.trackNumber ?? 0) || index + 1}
                     </td>
                     <td className="px-4 py-3 text-text">{track.title}</td>
                     <td className="px-4 py-3 text-right text-muted">

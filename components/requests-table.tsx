@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { IconCheck, IconRefresh, IconX, IconAlbum, IconUser, IconTrash } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast-provider";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type RequestItem = {
   id: string;
@@ -35,6 +36,7 @@ export function RequestsTable({ admin = false }: Props) {
   const [items, setItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -83,14 +85,13 @@ export function RequestsTable({ admin = false }: Props) {
     await load();
   };
 
-  const onDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this request? This action cannot be undone.")) {
-      return;
-    }
+  const onDelete = async () => {
+    if (!deleteId) return;
 
-    setActing(id);
+    setActing(deleteId);
+    setDeleteId(null);
 
-    const response = await fetch(`/api/requests/${id}`, {
+    const response = await fetch(`/api/requests/${deleteId}`, {
       method: "DELETE"
     });
 
@@ -208,7 +209,7 @@ export function RequestsTable({ admin = false }: Props) {
                         <button
                           type="button"
                           disabled={acting === item.id}
-                          onClick={() => void onDelete(item.id)}
+                          onClick={() => setDeleteId(item.id)}
                           className="rounded-xl border border-danger/40 bg-danger/12 px-3.5 py-2 text-xs font-medium text-danger transition-all hover:bg-danger/20 hover:border-danger/60 disabled:opacity-60"
                           title="Delete request"
                         >
@@ -252,6 +253,16 @@ export function RequestsTable({ admin = false }: Props) {
           })}
         </div>
       )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        title="Delete Request"
+        message="Are you sure you want to delete this request? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={onDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </Card>
   );
 }
