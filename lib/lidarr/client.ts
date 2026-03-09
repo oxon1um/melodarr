@@ -272,13 +272,26 @@ export class LidarrClient {
   }
 
   async getArtistByForeignId(foreignArtistId: string): Promise<LidarrArtist | null> {
+    // First try with mbid parameter (MusicBrainz ID lookup)
+    const encodedMbid = encodeURIComponent(foreignArtistId);
+    const artistByMbid = await this.tryRequest<LidarrArtist>(`/api/v1/artist/lookup?mbid=${encodedMbid}`);
+    if (artistByMbid) return artistByMbid;
+
+    // Fallback to foreignArtistId parameter
     const encoded = encodeURIComponent(foreignArtistId);
     return this.tryRequest<LidarrArtist>(`/api/v1/artist/lookup?foreignArtistId=${encoded}`);
   }
 
   async getAlbumsByArtistForeignId(foreignArtistId: string): Promise<LidarrArtistAlbum[]> {
-    const encoded = encodeURIComponent(foreignArtistId);
-    const albums = await this.tryRequest<LidarrArtistAlbum[]>(`/api/v1/album/lookup?term=${encoded}&artistid=${encodeURIComponent(foreignArtistId)}`);
+    // Try with mbid parameter first
+    const encodedMbid = encodeURIComponent(foreignArtistId);
+    let albums = await this.tryRequest<LidarrArtistAlbum[]>(`/api/v1/album/lookup?mbid=${encodedMbid}`);
+
+    if (!albums || albums.length === 0) {
+      // Fallback to term search
+      const encoded = encodeURIComponent(foreignArtistId);
+      albums = await this.tryRequest<LidarrArtistAlbum[]>(`/api/v1/album/lookup?term=${encoded}`);
+    }
 
     if (!albums || albums.length === 0) {
       // Fallback: search by artist name in albums
