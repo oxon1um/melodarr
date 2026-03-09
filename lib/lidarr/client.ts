@@ -274,15 +274,18 @@ export class LidarrClient {
   async getArtistByForeignId(foreignArtistId: string): Promise<LidarrArtist | null> {
     // First try: check if artist is already in the library
     const existingArtist = await this.getExistingArtistByForeignId(foreignArtistId);
+    console.log("[lidarr] getArtistByForeignId - existing artist:", existingArtist ? { id: existingArtist.id, name: existingArtist.artistName, imagesCount: existingArtist.images?.length } : null);
     if (existingArtist) return existingArtist;
 
     // Second try: search by term using the foreignArtistId
     const encoded = encodeURIComponent(foreignArtistId);
     const searchResults = await this.tryRequest<LidarrArtist[]>(`/api/v1/artist/lookup?term=${encoded}`);
+    console.log("[lidarr] getArtistByForeignId - search results:", searchResults?.length ?? 0, "artists");
 
     // Filter results to find matching artist by foreignArtistId
     if (searchResults && searchResults.length > 0) {
       const match = searchResults.find((a) => a.foreignArtistId === foreignArtistId);
+      console.log("[lidarr] getArtistByForeignId - matched artist:", match ? { name: match.artistName, imagesCount: match.images?.length } : null);
       if (match) return match;
       // Return first result if no exact match
       return searchResults[0];
@@ -295,24 +298,35 @@ export class LidarrClient {
     // First try: search by term
     const encoded = encodeURIComponent(foreignArtistId);
     let albums = await this.tryRequest<LidarrArtistAlbum[]>(`/api/v1/album/lookup?term=${encoded}`);
+    console.log("[lidarr] getAlbumsByArtistForeignId - search results:", albums?.length ?? 0, "albums");
 
     // Filter to only albums matching the foreignArtistId
     if (albums && albums.length > 0) {
       const matching = albums.filter((a) => a.foreignArtistId === foreignArtistId);
+      console.log("[lidarr] getAlbumsByArtistForeignId - filtered by foreignArtistId:", matching.length, "albums");
       if (matching.length > 0) return matching;
     }
 
     if (!albums || albums.length === 0) {
+      console.log("[lidarr] getAlbumsByArtistForeignId - no albums from search, trying fallback");
       // Fallback: search by artist name in existing albums
       const artist = await this.getArtistByForeignId(foreignArtistId);
-      if (!artist) return [];
+      if (!artist) {
+        console.log("[lidarr] getAlbumsByArtistForeignId - no artist found for fallback");
+        return [];
+      }
 
+      console.log("[lidarr] getAlbumsByArtistForeignId - fallback artist:", artist.artistName);
       const allAlbums = await this.tryRequest<LidarrArtistAlbum[]>("/api/v1/album");
+      console.log("[lidarr] getAlbumsByArtistForeignId - all albums in library:", allAlbums?.length ?? 0);
+
       if (!allAlbums) return [];
 
-      return allAlbums.filter(
+      const filtered = allAlbums.filter(
         (album) => album.artistName?.toLowerCase() === artist.artistName.toLowerCase()
       );
+      console.log("[lidarr] getAlbumsByArtistForeignId - fallback filtered:", filtered.length, "albums");
+      return filtered;
     }
 
     return albums;

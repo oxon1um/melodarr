@@ -29,7 +29,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ arti
 
     // Get albums (from lookup or from existing library)
     const albums = await lidarr.getAlbumsByArtistForeignId(artistId);
+    console.log("[artist-detail] Albums result:", JSON.stringify(albums, null, 2));
     const existingAlbums = await lidarr.getExistingArtistAlbums(artistId);
+    console.log("[artist-detail] Existing albums:", JSON.stringify(existingAlbums, null, 2));
 
     // Mark which albums are already in the library
     const existingAlbumIds = new Set(existingAlbums.map((a) => a.foreignAlbumId));
