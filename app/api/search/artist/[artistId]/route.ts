@@ -20,11 +20,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ arti
 
     const lidarr = new LidarrClient(config.lidarrUrl, config.lidarrApiKey, config.debugMode);
 
-    // Debug: log what we're looking up
-    if (config.debugMode) console.log("[artist-detail] Looking up artistId:", artistId);
+    // Add log for incoming artistId
+    if (config.debugMode) console.log("[artist-detail] Received artistId:", artistId);
 
     // Get artist details from lookup
     const artist = await lidarr.getArtistByForeignId(artistId);
+    if (!artist) {
+      return jsonError("Artist not found", 404);
+    }
     if (config.debugMode) console.log("[artist-detail] Artist result:", artist);
 
     // Get albums (from lookup or from existing library)
