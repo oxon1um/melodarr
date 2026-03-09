@@ -55,9 +55,13 @@ export default function ArtistDetailPage() {
 
   // Use ref to track current request for race condition handling
   const abortControllerRef = useRef<AbortController | null>(null);
+  const currentArtistIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!artistId) return;
+
+    // Track the current artistId we're fetching for
+    currentArtistIdRef.current = artistId;
 
     // Cancel any in-flight request
     if (abortControllerRef.current) {
@@ -73,13 +77,15 @@ export default function ArtistDetailPage() {
     setLoading(true);
 
     const fetchArtist = async () => {
+      const fetchArtistId = currentArtistIdRef.current;
+
       try {
-        const response = await fetch(`/api/search/artist/${encodeURIComponent(artistId)}`, {
+        const response = await fetch(`/api/search/artist/${encodeURIComponent(fetchArtistId!)}`, {
           signal: abortController.signal
         });
 
-        // Check if request was aborted
-        if (abortController.signal.aborted) {
+        // Check if this is still the current artist we're looking for
+        if (fetchArtistId !== currentArtistIdRef.current) {
           return;
         }
 
@@ -87,6 +93,11 @@ export default function ArtistDetailPage() {
 
         if (!response.ok) {
           toast.error(payload.error ?? "Failed to load artist", "Artist");
+          return;
+        }
+
+        // Double-check we haven't navigated away while fetching
+        if (fetchArtistId !== currentArtistIdRef.current) {
           return;
         }
 
@@ -98,7 +109,7 @@ export default function ArtistDetailPage() {
         }
         toast.error("Failed to load artist details", "Artist");
       } finally {
-        if (!abortController.signal.aborted) {
+        if (fetchArtistId === currentArtistIdRef.current) {
           setLoading(false);
         }
       }
