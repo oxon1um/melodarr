@@ -272,29 +272,38 @@ export class LidarrClient {
   }
 
   async getArtistByForeignId(foreignArtistId: string): Promise<LidarrArtist | null> {
-    // First try with mbid parameter (MusicBrainz ID lookup)
-    const encodedMbid = encodeURIComponent(foreignArtistId);
-    const artistByMbid = await this.tryRequest<LidarrArtist>(`/api/v1/artist/lookup?mbid=${encodedMbid}`);
-    if (artistByMbid) return artistByMbid;
+    // First try: check if artist is already in the library
+    const existingArtist = await this.getExistingArtistByForeignId(foreignArtistId);
+    if (existingArtist) return existingArtist;
 
-    // Fallback to foreignArtistId parameter
+    // Second try: search by term using the foreignArtistId
     const encoded = encodeURIComponent(foreignArtistId);
-    return this.tryRequest<LidarrArtist>(`/api/v1/artist/lookup?foreignArtistId=${encoded}`);
+    const searchResults = await this.tryRequest<LidarrArtist[]>(`/api/v1/artist/lookup?term=${encoded}`);
+
+    // Filter results to find matching artist by foreignArtistId
+    if (searchResults && searchResults.length > 0) {
+      const match = searchResults.find((a) => a.foreignArtistId === foreignArtistId);
+      if (match) return match;
+      // Return first result if no exact match
+      return searchResults[0];
+    }
+
+    return null;
   }
 
   async getAlbumsByArtistForeignId(foreignArtistId: string): Promise<LidarrArtistAlbum[]> {
-    // Try with mbid parameter first
-    const encodedMbid = encodeURIComponent(foreignArtistId);
-    let albums = await this.tryRequest<LidarrArtistAlbum[]>(`/api/v1/album/lookup?mbid=${encodedMbid}`);
+    // First try: search by term
+    const encoded = encodeURIComponent(foreignArtistId);
+    let albums = await this.tryRequest<LidarrArtistAlbum[]>(`/api/v1/album/lookup?term=${encoded}`);
 
-    if (!albums || albums.length === 0) {
-      // Fallback to term search
-      const encoded = encodeURIComponent(foreignArtistId);
-      albums = await this.tryRequest<LidarrArtistAlbum[]>(`/api/v1/album/lookup?term=${encoded}`);
+    // Filter to only albums matching the foreignArtistId
+    if (albums && albums.length > 0) {
+      const matching = albums.filter((a) => a.foreignArtistId === foreignArtistId);
+      if (matching.length > 0) return matching;
     }
 
     if (!albums || albums.length === 0) {
-      // Fallback: search by artist name in albums
+      // Fallback: search by artist name in existing albums
       const artist = await this.getArtistByForeignId(foreignArtistId);
       if (!artist) return [];
 
