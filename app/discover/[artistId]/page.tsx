@@ -55,13 +55,14 @@ export default function ArtistDetailPage() {
 
   // Use ref to track current request for race condition handling
   const abortControllerRef = useRef<AbortController | null>(null);
-  const currentArtistIdRef = useRef<string | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!artistId) return;
 
-    // Track the current artistId we're fetching for
-    currentArtistIdRef.current = artistId;
+    // Increment request ID for this navigation
+    requestIdRef.current++;
+    const currentRequestId = requestIdRef.current;
 
     // Cancel any in-flight request
     if (abortControllerRef.current) {
@@ -77,15 +78,13 @@ export default function ArtistDetailPage() {
     setLoading(true);
 
     const fetchArtist = async () => {
-      const fetchArtistId = currentArtistIdRef.current;
-
       try {
-        const response = await fetch(`/api/search/artist/${encodeURIComponent(fetchArtistId!)}`, {
+        const response = await fetch(`/api/search/artist/${encodeURIComponent(artistId)}`, {
           signal: abortController.signal
         });
 
-        // Check if this is still the current artist we're looking for
-        if (fetchArtistId !== currentArtistIdRef.current) {
+        // Check if this is still the latest request
+        if (currentRequestId !== requestIdRef.current) {
           return;
         }
 
@@ -93,25 +92,24 @@ export default function ArtistDetailPage() {
 
         if (!response.ok) {
           toast.error(payload.error ?? "Failed to load artist", "Artist");
+          setLoading(false);
           return;
         }
 
         // Double-check we haven't navigated away while fetching
-        if (fetchArtistId !== currentArtistIdRef.current) {
+        if (currentRequestId !== requestIdRef.current) {
           return;
         }
 
         setData(payload as ArtistData);
+        setLoading(false);
       } catch (error) {
         // Ignore abort errors
         if (error instanceof Error && error.name === "AbortError") {
           return;
         }
         toast.error("Failed to load artist details", "Artist");
-      } finally {
-        if (fetchArtistId === currentArtistIdRef.current) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 

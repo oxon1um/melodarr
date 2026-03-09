@@ -41,3 +41,23 @@ export async function PATCH(
     return jsonError(error instanceof Error ? error.message : "Failed to update request", status);
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin(req);
+    const { id } = await context.params;
+
+    // Delete the request
+    await prisma.request.delete({
+      where: { id }
+    });
+
+    return jsonOk({ success: true });
+  } catch (error) {
+    const status = (error as { status?: number }).status ?? 500;
+    return jsonError(error instanceof Error ? error.message : "Failed to delete request", status);
+  }
+}

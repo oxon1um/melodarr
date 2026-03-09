@@ -283,18 +283,37 @@ export class LidarrClient {
     const searchResults = await this.tryRequest<LidarrArtist[]>(`/api/v1/artist/lookup?term=${encoded}`);
     if (this.debug) console.log("[lidarr] getArtistByForeignId - search results:", searchResults?.length ?? 0, "artists");
 
+    // Get existing artist from library for fallback (has overview)
+    const existingArtist = await this.getExistingArtistByForeignId(foreignArtistId);
+    if (this.debug) console.log("[lidarr] getArtistByForeignId - existing artist:", existingArtist ? { id: existingArtist.id, name: existingArtist.artistName, hasOverview: !!existingArtist.overview } : null);
+
     // Filter results to find matching artist by foreignArtistId
     if (searchResults && searchResults.length > 0) {
       const match = searchResults.find((a) => a.foreignArtistId === foreignArtistId);
-      if (this.debug) console.log("[lidarr] getArtistByForeignId - matched artist:", match ? { name: match.artistName, imagesCount: match.images?.length } : null);
-      if (match) return match;
-      // Return first result if no exact match
-      return searchResults[0];
+      if (this.debug) console.log("[lidarr] getArtistByForeignId - matched artist:", match ? { name: match.artistName, imagesCount: match.images?.length, hasOverview: !!match.overview } : null);
+      if (match) {
+        // If search result has no overview but existing artist does, merge them
+        if ((!match.overview || match.overview.trim() === "") && existingArtist?.overview) {
+          if (this.debug) console.log("[lidarr] getArtistByForeignId - using existing artist overview");
+          return { ...match, overview: existingArtist.overview };
+        }
+        return match;
+      }
+
+      // No exact match found - log warning and prefer existing artist with overview
+      if (searchResults.length > 0) {
+        if (this.debug) console.log("[lidarr] getArtistByForeignId - no exact match, first result:", searchResults[0].artistName);
+        if (existingArtist?.overview) {
+          // Use first search result for images but existing artist for overview
+          if (this.debug) console.log("[lidarr] getArtistByForeignId - using search result with existing overview");
+          return { ...searchResults[0], overview: existingArtist.overview };
+        }
+        return searchResults[0];
+      }
     }
 
-    // Fallback: check if artist is already in the library
-    const existingArtist = await this.getExistingArtistByForeignId(foreignArtistId);
-    if (this.debug) console.log("[lidarr] getArtistByForeignId - existing artist fallback:", existingArtist ? { id: existingArtist.id, name: existingArtist.artistName, imagesCount: existingArtist.images?.length } : null);
+    // Fallback: return existing artist from library
+    if (this.debug) console.log("[lidarr] getArtistByForeignId - using existing artist fallback");
     return existingArtist;
   }
 
@@ -357,10 +376,60 @@ export class LidarrClient {
   }
 
   async getAlbumTracks(foreignAlbumId: string): Promise<LidarrSongSearchResult[]> {
-    // Try to get tracks from the album lookup endpoint
+    // First check if album is in the library - use trackfile endpoint
+    const existingAlbum = await this.getExistingAlbumByForeignId(foreignAlbumId);
+    if (this.debug) console.log("[lidarr] getAlbumTracks - existing album:", existingAlbum ? { id: existingAlbum.id, title: existingAlbum.title } : null);
+
+    if (existingAlbum) {
+      // Album is in library - get tracks from trackfiles
+      const trackfiles = await this.tryRequest<unknown[]>(`/api/v1/trackfile?albumId=${existingAlbum.id}`);
+      if (this.debug) console.log("[lidarr] getAlbumTracks - trackfiles:", trackfiles?.length ?? 0);
+
+      if (trackfiles && trackfiles.length > 0) {
+        const tracks = trackfiles
+          .map((tf) => {
+            const item = asRecord(tf);
+            if (!item) return null;
+            return normalizeSong({
+              title: pickString(item, "title"),
+              artistName: pickString(item, "artistName"),
+              albumTitle: pickString(item, "albumTitle"),
+              foreignAlbumId: pickString(item, "foreignAlbumId"),
+              foreignSongId: pickString(item, "foreignSongId"),
+              foreignArtistId: pickString(item, "foreignArtistId"),
+              duration: pickNumber(item, "duration", "durationMs"),
+              trackNumber: pickNumber(item, "trackNumber")
+            });
+          })
+          .filter((t): t is LidarrSongSearchResult => t !== null);
+
+        if (tracks.length > 0) {
+          if (this.debug) console.log("[lidarr] getAlbumTracks - found tracks from trackfiles:", tracks.length);
+          return tracks;
+        }
+      }
+    }
+
+    // Fallback: try song/lookup endpoint with album ID term
     const encoded = encodeURIComponent(foreignAlbumId);
+    const songs = await this.tryRequest<LidarrSongSearchResult[]>(`/api/v1/song/lookup?term=${encoded}`);
+    if (this.debug) console.log("[lidarr] getAlbumTracks - song lookup results:", songs?.length ?? 0);
+
+    if (songs && songs.length > 0) {
+      // Filter to tracks that match this album
+      const matchingTracks = songs.filter((s) => s.foreignAlbumId === foreignAlbumId);
+      if (matchingTracks.length > 0) {
+        if (this.debug) console.log("[lidarr] getAlbumTracks - filtered tracks:", matchingTracks.length);
+        return matchingTracks;
+      }
+      // If no exact match, return all found tracks (might be from different release)
+      if (this.debug) console.log("[lidarr] getAlbumTracks - no exact match, returning all:", songs.length);
+      return songs;
+    }
+
+    // Last fallback: try album lookup endpoint
     const albumData = await this.tryRequest<{ songs?: LidarrSongSearchResult[] }>(`/api/v1/album/lookup?term=${encoded}`);
-    if (this.debug) console.log("[lidarr] getAlbumTracks - album data:", albumData ? { songCount: albumData.songs?.length ?? 0 } : null);
+    if (this.debug) console.log("[lidarr] getAlbumTracks - album lookup:", albumData ? { songCount: albumData.songs?.length ?? 0 } : null);
 
     if (albumData?.songs && albumData.songs.length > 0) {
       return albumData.songs;
@@ -375,11 +444,14 @@ export class LidarrClient {
   }
 
   async getExistingArtistAlbums(foreignArtistId: string): Promise<LidarrArtistAlbum[]> {
-    const existingArtist = await this.getExistingArtistByForeignId(foreignArtistId);
-    if (!existingArtist) return [];
-
+    // Check all albums in library regardless of whether artist was added
     const allAlbums = await this.request<LidarrArtistAlbum[]>("/api/v1/album");
-    return allAlbums.filter((album) => album.foreignArtistId === foreignArtistId);
+    if (this.debug) console.log("[lidarr] getExistingArtistAlbums - all albums in library:", allAlbums?.length ?? 0, "checking for foreignArtistId:", foreignArtistId);
+
+    const filtered = allAlbums.filter((album) => album.foreignArtistId === foreignArtistId);
+    if (this.debug) console.log("[lidarr] getExistingArtistAlbums - matched albums:", filtered.length);
+
+    return filtered;
   }
 
   async addArtist(input: AddArtistInput): Promise<LidarrArtist> {

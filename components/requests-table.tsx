@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { IconCheck, IconRefresh, IconX, IconAlbum, IconUser } from "@/components/ui/icons";
+import { IconCheck, IconRefresh, IconX, IconAlbum, IconUser, IconTrash } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast-provider";
 
@@ -80,6 +80,30 @@ export function RequestsTable({ admin = false }: Props) {
 
     setActing(null);
     toast.success(action === "approve" ? "Request approved." : "Request rejected.", "Requests");
+    await load();
+  };
+
+  const onDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this request? This action cannot be undone.")) {
+      return;
+    }
+
+    setActing(id);
+
+    const response = await fetch(`/api/requests/${id}`, {
+      method: "DELETE"
+    });
+
+    const payload = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      toast.error(payload.error ?? "Failed to delete request", "Requests");
+      setActing(null);
+      return;
+    }
+
+    setActing(null);
+    toast.success("Request deleted.", "Requests");
     await load();
   };
 
@@ -179,30 +203,46 @@ export function RequestsTable({ admin = false }: Props) {
 
                   <div className="flex flex-wrap items-center gap-2.5">
                     <StatusBadge status={item.status} />
-                    {admin && item.status === "PENDING" ? (
+                    {admin ? (
                       <>
                         <button
                           type="button"
                           disabled={acting === item.id}
-                          onClick={() => void onModerate(item.id, "approve")}
-                          className="rounded-xl border border-success/40 bg-success/12 px-3.5 py-2 text-xs font-medium text-success transition-all hover:bg-success/20 hover:border-success/60 disabled:opacity-60"
-                        >
-                          <span className="inline-flex items-center gap-1.5">
-                            <IconCheck className="h-3.5 w-3.5" />
-                            {acting === item.id ? "Working..." : "Approve"}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          disabled={acting === item.id}
-                          onClick={() => void onModerate(item.id, "reject")}
+                          onClick={() => void onDelete(item.id)}
                           className="rounded-xl border border-danger/40 bg-danger/12 px-3.5 py-2 text-xs font-medium text-danger transition-all hover:bg-danger/20 hover:border-danger/60 disabled:opacity-60"
+                          title="Delete request"
                         >
                           <span className="inline-flex items-center gap-1.5">
-                            <IconX className="h-3.5 w-3.5" />
-                            {acting === item.id ? "Working..." : "Reject"}
+                            <IconTrash className="h-3.5 w-3.5" />
+                            {acting === item.id ? "Working..." : "Delete"}
                           </span>
                         </button>
+                        {item.status === "PENDING" && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={acting === item.id}
+                              onClick={() => void onModerate(item.id, "approve")}
+                              className="rounded-xl border border-success/40 bg-success/12 px-3.5 py-2 text-xs font-medium text-success transition-all hover:bg-success/20 hover:border-success/60 disabled:opacity-60"
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <IconCheck className="h-3.5 w-3.5" />
+                                {acting === item.id ? "Working..." : "Approve"}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={acting === item.id}
+                              onClick={() => void onModerate(item.id, "reject")}
+                              className="rounded-xl border border-danger/40 bg-danger/12 px-3.5 py-2 text-xs font-medium text-danger transition-all hover:bg-danger/20 hover:border-danger/60 disabled:opacity-60"
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <IconX className="h-3.5 w-3.5" />
+                                {acting === item.id ? "Working..." : "Reject"}
+                              </span>
+                            </button>
+                          </>
+                        )}
                       </>
                     ) : null}
                   </div>

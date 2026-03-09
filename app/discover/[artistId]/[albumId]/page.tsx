@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { IconAlbum, IconDownload } from "@/components/ui/icons";
@@ -65,30 +65,72 @@ export default function AlbumDetailPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Use ref to track current request for race condition handling
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
+
   useEffect(() => {
     if (!albumId) return;
 
+    // Increment request ID for this navigation
+    requestIdRef.current++;
+    const currentRequestId = requestIdRef.current;
+
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    // Reset state when albumId changes
+    setData(null);
     setLoading(true);
 
     const fetchAlbum = async () => {
       try {
-        const response = await fetch(`/api/search/album/${encodeURIComponent(albumId)}`);
+        const response = await fetch(`/api/search/album/${encodeURIComponent(albumId)}`, {
+          signal: abortController.signal
+        });
+
+        // Check if this is still the latest request
+        if (currentRequestId !== requestIdRef.current) {
+          return;
+        }
+
         const payload = await response.json();
 
         if (!response.ok) {
           toast.error(payload.error ?? "Failed to load album", "Album");
+          setLoading(false);
+          return;
+        }
+
+        // Double-check we haven't navigated away while fetching
+        if (currentRequestId !== requestIdRef.current) {
           return;
         }
 
         setData(payload as AlbumData);
-      } catch {
+        setLoading(false);
+      } catch (error) {
+        // Ignore abort errors
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
         toast.error("Failed to load album details", "Album");
-      } finally {
         setLoading(false);
       }
     };
 
     void fetchAlbum();
+
+    // Cleanup: abort request on unmount or when albumId changes
+    return () => {
+      abortController.abort();
+    };
   }, [albumId, toast]);
 
   const requestAlbum = async () => {
