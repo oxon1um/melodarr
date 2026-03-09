@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { IconAlbum, IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
@@ -52,8 +53,20 @@ export default function ArtistDetailPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<string | null>(null);
 
+  // Use ref to track current request for race condition handling
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     if (!artistId) return;
+
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     // Reset state when artistId changes
     setData(null);
@@ -61,7 +74,15 @@ export default function ArtistDetailPage() {
 
     const fetchArtist = async () => {
       try {
-        const response = await fetch(`/api/search/artist/${encodeURIComponent(artistId)}`);
+        const response = await fetch(`/api/search/artist/${encodeURIComponent(artistId)}`, {
+          signal: abortController.signal
+        });
+
+        // Check if request was aborted
+        if (abortController.signal.aborted) {
+          return;
+        }
+
         const payload = await response.json();
 
         if (!response.ok) {
@@ -70,14 +91,25 @@ export default function ArtistDetailPage() {
         }
 
         setData(payload as ArtistData);
-      } catch {
+      } catch (error) {
+        // Ignore abort errors
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
         toast.error("Failed to load artist details", "Artist");
       } finally {
-        setLoading(false);
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     void fetchArtist();
+
+    // Cleanup: abort request on unmount or when artistId changes
+    return () => {
+      abortController.abort();
+    };
   }, [artistId, toast]);
 
   const requestAlbum = async (
@@ -215,17 +247,21 @@ export default function ArtistDetailPage() {
                   className="group motion-safe:animate-fade-in-up"
                   style={{ animationDelay: `${Math.min(index * 40, 200)}ms` }}
                 >
-                  <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
-                    <div className="aspect-square">
-                      {cover ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={cover} alt={album.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-muted">
-                          No cover
-                        </div>
-                      )}
-                    </div>
+                  <Link
+                    href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}` as const}
+                    className="block"
+                  >
+                    <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
+                      <div className="aspect-square">
+                        {cover ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={cover} alt={album.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-muted">
+                            No cover
+                          </div>
+                        )}
+                      </div>
                     {album.isExisting && (
                       <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-medium text-white shadow-lg">
                         <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -285,11 +321,12 @@ export default function ArtistDetailPage() {
                     className="btn-primary mt-3 w-full py-2 text-sm"
                   >
                     {album.isExisting
-                      ? "In Library"
+                      ? "Already Downloaded"
                       : submitting === `album:${key}`
                         ? "Requesting..."
                         : "Download Album"}
                   </button>
+                  </Link>
                 </Card>
               );
             })}
