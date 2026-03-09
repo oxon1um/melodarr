@@ -58,6 +58,10 @@ type LidarrArtistAlbum = {
   foreignArtistId?: string;
   releaseDate?: string;
   images?: LidarrImage[];
+  artist?: {
+    artistName?: string;
+    foreignArtistId?: string;
+  };
 };
 
 type LidarrAlbum = {
@@ -324,7 +328,8 @@ export class LidarrClient {
       if (!allAlbums) return [];
 
       const filtered = allAlbums.filter(
-        (album) => album.artistName?.toLowerCase() === artist.artistName.toLowerCase()
+        (album) => album.artistName?.toLowerCase() === artist.artistName.toLowerCase() ||
+                  album.artist?.artistName?.toLowerCase() === artist.artistName.toLowerCase()
       );
       if (this.debug) console.log("[lidarr] getAlbumsByArtistForeignId - fallback filtered:", filtered.length, "albums");
       return filtered;

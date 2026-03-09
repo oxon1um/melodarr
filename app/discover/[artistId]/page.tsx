@@ -55,6 +55,10 @@ export default function ArtistDetailPage() {
   useEffect(() => {
     if (!artistId) return;
 
+    // Reset state when artistId changes
+    setData(null);
+    setLoading(true);
+
     const fetchArtist = async () => {
       try {
         const response = await fetch(`/api/search/artist/${encodeURIComponent(artistId)}`);
