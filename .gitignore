@@ -1,7 +1,10 @@
 node_modules
 .next
 .env
+.env.local
 .DS_Store
 coverage
 tsconfig.tsbuildinfo
 docs/plans
+docker-compose.local.yml
+.worktrees
