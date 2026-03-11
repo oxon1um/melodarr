@@ -1,6 +1,10 @@
 node_modules
 .next
 .git
+.worktrees
 .gitignore
 npm-debug.log
 .env
+*.tsbuildinfo
+.DS_Store
+.playwright-mcp

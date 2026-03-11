@@ -1,11 +1,18 @@
 "use client";
 
+import type { Route } from "next";
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { IconAlbum, IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
+import {
+  filterNoisySingles,
+  RELEASE_SORT_OPTIONS,
+  type ReleaseSort,
+  sortReleases
+} from "@/lib/discover/release-browser";
 
 type ArtistDetails = {
   artistName: string;
@@ -20,14 +27,19 @@ type AlbumWithStatus = {
   foreignArtistId?: string;
   artistName?: string;
   releaseDate?: string;
+  secondaryTypes?: string[];
+  releaseStatuses?: string[];
   images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
-  isExisting: boolean;
+  isTracked: boolean;
+  hasFiles: boolean;
 };
 
 type ArtistData = {
   artist: ArtistDetails | null;
   albums: AlbumWithStatus[];
-  existingCount: number;
+  singles: AlbumWithStatus[];
+  trackedCount: number;
+  availableCount: number;
 };
 
 const chooseImage = (images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>) => {
@@ -35,7 +47,13 @@ const chooseImage = (images?: Array<{ coverType?: string; remoteUrl?: string; ur
 
   return (
     images.find((item) => item.coverType === "poster")?.remoteUrl ??
+    images.find((item) => item.coverType === "cover")?.remoteUrl ??
     images.find((item) => item.coverType === "fanart")?.remoteUrl ??
+    images.find((item) => item.coverType === "banner")?.remoteUrl ??
+    images.find((item) => item.coverType === "poster")?.url ??
+    images.find((item) => item.coverType === "cover")?.url ??
+    images.find((item) => item.coverType === "fanart")?.url ??
+    images.find((item) => item.coverType === "banner")?.url ??
     images[0]?.remoteUrl ??
     images[0]?.url
   );
@@ -44,14 +62,28 @@ const chooseImage = (images?: Array<{ coverType?: string; remoteUrl?: string; ur
 const albumKey = (album: { foreignAlbumId?: string; title: string }) =>
   album.foreignAlbumId ?? album.title;
 
+const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
+
 export default function ArtistDetailPage() {
   const params = useParams();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const artistId = params.artistId as string;
+  const artistName = searchParams.get("artistName") || undefined;
+  const from = searchParams.get("from") || "/discover";
+  const sortParam = searchParams.get("sort");
+  const hideNoisySinglesParam = searchParams.get("hideNoisySingles") === "1";
 
   const toast = useToast();
   const [data, setData] = useState<ArtistData | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<string | null>(null);
+  const [sort, setSort] = useState<ReleaseSort>(
+    RELEASE_SORT_OPTIONS.some((option) => option.value === sortParam)
+      ? (sortParam as ReleaseSort)
+      : DEFAULT_RELEASE_SORT
+  );
+  const [hideNoisySingles, setHideNoisySingles] = useState(hideNoisySinglesParam);
 
   // Use ref to track current request for race condition handling
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -79,7 +111,12 @@ export default function ArtistDetailPage() {
 
     const fetchArtist = async () => {
       try {
-        const response = await fetch(`/api/search/artist/${encodeURIComponent(artistId)}`, {
+        // Build URL with query params
+        const url = new URL(`/api/search/artist/${encodeURIComponent(artistId)}`, window.location.origin);
+        if (artistName) {
+          url.searchParams.set("artistName", artistName);
+        }
+        const response = await fetch(url.toString(), {
           signal: abortController.signal
         });
 
@@ -119,7 +156,39 @@ export default function ArtistDetailPage() {
     return () => {
       abortController.abort();
     };
-  }, [artistId, toast]);
+  }, [artistId, artistName, toast]);
+
+  useEffect(() => {
+    setSort(
+      RELEASE_SORT_OPTIONS.some((option) => option.value === sortParam)
+        ? (sortParam as ReleaseSort)
+        : DEFAULT_RELEASE_SORT
+    );
+    setHideNoisySingles(hideNoisySinglesParam);
+  }, [hideNoisySinglesParam, sortParam]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (artistName) {
+      params.set("artistName", artistName);
+    }
+    if (from) {
+      params.set("from", from);
+    }
+    if (sort === DEFAULT_RELEASE_SORT) {
+      params.delete("sort");
+    } else {
+      params.set("sort", sort);
+    }
+    if (hideNoisySingles) {
+      params.set("hideNoisySingles", "1");
+    } else {
+      params.delete("hideNoisySingles");
+    }
+
+    const nextHref = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    window.history.replaceState(null, "", nextHref);
+  }, [artistName, from, hideNoisySingles, pathname, searchParams, sort]);
 
   const requestAlbum = async (
     album: { title: string; artistName?: string; foreignArtistId?: string; foreignAlbumId?: string },
@@ -166,7 +235,7 @@ export default function ArtistDetailPage() {
     return (
       <div className="page-enter space-y-7">
         <div className="flex items-center gap-2">
-          <a href="/discover" className="btn-ghost rounded-lg">
+          <a href={from} className="btn-ghost rounded-lg">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -184,7 +253,7 @@ export default function ArtistDetailPage() {
     return (
       <div className="page-enter space-y-7">
         <div className="flex items-center gap-2">
-          <a href="/discover" className="btn-ghost rounded-lg">
+          <a href={from} className="btn-ghost rounded-lg">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -198,13 +267,30 @@ export default function ArtistDetailPage() {
     );
   }
 
-  const { artist, albums, existingCount } = data;
+  const { artist, albums, singles } = data;
+  const displayedAlbums = sortReleases(albums, sort);
+  const displayedSingles = filterNoisySingles(sortReleases(singles, sort), hideNoisySingles);
+  const displayedReleases = [...displayedAlbums, ...displayedSingles];
+  const trackedCount = displayedReleases.filter((album) => album.isTracked).length;
+  const availableCount = displayedReleases.filter((album) => album.hasFiles).length;
   const image = chooseImage(artist.images);
+  const artistParams = new URLSearchParams();
+  artistParams.set("artistName", artist.artistName);
+  if (from) {
+    artistParams.set("from", from);
+  }
+  if (sort !== DEFAULT_RELEASE_SORT) {
+    artistParams.set("sort", sort);
+  }
+  if (hideNoisySingles) {
+    artistParams.set("hideNoisySingles", "1");
+  }
+  const artistHref = (`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}?${artistParams.toString()}`) as Route;
 
   return (
     <div className="page-enter space-y-7">
       <div className="flex items-center gap-2">
-        <a href="/discover" className="btn-ghost rounded-lg">
+        <a href={from} className="btn-ghost rounded-lg">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
@@ -223,12 +309,17 @@ export default function ArtistDetailPage() {
         </div>
         <div className="space-y-2">
           <h1 className="font-display text-3xl font-semibold tracking-tight">{artist.artistName}</h1>
-          {existingCount > 0 && (
+          {availableCount > 0 && (
             <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
               <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              {existingCount} album{existingCount === 1 ? "" : "s"} in library
+              {availableCount} release{availableCount === 1 ? "" : "s"} available
+            </p>
+          )}
+          {trackedCount > availableCount && (
+            <p className="text-xs text-muted/80">
+              {trackedCount} tracked in Lidarr
             </p>
           )}
           <p className="max-w-2xl text-sm text-muted">
@@ -237,16 +328,45 @@ export default function ArtistDetailPage() {
         </div>
       </section>
 
+      <section className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-muted">
+          <span>Sort</span>
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as ReleaseSort)}
+            className="bg-transparent text-white outline-none"
+          >
+            {RELEASE_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value} className="bg-[#060c1a] text-white">
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          onClick={() => setHideNoisySingles((current) => !current)}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+            hideNoisySingles
+              ? "bg-accent/15 text-accent-glow border border-accent/40 shadow-[0_0_12px_rgba(94,186,255,0.15)]"
+              : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
+          }`}
+        >
+          Hide Noisy Singles
+        </button>
+      </section>
+
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <IconAlbum className="h-5 w-5 text-accent" />
           <h2 className="text-xl font-semibold tracking-tight">Albums</h2>
-          <span className="chip">{albums.length} found</span>
+          <span className="chip">{displayedAlbums.length} found</span>
         </div>
 
-        {albums.length > 0 ? (
+        {displayedAlbums.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {albums.map((album, index) => {
+            {displayedAlbums.map((album, index) => {
               const key = albumKey(album);
               const cover = chooseImage(album.images);
 
@@ -257,7 +377,7 @@ export default function ArtistDetailPage() {
                   style={{ animationDelay: `${Math.min(index * 40, 200)}ms` }}
                 >
                   <Link
-                    href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}` as const}
+                    href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
                     className="block"
                   >
                     <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
@@ -271,12 +391,17 @@ export default function ArtistDetailPage() {
                           </div>
                         )}
                       </div>
-                    {album.isExisting && (
+                    {album.hasFiles && (
                       <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-medium text-white shadow-lg">
                         <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
-                        In Library
+                        Available
+                      </div>
+                    )}
+                    {!album.hasFiles && album.isTracked && (
+                      <div className="absolute left-2 top-2 rounded-full bg-slate-900/85 px-2 py-1 text-[10px] font-medium text-slate-100 shadow-lg">
+                        Tracked
                       </div>
                     )}
                   </div>
@@ -305,10 +430,10 @@ export default function ArtistDetailPage() {
                           `album:${key}`
                         );
                       }}
-                      disabled={submitting === `album:${key}` || album.isExisting}
+                      disabled={submitting === `album:${key}` || album.isTracked}
                       className="quick-icon"
                       aria-label={`Quick download ${album.title}`}
-                      title={album.isExisting ? "Already in library" : "Quick download album"}
+                      title={album.isTracked ? "Already tracked in Lidarr" : "Quick download album"}
                     >
                       {submitting === `album:${key}` ? (
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -318,13 +443,15 @@ export default function ArtistDetailPage() {
                       <span className="sr-only">Quick download album</span>
                     </button>
                     <Link
-                      href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}` as const}
+                      href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
                       className="btn-primary flex-1 py-2 text-sm"
                     >
                       {submitting === `album:${key}`
                         ? "Requesting..."
-                        : album.isExisting
-                          ? "In Library"
+                        : album.hasFiles
+                          ? "View Album"
+                          : album.isTracked
+                            ? "Tracked in Lidarr"
                           : "Download Album"}
                     </Link>
                   </div>
@@ -335,6 +462,115 @@ export default function ArtistDetailPage() {
         ) : (
           <div className="empty-state">
             <p className="text-muted">No albums found for this artist</p>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <IconAlbum className="h-5 w-5 text-accent" />
+          <h2 className="text-xl font-semibold tracking-tight">Singles</h2>
+          <span className="chip">{displayedSingles.length} found</span>
+        </div>
+
+        {displayedSingles.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {displayedSingles.map((single, index) => {
+              const key = albumKey(single);
+              const cover = chooseImage(single.images);
+
+              return (
+                <Card
+                  key={`single:${key}`}
+                  className="group motion-safe:animate-fade-in-up"
+                  style={{ animationDelay: `${Math.min(index * 40, 200)}ms` }}
+                >
+                  <Link
+                    href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(single.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
+                    className="block"
+                  >
+                    <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
+                      <div className="aspect-square">
+                        {cover ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={cover} alt={single.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-muted">
+                            No cover
+                          </div>
+                        )}
+                      </div>
+                      {single.hasFiles && (
+                        <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-medium text-white shadow-lg">
+                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          Available
+                        </div>
+                      )}
+                      {!single.hasFiles && single.isTracked && (
+                        <div className="absolute left-2 top-2 rounded-full bg-slate-900/85 px-2 py-1 text-[10px] font-medium text-slate-100 shadow-lg">
+                          Tracked
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-3 space-y-1">
+                      <p className="truncate text-sm font-medium text-text">{single.title}</p>
+                      {single.releaseDate && (
+                        <p className="text-xs text-muted/70">
+                          {new Date(single.releaseDate).getFullYear()}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void requestAlbum(
+                          {
+                            title: single.title,
+                            artistName: single.artistName ?? artist.artistName,
+                            foreignArtistId: single.foreignArtistId,
+                            foreignAlbumId: single.foreignAlbumId
+                          },
+                          `single:${key}`
+                        );
+                      }}
+                      disabled={submitting === `single:${key}` || single.isTracked}
+                      className="quick-icon"
+                      aria-label={`Quick download ${single.title}`}
+                      title={single.isTracked ? "Already tracked in Lidarr" : "Quick download single"}
+                    >
+                      {submitting === `single:${key}` ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : (
+                        <IconDownload className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">Quick download single</span>
+                    </button>
+                    <Link
+                      href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(single.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
+                      className="btn-primary flex-1 py-2 text-sm"
+                    >
+                      {submitting === `single:${key}`
+                        ? "Requesting..."
+                        : single.hasFiles
+                          ? "View Single"
+                          : single.isTracked
+                            ? "Tracked in Lidarr"
+                            : "Download Single"}
+                    </Link>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <p className="text-muted">No singles found for this artist</p>
           </div>
         )}
       </section>

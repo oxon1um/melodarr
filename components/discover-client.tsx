@@ -1,10 +1,18 @@
 "use client";
 
+import type { Route } from "next";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { IconAlbum, IconDownload, IconSearch } from "@/components/ui/icons";
+import { IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
+import {
+  filterNoisySingles,
+  RELEASE_SORT_OPTIONS,
+  type ReleaseSort,
+  sortReleases
+} from "@/lib/discover/release-browser";
 
 type Artist = {
   artistName: string;
@@ -19,33 +27,27 @@ type Album = {
   artistName: string;
   foreignAlbumId?: string;
   foreignArtistId?: string;
+  releaseGroup?: "album" | "single";
+  releaseDate?: string;
+  secondaryTypes?: string[];
+  releaseStatuses?: string[];
   overview?: string;
   images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
-  isExisting?: boolean;
-};
-
-type Song = {
-  title: string;
-  artistName: string;
-  albumTitle?: string;
-  foreignAlbumId?: string;
-  foreignSongId?: string;
-  foreignArtistId?: string;
-  duration?: number;
-  images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
+  isTracked?: boolean;
+  hasFiles?: boolean;
 };
 
 type DiscoveryResults = {
   artists: Artist[];
   albums: Album[];
-  songs: Song[];
+  singles: Album[];
 };
 
-type FilterType = "all" | "artists" | "albums" | "songs";
+type FilterType = "all" | "artists" | "albums" | "singles";
 
 type Suggestion = {
   id: string;
-  type: "artist" | "album" | "song";
+  type: "artist" | "album" | "single";
   label: string;
   subLabel?: string;
   artistName: string;
@@ -54,22 +56,54 @@ type Suggestion = {
   foreignAlbumId?: string;
 };
 
+type ArtistRouteInput = {
+  artistName: string;
+  foreignArtistId?: string;
+  from?: string;
+};
+
+type AlbumRouteInput = {
+  artistName: string;
+  foreignArtistId?: string;
+  foreignAlbumId?: string;
+  from?: string;
+};
+
+type SavedSearch = {
+  query: string;
+  filter: FilterType;
+  sort: ReleaseSort;
+  hideNoisySingles: boolean;
+};
+
 const emptyResults: DiscoveryResults = {
   artists: [],
   albums: [],
-  songs: []
+  singles: []
 };
 
-const chooseImage = (images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>) => {
+const RECENT_SEARCHES_KEY = "melodarr:discover-recent-searches";
+const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
+
+const pickImage = (
+  images: Array<{ coverType?: string; remoteUrl?: string; url?: string }> | undefined,
+  preferredTypes: string[]
+) => {
   if (!images || images.length === 0) return undefined;
 
   return (
-    images.find((item) => item.coverType === "poster")?.remoteUrl ??
-    images.find((item) => item.coverType === "fanart")?.remoteUrl ??
+    preferredTypes.map((type) => images.find((item) => item.coverType === type)?.remoteUrl).find(Boolean) ??
+    preferredTypes.map((type) => images.find((item) => item.coverType === type)?.url).find(Boolean) ??
     images[0]?.remoteUrl ??
     images[0]?.url
   );
 };
+
+const chooseArtistImage = (images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>) =>
+  pickImage(images, ["poster", "cover", "fanart", "banner"]);
+
+const chooseAlbumImage = (images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>) =>
+  pickImage(images, ["cover", "poster", "fanart", "banner"]);
 
 const albumKey = (album: { foreignAlbumId?: string; artistName: string; title: string }) =>
   album.foreignAlbumId ?? `${album.artistName}:${album.title}`;
@@ -77,28 +111,142 @@ const albumKey = (album: { foreignAlbumId?: string; artistName: string; title: s
 const artistKey = (artist: { foreignArtistId?: string; artistName: string }) =>
   artist.foreignArtistId ?? artist.artistName;
 
+export const buildArtistHref = ({ artistName, foreignArtistId, from }: ArtistRouteInput): Route | undefined =>
+  foreignArtistId
+    ? (`/discover/${encodeURIComponent(foreignArtistId)}?artistName=${encodeURIComponent(artistName)}${from ? `&from=${encodeURIComponent(from)}` : ""}` as Route)
+    : undefined;
+
+export const buildAlbumHref = ({ artistName, foreignArtistId, foreignAlbumId, from }: AlbumRouteInput): Route | undefined =>
+  foreignArtistId && foreignAlbumId
+    ? (`/discover/${encodeURIComponent(foreignArtistId)}/${encodeURIComponent(foreignAlbumId)}?artistName=${encodeURIComponent(artistName)}${from ? `&from=${encodeURIComponent(from)}` : ""}` as Route)
+    : undefined;
+
 const sectionTitle = (value: FilterType) => {
   if (value === "artists") return "Artists";
   if (value === "albums") return "Albums";
-  if (value === "songs") return "Tracks";
+  if (value === "singles") return "Singles";
   return "All Results";
 };
 
+const albumActionLabel = (album: Pick<Album, "isTracked" | "hasFiles">) => {
+  if (album.hasFiles) return "Available";
+  if (album.isTracked) return "Tracked in Lidarr";
+  return "Download Album";
+};
+
+const albumActionTitle = (album: Pick<Album, "isTracked" | "hasFiles">) => {
+  if (album.hasFiles) return "Already available";
+  if (album.isTracked) return "Already tracked in Lidarr";
+  return "Quick download album";
+};
+
 export function DiscoverClient() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const toast = useToast();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [results, setResults] = useState<DiscoveryResults>(emptyResults);
-  const [filter, setFilter] = useState<FilterType>("all");
+  const [filter, setFilter] = useState<FilterType>(() => {
+    const value = searchParams.get("filter");
+    return value === "artists" || value === "albums" || value === "singles"
+      ? value
+      : "all";
+  });
+  const [sort, setSort] = useState<ReleaseSort>(() => {
+    const value = searchParams.get("sort");
+    return RELEASE_SORT_OPTIONS.some((option) => option.value === value)
+      ? (value as ReleaseSort)
+      : DEFAULT_RELEASE_SORT;
+  });
+  const [hideNoisySingles, setHideNoisySingles] = useState(searchParams.get("hideNoisySingles") === "1");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isSuggestionsHovered, setIsSuggestionsHovered] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<SavedSearch[]>([]);
 
   const requestSequence = useRef(0);
+  const searchRegionRef = useRef<HTMLFormElement | null>(null);
 
-  const fetchDiscovery = async (term: string, showLoader = true) => {
+  const discoverStateHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (query.trim().length >= 2) {
+      params.set("q", query.trim());
+    }
+    if (filter !== "all") {
+      params.set("filter", filter);
+    }
+    if (sort !== DEFAULT_RELEASE_SORT) {
+      params.set("sort", sort);
+    }
+    if (hideNoisySingles) {
+      params.set("hideNoisySingles", "1");
+    }
+
+    const search = params.toString();
+    return search ? `${pathname}?${search}` : pathname;
+  }, [filter, hideNoisySingles, pathname, query, sort]);
+
+  const buildDiscoverStateHref = (
+    nextQuery: string,
+    nextFilter: FilterType,
+    nextSort: ReleaseSort,
+    nextHideNoisySingles: boolean
+  ) => {
+    const params = new URLSearchParams();
+    if (nextQuery.trim().length >= 2) {
+      params.set("q", nextQuery.trim());
+    }
+    if (nextFilter !== "all") {
+      params.set("filter", nextFilter);
+    }
+    if (nextSort !== DEFAULT_RELEASE_SORT) {
+      params.set("sort", nextSort);
+    }
+    if (nextHideNoisySingles) {
+      params.set("hideNoisySingles", "1");
+    }
+
+    const search = params.toString();
+    return search ? `${pathname}?${search}` : pathname;
+  };
+
+  const fetchDiscovery = async (
+    term: string,
+    showLoader = true,
+    stateOverride?: {
+      filter?: FilterType;
+      sort?: ReleaseSort;
+      hideNoisySingles?: boolean;
+    }
+  ) => {
+    const nextFilter = stateOverride?.filter ?? filter;
+    const nextSort = stateOverride?.sort ?? sort;
+    const nextHideNoisySingles = stateOverride?.hideNoisySingles ?? hideNoisySingles;
+
     if (!term.trim() || term.trim().length < 2) {
       setResults(emptyResults);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("q");
+      if (nextFilter === "all") {
+        params.delete("filter");
+      } else {
+        params.set("filter", nextFilter);
+      }
+      if (nextSort === DEFAULT_RELEASE_SORT) {
+        params.delete("sort");
+      } else {
+        params.set("sort", nextSort);
+      }
+      if (nextHideNoisySingles) {
+        params.set("hideNoisySingles", "1");
+      } else {
+        params.delete("hideNoisySingles");
+      }
+      window.history.replaceState(null, "", params.toString() ? `${pathname}?${params.toString()}` : pathname);
       return;
     }
 
@@ -124,11 +272,46 @@ export function DiscoverClient() {
     setResults({
       artists: payload.artists ?? [],
       albums: payload.albums ?? [],
-      songs: payload.songs ?? []
+      singles: payload.singles ?? []
     });
+
+    const trimmedTerm = term.trim();
+    const nextRecent = [
+      { query: trimmedTerm, filter: nextFilter, sort: nextSort, hideNoisySingles: nextHideNoisySingles },
+      ...recentSearches.filter((entry) => entry.query !== trimmedTerm)
+    ].slice(0, 8);
+    setRecentSearches(nextRecent);
+    window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(nextRecent));
+    window.history.replaceState(null, "", buildDiscoverStateHref(term, nextFilter, nextSort, nextHideNoisySingles));
 
     if (showLoader) setLoading(false);
   };
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!saved) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(saved) as SavedSearch[];
+      if (Array.isArray(parsed)) {
+        setRecentSearches(
+          parsed.filter((entry): entry is SavedSearch =>
+            Boolean(
+              entry
+              && typeof entry.query === "string"
+              && typeof entry.filter === "string"
+              && typeof entry.sort === "string"
+              && typeof entry.hideNoisySingles === "boolean"
+            )
+          )
+        );
+      }
+    } catch {
+      window.localStorage.removeItem(RECENT_SEARCHES_KEY);
+    }
+  }, []);
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -142,6 +325,17 @@ export function DiscoverClient() {
 
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    if (query.trim().length >= 2) {
+      void fetchDiscovery(query, true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    window.history.replaceState(null, "", discoverStateHref);
+  }, [discoverStateHref]);
 
   const runSearch = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -195,10 +389,10 @@ export function DiscoverClient() {
     setSubmitting(null);
   };
 
-  const albumsByArtist = useMemo(() => {
+  const releasesByArtist = useMemo(() => {
     const map = new Map<string, Album[]>();
 
-    for (const album of results.albums) {
+    for (const album of [...sortReleases(results.albums, sort), ...filterNoisySingles(sortReleases(results.singles, sort), hideNoisySingles)]) {
       const key = album.foreignArtistId ?? album.artistName.toLowerCase();
       const current = map.get(key) ?? [];
       current.push(album);
@@ -206,28 +400,34 @@ export function DiscoverClient() {
     }
 
     return map;
-  }, [results.albums]);
+  }, [hideNoisySingles, results.albums, results.singles, sort]);
+
+  const displayedAlbums = useMemo(() => sortReleases(results.albums, sort), [results.albums, sort]);
+  const displayedSingles = useMemo(
+    () => filterNoisySingles(sortReleases(results.singles, sort), hideNoisySingles),
+    [hideNoisySingles, results.singles, sort]
+  );
 
   const counts = useMemo(
     () => ({
       artists: results.artists.length,
-      albums: results.albums.length,
-      songs: results.songs.length
+      albums: displayedAlbums.length,
+      singles: displayedSingles.length
     }),
-    [results]
+    [displayedAlbums.length, displayedSingles.length, results.artists.length]
   );
 
-  const totalCount = counts.artists + counts.albums + counts.songs;
+  const totalCount = counts.artists + counts.albums + counts.singles;
 
   const filters: Array<{ id: FilterType; label: string }> = [
     { id: "all", label: `All (${totalCount})` },
     { id: "artists", label: `Artists (${counts.artists})` },
     { id: "albums", label: `Albums (${counts.albums})` },
-    { id: "songs", label: `Tracks (${counts.songs})` }
+    { id: "singles", label: `Singles (${counts.singles})` }
   ];
 
   const suggestions = useMemo(() => {
-    const artistSuggestions: Suggestion[] = results.artists.slice(0, 4).map((artist) => ({
+    const artistSuggestions: Suggestion[] = results.artists.map((artist) => ({
       id: `artist:${artistKey(artist)}`,
       type: "artist",
       label: artist.artistName,
@@ -236,7 +436,7 @@ export function DiscoverClient() {
       foreignArtistId: artist.foreignArtistId
     }));
 
-    const albumSuggestions: Suggestion[] = results.albums.slice(0, 4).map((album) => ({
+    const albumSuggestions: Suggestion[] = displayedAlbums.map((album) => ({
       id: `album:${albumKey({
         foreignAlbumId: album.foreignAlbumId,
         artistName: album.artistName,
@@ -251,19 +451,23 @@ export function DiscoverClient() {
       foreignAlbumId: album.foreignAlbumId
     }));
 
-    const songSuggestions: Suggestion[] = results.songs.slice(0, 4).map((song) => ({
-      id: `song:${song.foreignSongId ?? `${song.artistName}:${song.title}`}`,
-      type: "song",
-      label: song.title,
-      subLabel: `Track - ${song.artistName}${song.albumTitle ? ` - ${song.albumTitle}` : ""}`,
-      artistName: song.artistName,
-      albumTitle: song.albumTitle,
-      foreignArtistId: song.foreignArtistId,
-      foreignAlbumId: song.foreignAlbumId
+    const singleSuggestions: Suggestion[] = displayedSingles.map((single) => ({
+      id: `single:${albumKey({
+        foreignAlbumId: single.foreignAlbumId,
+        artistName: single.artistName,
+        title: single.title
+      })}`,
+      type: "single",
+      label: single.title,
+      subLabel: `Single - ${single.artistName}`,
+      artistName: single.artistName,
+      albumTitle: single.title,
+      foreignArtistId: single.foreignArtistId,
+      foreignAlbumId: single.foreignAlbumId
     }));
 
-    return [...artistSuggestions, ...albumSuggestions, ...songSuggestions].slice(0, 10);
-  }, [results]);
+    return [...artistSuggestions, ...albumSuggestions, ...singleSuggestions].slice(0, 10);
+  }, [displayedAlbums, displayedSingles, results.artists]);
 
   useEffect(() => {
     if (activeSuggestionIndex >= suggestions.length) {
@@ -271,23 +475,83 @@ export function DiscoverClient() {
     }
   }, [activeSuggestionIndex, suggestions.length]);
 
+  useEffect(() => {
+    if (!showSuggestions || suggestions.length === 0 || isSuggestionsHovered) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setShowSuggestions(false);
+    }, isSearchFocused ? 2000 : 800);
+
+    return () => window.clearTimeout(timer);
+  }, [isSearchFocused, isSuggestionsHovered, showSuggestions, suggestions.length, query]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target || searchRegionRef.current?.contains(target)) {
+        return;
+      }
+
+      setShowSuggestions(false);
+      setIsSearchFocused(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
   const chooseSuggestion = (suggestion: Suggestion) => {
-    setQuery(suggestion.type === "album" || suggestion.type === "song" ? suggestion.label : suggestion.artistName);
     setShowSuggestions(false);
+
+    const artistHref = buildArtistHref({
+      artistName: suggestion.artistName,
+      foreignArtistId: suggestion.foreignArtistId,
+      from: discoverStateHref
+    });
+    const albumHref = buildAlbumHref({
+      artistName: suggestion.artistName,
+      foreignArtistId: suggestion.foreignArtistId,
+      foreignAlbumId: suggestion.foreignAlbumId,
+      from: discoverStateHref
+    });
+
+    if (suggestion.type === "artist" && artistHref) {
+      router.push(artistHref);
+      return;
+    }
+
+    if ((suggestion.type === "album" || suggestion.type === "single") && albumHref) {
+      router.push(albumHref);
+      return;
+    }
+
+    setQuery(suggestion.type === "album" || suggestion.type === "single" ? suggestion.label : suggestion.artistName);
 
     if (suggestion.type === "artist") setFilter("artists");
     if (suggestion.type === "album") setFilter("albums");
-    if (suggestion.type === "song") setFilter("songs");
+    if (suggestion.type === "single") setFilter("singles");
   };
 
   return (
     <div className="page-enter space-y-7">
       <section className="space-y-1">
         <h1 className="font-display text-3xl font-semibold tracking-tight">Discover Music</h1>
-        <p className="text-sm text-muted">Search artists, albums, and tracks.</p>
+        <p className="text-sm text-muted">Search artists, albums, and singles.</p>
       </section>
 
-      <form onSubmit={runSearch} className="panel relative flex flex-col gap-3 p-4 sm:p-5 md:flex-row">
+      <form
+        ref={searchRegionRef}
+        onSubmit={runSearch}
+        className="panel relative z-30 flex flex-col gap-3 p-4 sm:p-5 md:flex-row"
+        onMouseLeave={() => {
+          setIsSuggestionsHovered(false);
+          if (!isSearchFocused) {
+            setShowSuggestions(false);
+          }
+        }}
+      >
         <div className="relative min-w-0 flex-1">
           <input
             value={query}
@@ -296,7 +560,21 @@ export function DiscoverClient() {
               setShowSuggestions(true);
               setActiveSuggestionIndex(0);
             }}
-            onFocus={() => setShowSuggestions(true)}
+            onFocus={() => {
+              setIsSearchFocused(true);
+              setShowSuggestions(true);
+            }}
+            onBlur={(event) => {
+              const nextTarget = event.relatedTarget as Node | null;
+              if (nextTarget && searchRegionRef.current?.contains(nextTarget)) {
+                return;
+              }
+
+              setIsSearchFocused(false);
+              if (!searchRegionRef.current?.matches(":hover")) {
+                setShowSuggestions(false);
+              }
+            }}
             onKeyDown={(event) => {
               if (!showSuggestions || suggestions.length === 0) return;
 
@@ -324,8 +602,17 @@ export function DiscoverClient() {
           />
 
           {showSuggestions && suggestions.length > 0 ? (
-            <div className="absolute left-0 right-0 top-[3.75rem] z-[10000] rounded-2xl border border-white/[0.1] bg-[#060c1a]/95 p-1 shadow-panel backdrop-blur-xl">
-              <ul className="soft-scroll max-h-72 overflow-auto">
+            <div
+              className="absolute left-0 right-0 top-[3.75rem] z-[10001] rounded-2xl border border-white/[0.1] bg-[#060c1a]/95 p-1 shadow-panel backdrop-blur-xl"
+              onMouseEnter={() => setIsSuggestionsHovered(true)}
+              onMouseLeave={() => {
+                setIsSuggestionsHovered(false);
+                if (!isSearchFocused) {
+                  setShowSuggestions(false);
+                }
+              }}
+            >
+              <ul className="soft-scroll max-h-[30rem] overflow-auto">
                 {suggestions.map((suggestion, index) => (
                   <li key={suggestion.id}>
                     <button
@@ -362,13 +649,43 @@ export function DiscoverClient() {
         </button>
       </form>
 
+      {recentSearches.length > 0 ? (
+        <section className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="chip">Recently searched</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {recentSearches.map((entry) => (
+              <button
+                key={`${entry.query}:${entry.filter}:${entry.sort}:${entry.hideNoisySingles ? "hide" : "show"}`}
+                type="button"
+                onClick={() => {
+                  setQuery(entry.query);
+                  setFilter(entry.filter);
+                  setSort(entry.sort);
+                  setHideNoisySingles(entry.hideNoisySingles);
+                  void fetchDiscovery(entry.query, true, {
+                    filter: entry.filter,
+                    sort: entry.sort,
+                    hideNoisySingles: entry.hideNoisySingles
+                  });
+                }}
+                className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm text-muted transition hover:border-accent/35 hover:text-white"
+              >
+                {entry.query}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <span className="chip border-accent/25 bg-accent/10 text-accent-glow">{sectionTitle(filter)}</span>
           <span className="chip">{totalCount} results</span>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {filters.map((item) => (
             <button
               key={item.id}
@@ -383,6 +700,33 @@ export function DiscoverClient() {
               {item.label}
             </button>
           ))}
+
+          <label className="ml-auto flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-muted">
+            <span>Sort</span>
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as ReleaseSort)}
+              className="bg-transparent text-white outline-none"
+            >
+              {RELEASE_SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} className="bg-[#060c1a] text-white">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setHideNoisySingles((current) => !current)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              hideNoisySingles
+                ? "bg-accent/15 text-accent-glow border border-accent/40 shadow-[0_0_12px_rgba(94,186,255,0.15)]"
+                : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
+            }`}
+          >
+            Hide Noisy Singles
+          </button>
         </div>
       </section>
 
@@ -392,11 +736,18 @@ export function DiscoverClient() {
           <div className="space-y-5">
             {results.artists.map((artist, artistIndex) => {
               const key = artistKey(artist);
-              const image = chooseImage(artist.images);
-              const artistAlbums =
-                albumsByArtist.get(artist.foreignArtistId ?? "") ??
-                albumsByArtist.get(artist.artistName.toLowerCase()) ??
+              const image = chooseArtistImage(artist.images);
+              const artistHref = buildArtistHref({
+                artistName: artist.artistName,
+                foreignArtistId: artist.foreignArtistId,
+                from: discoverStateHref
+              });
+              const artistReleases =
+                releasesByArtist.get(artist.foreignArtistId ?? "") ??
+                releasesByArtist.get(artist.artistName.toLowerCase()) ??
                 [];
+              const availableAlbumCount = artistReleases.filter((album) => album.hasFiles).length;
+              const trackedAlbumCount = artistReleases.filter((album) => album.isTracked).length;
 
               return (
                 <Card
@@ -414,9 +765,9 @@ export function DiscoverClient() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      {artist.foreignArtistId ? (
+                      {artistHref ? (
                         <Link
-                          href={`/discover/${artist.foreignArtistId}`}
+                          href={artistHref}
                           className="text-lg font-semibold tracking-tight hover:text-accent-glow"
                         >
                           {artist.artistName}
@@ -428,101 +779,16 @@ export function DiscoverClient() {
                         {artist.overview ?? "No description provided by Lidarr metadata."}
                       </p>
                       <p className="mt-2 text-xs text-muted/70">
-                        {artistAlbums.length > 0
-                          ? `${artistAlbums.length} album${artistAlbums.length === 1 ? "" : "s"} available`
-                          : "No album lookup results for this artist"}
+                        {artistReleases.length > 0
+                          ? availableAlbumCount > 0
+                            ? `${availableAlbumCount} release${availableAlbumCount === 1 ? "" : "s"} available${trackedAlbumCount > availableAlbumCount ? ` · ${trackedAlbumCount} tracked` : ""}`
+                            : trackedAlbumCount > 0
+                              ? `${trackedAlbumCount} release${trackedAlbumCount === 1 ? "" : "s"} tracked`
+                              : `${artistReleases.length} release${artistReleases.length === 1 ? "" : "s"} found`
+                          : "No release lookup results for this artist"}
                       </p>
                     </div>
                   </div>
-
-                  {artistAlbums.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                      {artistAlbums.map((album, albumIndex) => {
-                        const aKey = albumKey({
-                          foreignAlbumId: album.foreignAlbumId,
-                          artistName: album.artistName,
-                          title: album.title
-                        });
-                        const cover = chooseImage(album.images);
-
-                        return (
-                          <div
-                            key={`artist-album:${aKey}`}
-                            className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-panel-2/40 p-3 transition-all hover:border-white/[0.15] motion-safe:animate-fade-in-up"
-                            style={{ animationDelay: `${Math.min(albumIndex * 40, 200)}ms` }}
-                          >
-                            <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
-                              <div className="aspect-square">
-                                {cover ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img src={cover} alt={album.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                ) : (
-                                  <div className="flex h-full items-center justify-center text-xs text-muted">
-                                    No cover
-                                  </div>
-                                )}
-                              </div>
-                              {album.isExisting && (
-                                <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                                  <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                </div>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void requestAlbum(
-                                    {
-                                      artistName: album.artistName,
-                                      albumTitle: album.title,
-                                      foreignArtistId: album.foreignArtistId,
-                                      foreignAlbumId: album.foreignAlbumId
-                                    },
-                                    `artist-album:${aKey}`
-                                  )
-                                }
-                                disabled={submitting === `artist-album:${aKey}` || album.isExisting}
-                                className="quick-icon"
-                                aria-label={`Quick download ${album.title}`}
-                                title={album.isExisting ? "Already in library" : "Quick download album"}
-                              >
-                                {submitting === `artist-album:${aKey}` ? (
-                                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                ) : (
-                                  <IconDownload className="h-4 w-4" />
-                                )}
-                                <span className="sr-only">Quick download album</span>
-                              </button>
-                            </div>
-                            <p className="mt-2.5 truncate text-sm font-medium text-text">{album.title}</p>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void requestAlbum(
-                                  {
-                                    artistName: album.artistName,
-                                    albumTitle: album.title,
-                                    foreignArtistId: album.foreignArtistId,
-                                    foreignAlbumId: album.foreignAlbumId
-                                  },
-                                  `artist-album:${aKey}`
-                                )
-                              }
-                              disabled={submitting === `artist-album:${aKey}` || album.isExisting}
-                              className="btn-primary mt-2.5 w-full py-2 text-sm"
-                            >
-                              {album.isExisting
-                                ? "In Library"
-                                : submitting === `artist-album:${aKey}`
-                                  ? "Requesting..."
-                                  : "Download Album"}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : null}
                 </Card>
               );
             })}
@@ -530,17 +796,23 @@ export function DiscoverClient() {
         </section>
       ) : null}
 
-      {(filter === "all" || filter === "albums") && results.albums.length > 0 ? (
+      {(filter === "all" || filter === "albums") && displayedAlbums.length > 0 ? (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">Albums</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {results.albums.map((album, index) => {
+            {displayedAlbums.map((album, index) => {
               const key = albumKey({
                 foreignAlbumId: album.foreignAlbumId,
                 artistName: album.artistName,
                 title: album.title
               });
-              const image = chooseImage(album.images);
+              const image = chooseAlbumImage(album.images);
+              const albumHref = buildAlbumHref({
+                artistName: album.artistName,
+                foreignArtistId: album.foreignArtistId,
+                foreignAlbumId: album.foreignAlbumId,
+                from: discoverStateHref
+              });
 
               return (
                 <Card
@@ -550,17 +822,35 @@ export function DiscoverClient() {
                 >
                   <div className="flex gap-4">
                     <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
-                      {image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={image} alt={album.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      {albumHref ? (
+                        <Link href={albumHref} className="block h-full w-full">
+                          {image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={image} alt={album.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
+                          )}
+                        </Link>
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
+                        <>
+                          {image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={image} alt={album.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
+                          )}
+                        </>
                       )}
-                      {album.isExisting && (
+                      {album.hasFiles && (
                         <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
                           <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
+                        </div>
+                      )}
+                      {!album.hasFiles && album.isTracked && (
+                        <div className="absolute left-1 top-1 rounded-full bg-slate-900/85 px-1.5 py-0.5 text-[10px] font-medium text-slate-100">
+                          Tracked
                         </div>
                       )}
                       <button
@@ -576,10 +866,10 @@ export function DiscoverClient() {
                             `album:${key}`
                           )
                         }
-                        disabled={submitting === `album:${key}` || album.isExisting}
+                        disabled={submitting === `album:${key}` || album.isTracked}
                         className="quick-icon"
                         aria-label={`Quick download ${album.title}`}
-                        title={album.isExisting ? "Already in library" : "Quick download album"}
+                        title={albumActionTitle(album)}
                       >
                         {submitting === `album:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -590,7 +880,13 @@ export function DiscoverClient() {
                       </button>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold tracking-tight">{album.title}</h3>
+                      {albumHref ? (
+                        <Link href={albumHref} className="text-lg font-semibold tracking-tight hover:text-accent-glow">
+                          {album.title}
+                        </Link>
+                      ) : (
+                        <h3 className="text-lg font-semibold tracking-tight">{album.title}</h3>
+                      )}
                       <p className="text-sm text-muted">{album.artistName}</p>
                       <p className="mt-1.5 line-clamp-2 text-xs text-muted/80">
                         {album.overview ?? "No album overview available."}
@@ -608,14 +904,12 @@ export function DiscoverClient() {
                             `album:${key}`
                           )
                         }
-                        disabled={submitting === `album:${key}` || album.isExisting}
+                        disabled={submitting === `album:${key}` || album.isTracked}
                         className="btn-primary mt-3 py-2 text-sm"
                       >
-                        {album.isExisting
-                          ? "In Library"
-                          : submitting === `album:${key}`
+                        {submitting === `album:${key}`
                             ? "Requesting..."
-                            : "Download Album"}
+                            : albumActionLabel(album)}
                       </button>
                     </div>
                   </div>
@@ -626,72 +920,121 @@ export function DiscoverClient() {
         </section>
       ) : null}
 
-      {(filter === "all" || filter === "songs") && results.songs.length > 0 ? (
+      {(filter === "all" || filter === "singles") && displayedSingles.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Tracks</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Singles</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {results.songs.map((song, index) => {
-              const key = `song:${song.foreignSongId ?? `${song.artistName}:${song.title}`}`;
-              const image = chooseImage(song.images);
-              const canRequest = Boolean(song.albumTitle);
+            {displayedSingles.map((single, index) => {
+              const key = albumKey({
+                foreignAlbumId: single.foreignAlbumId,
+                artistName: single.artistName,
+                title: single.title
+              });
+              const image = chooseAlbumImage(single.images);
+              const singleHref = buildAlbumHref({
+                artistName: single.artistName,
+                foreignArtistId: single.foreignArtistId,
+                foreignAlbumId: single.foreignAlbumId,
+                from: discoverStateHref
+              });
 
               return (
                 <Card
-                  key={key}
+                  key={`single:${key}`}
                   className="group motion-safe:animate-fade-in-up"
                   style={{ animationDelay: `${Math.min(index * 40, 240)}ms` }}
                 >
                   <div className="flex gap-4">
-                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
-                      {image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={image} alt={song.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
+                      {singleHref ? (
+                        <Link href={singleHref} className="block h-full w-full">
+                          {image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={image} alt={single.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
+                          )}
+                        </Link>
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
+                        <>
+                          {image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={image} alt={single.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
+                          )}
+                        </>
                       )}
+                      {single.hasFiles && (
+                        <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                          <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                      {!single.hasFiles && single.isTracked && (
+                        <div className="absolute left-1 top-1 rounded-full bg-slate-900/85 px-1.5 py-0.5 text-[10px] font-medium text-slate-100">
+                          Tracked
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void requestAlbum(
+                            {
+                              artistName: single.artistName,
+                              albumTitle: single.title,
+                              foreignArtistId: single.foreignArtistId,
+                              foreignAlbumId: single.foreignAlbumId
+                            },
+                            `single:${key}`
+                          )
+                        }
+                        disabled={submitting === `single:${key}` || single.isTracked}
+                        className="quick-icon"
+                        aria-label={`Quick download ${single.title}`}
+                        title={albumActionTitle(single)}
+                      >
+                        {submitting === `single:${key}` ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <IconDownload className="h-4 w-4" />
+                        )}
+                        <span className="sr-only">Quick download single</span>
+                      </button>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold tracking-tight">{song.title}</h3>
-                      <p className="text-sm text-muted">{song.artistName}</p>
-                      <p className="text-xs text-muted/70">Album: {song.albumTitle ?? "Unknown album mapping"}</p>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFilter("albums");
-                            if (song.albumTitle) {
-                              setQuery(song.albumTitle);
-                            }
-                          }}
-                          className="btn-ghost rounded-lg text-xs"
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            <IconAlbum className="h-3.5 w-3.5" />
-                            View Album
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            canRequest
-                              ? void requestAlbum(
-                                  {
-                                    artistName: song.artistName,
-                                    albumTitle: song.albumTitle ?? "",
-                                    foreignArtistId: song.foreignArtistId,
-                                    foreignAlbumId: song.foreignAlbumId
-                                  },
-                                  key
-                                )
-                              : undefined
-                          }
-                          disabled={submitting === key || !canRequest}
-                          className="btn-primary rounded-lg py-2 text-xs disabled:cursor-not-allowed"
-                        >
-                          {submitting === key ? "Requesting..." : "Download Album"}
-                        </button>
-                      </div>
+                      {singleHref ? (
+                        <Link href={singleHref} className="text-lg font-semibold tracking-tight hover:text-accent-glow">
+                          {single.title}
+                        </Link>
+                      ) : (
+                        <h3 className="text-lg font-semibold tracking-tight">{single.title}</h3>
+                      )}
+                      <p className="text-sm text-muted">{single.artistName}</p>
+                      <p className="mt-1.5 line-clamp-2 text-xs text-muted/80">
+                        {single.overview ?? "No release overview available."}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void requestAlbum(
+                            {
+                              artistName: single.artistName,
+                              albumTitle: single.title,
+                              foreignArtistId: single.foreignArtistId,
+                              foreignAlbumId: single.foreignAlbumId
+                            },
+                            `single:${key}`
+                          )
+                        }
+                        disabled={submitting === `single:${key}` || single.isTracked}
+                        className="btn-primary mt-3 py-2 text-sm"
+                      >
+                        {submitting === `single:${key}`
+                          ? "Requesting..."
+                          : albumActionLabel(single)}
+                      </button>
                     </div>
                   </div>
                 </Card>

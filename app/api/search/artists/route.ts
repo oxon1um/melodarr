@@ -4,14 +4,18 @@ import { jsonError, jsonOk } from "@/lib/http";
 import { LidarrClient } from "@/lib/lidarr/client";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
+const normalizeText = (value: string | undefined) => value?.trim().toLowerCase() ?? "";
+
 type AlbumWithStatus = {
   title: string;
   artistName: string;
   foreignAlbumId?: string;
   foreignArtistId?: string;
+  releaseGroup?: "album" | "single";
   overview?: string;
   images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
-  isExisting?: boolean;
+  isTracked?: boolean;
+  hasFiles?: boolean;
 };
 
 export async function GET(req: NextRequest) {
@@ -20,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     const query = req.nextUrl.searchParams.get("q")?.trim();
     if (!query || query.length < 2) {
-      return jsonOk({ artists: [], albums: [], songs: [] });
+      return jsonOk({ artists: [], albums: [], singles: [] });
     }
 
     const config = await getRuntimeConfig();
@@ -29,21 +33,55 @@ export async function GET(req: NextRequest) {
     }
 
     const lidarr = new LidarrClient(config.lidarrUrl, config.lidarrApiKey);
-    const results = await lidarr.searchDiscover(query);
+    const results = await lidarr.searchDiscover(query, config.lidarrMetadataProfileId);
 
-    // Get existing albums to check if any are already in the library
-    const existingAlbums = await lidarr.getAllAlbums();
-    const existingAlbumIds = new Set(existingAlbums.map((a) => a.foreignAlbumId).filter(Boolean));
+    const trackedAlbums = await lidarr.getAllAlbums();
+    const trackedByForeignId = new Map(
+      trackedAlbums
+        .filter((album) => album.foreignAlbumId)
+        .map((album) => [album.foreignAlbumId as string, album])
+    );
+    const trackedByName = new Map(
+      trackedAlbums.map((album) => [
+        `${normalizeText(album.artist?.artistName)}:${normalizeText(album.title)}`,
+        album
+      ])
+    );
+    const relevantTrackedAlbums = [...results.albums, ...results.singles]
+      .map((album) =>
+        album.foreignAlbumId
+          ? trackedByForeignId.get(album.foreignAlbumId)
+          : trackedByName.get(`${normalizeText(album.artistName)}:${normalizeText(album.title)}`)
+      )
+      .filter((album): album is NonNullable<typeof album> => Boolean(album));
+    const fallbackTrackedAlbums = relevantTrackedAlbums.filter((album) =>
+      lidarr.albumNeedsFileCountFallback(album)
+    );
+    const fileCounts = await lidarr.getAlbumFileCounts(fallbackTrackedAlbums.map((album) => album.id));
 
-    // Mark albums as existing if they're in the library
-    const albumsWithStatus: AlbumWithStatus[] = results.albums.map((album) => ({
+    const mapStatus = (album: typeof results.albums[number]): AlbumWithStatus => ({
       ...album,
-      isExisting: existingAlbumIds.has(album.foreignAlbumId)
-    }));
+      ...(function resolveStatus() {
+        const trackedAlbum = album.foreignAlbumId
+          ? trackedByForeignId.get(album.foreignAlbumId)
+          : trackedByName.get(`${normalizeText(album.artistName)}:${normalizeText(album.title)}`);
+
+        return {
+          isTracked: trackedAlbum?.monitored === true,
+          hasFiles: trackedAlbum
+            ? lidarr.isAlbumFullyAvailable(trackedAlbum, fileCounts[trackedAlbum.id] ?? 0)
+            : false
+        };
+      })()
+    });
+
+    const albumsWithStatus: AlbumWithStatus[] = results.albums.map(mapStatus);
+    const singlesWithStatus: AlbumWithStatus[] = results.singles.map(mapStatus);
 
     return jsonOk({
       ...results,
-      albums: albumsWithStatus
+      albums: albumsWithStatus,
+      singles: singlesWithStatus
     });
   } catch (error) {
     const status = (error as { status?: number }).status ?? 500;

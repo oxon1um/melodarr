@@ -4,10 +4,10 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { jsonError, jsonOk } from "@/lib/http";
-import { approvePendingRequest } from "@/lib/requests/service";
+import { approvePendingRequest, deleteRequestFromLidarr } from "@/lib/requests/service";
 
 const updateSchema = z.object({
-  action: z.enum(["approve", "reject"])
+  action: z.enum(["approve", "reject", "deleteFromLidarr"])
 });
 
 export async function PATCH(
@@ -28,6 +28,11 @@ export async function PATCH(
       });
 
       return jsonOk({ request });
+    }
+
+    if (body.action === "deleteFromLidarr") {
+      await deleteRequestFromLidarr(id);
+      return jsonOk({ success: true });
     }
 
     const request = await approvePendingRequest(id);

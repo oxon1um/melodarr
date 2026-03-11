@@ -19,12 +19,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ albu
     }
 
     const lidarr = new LidarrClient(config.lidarrUrl, config.lidarrApiKey, config.debugMode);
+    const artistName = req.nextUrl.searchParams.get("artistName") || undefined;
 
     // Debug: log what we're looking up
-    if (config.debugMode) console.log("[album-detail] Looking up albumId:", albumId);
+    if (config.debugMode) console.log("[album-detail] Looking up albumId:", albumId, "artistName:", artistName);
 
     // Get album details from lookup
-    const album = await lidarr.getAlbumByForeignId(albumId);
+    const album = await lidarr.getAlbumByForeignId(albumId, artistName);
     if (config.debugMode) console.log("[album-detail] Album result:", album);
 
     if (!album) {
@@ -32,16 +33,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ albu
     }
 
     // Get tracks for the album
-    const tracks = await lidarr.getAlbumTracks(albumId);
+    const tracks = await lidarr.getAlbumTracks(albumId, artistName);
     if (config.debugMode) console.log("[album-detail] Tracks result:", JSON.stringify(tracks, null, 2));
 
-    // Check if album is already in library
+    // Check if album is already tracked and whether it has files
     const existingAlbum = await lidarr.getExistingAlbumByForeignId(albumId);
+    const fileCounts = existingAlbum && lidarr.albumNeedsFileCountFallback(existingAlbum)
+      ? await lidarr.getAlbumFileCounts([existingAlbum.id])
+      : {};
 
     return jsonOk({
       album,
       tracks,
-      isExisting: !!existingAlbum
+      isTracked: existingAlbum?.monitored === true,
+      hasFiles: existingAlbum
+        ? lidarr.isAlbumFullyAvailable(existingAlbum, fileCounts[existingAlbum.id] ?? 0)
+        : false
     });
   } catch (error) {
     const status = (error as { status?: number }).status ?? 500;

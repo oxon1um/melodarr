@@ -1,4 +1,4 @@
-node_modules
+node_modules/
 .next
 .env
 .env.local
@@ -8,3 +8,6 @@ tsconfig.tsbuildinfo
 docs/plans
 docker-compose.local.yml
 .worktrees
+.playwright-mcp/
+.claude/
+plans/

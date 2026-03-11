@@ -1,4 +1,4 @@
-import { RequestStatus, RequestType } from "@prisma/client";
+import { Prisma, RequestStatus, RequestType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { LidarrClient } from "@/lib/lidarr/client";
 import { getRuntimeConfig } from "@/lib/settings/store";
@@ -80,14 +80,155 @@ const hasDuplicateAlbumRequest = async (input: {
   });
 };
 
+const positiveNumber = (value?: number | null) =>
+  typeof value === "number" && value > 0 ? value : undefined;
+
+const nonEmptyText = (value?: string | null) =>
+  typeof value === "string" && value.trim().length > 0 ? value : undefined;
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+
+const normalizeIdentity = (value?: string | null) =>
+  (value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+const matchesRequestedAlbum = (
+  album: {
+    title?: string;
+    artistName?: string;
+    foreignAlbumId?: string;
+    foreignArtistId?: string;
+  },
+  input: {
+    artistName: string;
+    albumTitle: string;
+    foreignArtistId?: string;
+    foreignAlbumId?: string;
+  }
+) => {
+  if (input.foreignAlbumId && album.foreignAlbumId === input.foreignAlbumId) {
+    return true;
+  }
+
+  const sameTitle = normalizeIdentity(album.title) === normalizeIdentity(input.albumTitle);
+  const sameArtist = normalizeIdentity(album.artistName) === normalizeIdentity(input.artistName);
+  const sameForeignArtist = !input.foreignArtistId || album.foreignArtistId === input.foreignArtistId;
+
+  return sameTitle && sameArtist && sameForeignArtist;
+};
+
+const pickResponseId = (payload: unknown, ...keys: string[]) => {
+  const item = asRecord(payload);
+  if (!item) return undefined;
+
+  for (const key of keys) {
+    const value = item[key];
+    if (typeof value === "number" && value > 0) {
+      return value;
+    }
+  }
+
+  return undefined;
+};
+
+const pickNestedResponseId = (payload: unknown, nestedKey: string, ...keys: string[]) => {
+  const item = asRecord(payload);
+  if (!item) return undefined;
+
+  return pickResponseId(item[nestedKey], ...keys);
+};
+
+const resolveRequestedAlbum = async (
+  client: LidarrClient,
+  input: {
+    artistName: string;
+    albumTitle: string;
+    foreignArtistId?: string;
+    foreignAlbumId?: string;
+  },
+  lidarrArtistId?: number
+) => {
+  if (lidarrArtistId && lidarrArtistId > 0) {
+    const trackedArtistAlbums = await client.getAlbumsByArtistId(lidarrArtistId);
+    const trackedMatch = trackedArtistAlbums.find((album) => matchesRequestedAlbum(album, input));
+
+    if (trackedMatch?.id) {
+      return await client.getAlbumById(trackedMatch.id) ?? trackedMatch;
+    }
+  }
+
+  if (input.foreignAlbumId) {
+    const byForeignId = await client.getExistingAlbumByForeignId(input.foreignAlbumId);
+    if (byForeignId) {
+      return byForeignId;
+    }
+  }
+
+  if (!input.foreignArtistId) {
+    return null;
+  }
+
+  const artistAlbums = await client.getAlbumsByArtistForeignId(input.foreignArtistId, input.artistName);
+  const match = artistAlbums.find((album) => matchesRequestedAlbum(album, input));
+
+  if (match?.id) {
+    return await client.getAlbumById(match.id) ?? match;
+  }
+
+  if (match?.foreignAlbumId) {
+    return await client.getExistingAlbumByForeignId(match.foreignAlbumId);
+  }
+
+  return null;
+};
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const resolveRequestedAlbumWithRetries = async (
+  client: LidarrClient,
+  input: {
+    artistName: string;
+    albumTitle: string;
+    foreignArtistId?: string;
+    foreignAlbumId?: string;
+  },
+  lidarrArtistId?: number
+) => {
+  const delays = [0, 150, 300, 600, 900];
+
+  for (const delayMs of delays) {
+    if (delayMs > 0) {
+      await wait(delayMs);
+    }
+
+    const resolved = await resolveRequestedAlbum(client, input, lidarrArtistId);
+    if (resolved?.id) {
+      return resolved;
+    }
+  }
+
+  return null;
+};
+
 const submitArtistToLidarr = async (input: {
   artistName: string;
   foreignArtistId?: string;
   mbid?: string;
 }) => {
   const { client, config } = await getLidarrClientOrThrow();
+  const defaults = await client.getEffectiveAddDefaults({
+    rootFolderPath: config.lidarrRootFolder,
+    qualityProfileId: config.lidarrQualityProfileId,
+    metadataProfileId: config.lidarrMetadataProfileId
+  });
 
-  if (!config.lidarrRootFolder || !config.lidarrQualityProfileId) {
+  if (!defaults.rootFolderPath || !defaults.qualityProfileId) {
     throw new Error("Lidarr root folder and quality profile are required");
   }
 
@@ -102,9 +243,9 @@ const submitArtistToLidarr = async (input: {
     artistName: input.artistName,
     foreignArtistId: input.foreignArtistId,
     mbid: input.mbid,
-    qualityProfileId: config.lidarrQualityProfileId,
-    metadataProfileId: config.lidarrMetadataProfileId ?? undefined,
-    rootFolderPath: config.lidarrRootFolder,
+    qualityProfileId: defaults.qualityProfileId,
+    metadataProfileId: defaults.metadataProfileId,
+    rootFolderPath: defaults.rootFolderPath,
     monitorMode: config.lidarrMonitorMode
   });
 
@@ -118,51 +259,121 @@ const submitAlbumToLidarr = async (input: {
   foreignAlbumId?: string;
 }) => {
   const { client, config } = await getLidarrClientOrThrow();
+  let existingArtist = input.foreignArtistId
+    ? await client.getExistingArtistByForeignId(input.foreignArtistId)
+    : null;
+  const defaults = await client.getEffectiveAddDefaults({
+    rootFolderPath: nonEmptyText(existingArtist?.rootFolderPath) ?? config.lidarrRootFolder,
+    qualityProfileId: positiveNumber(existingArtist?.qualityProfileId) ?? config.lidarrQualityProfileId,
+    metadataProfileId: positiveNumber(existingArtist?.metadataProfileId) ?? config.lidarrMetadataProfileId
+  });
+  const qualityProfileId = defaults.qualityProfileId;
+  const metadataProfileId = defaults.metadataProfileId;
+  const rootFolderPath = defaults.rootFolderPath;
 
   if (input.foreignAlbumId) {
     const existingAlbum = await client.getExistingAlbumByForeignId(input.foreignAlbumId);
     if (existingAlbum) {
-      return { exists: true, lidarrAlbumId: existingAlbum.id, payload: existingAlbum };
+      await client.setAlbumsMonitored([existingAlbum.id], true);
+      await client.triggerAlbumSearch([existingAlbum.id]);
+
+      return {
+        exists: true,
+        lidarrArtistId: existingArtist?.id,
+        lidarrAlbumId: existingAlbum.id,
+        payload: existingAlbum
+      };
     }
   }
 
-  try {
-    const created = await client.addAlbum({
-      albumTitle: input.albumTitle,
+  if (!existingArtist && (!qualityProfileId || !rootFolderPath)) {
+    throw new Error("Lidarr root folder and quality profile are required");
+  }
+
+  if (!existingArtist) {
+    existingArtist = await client.addArtist({
       artistName: input.artistName,
-      foreignAlbumId: input.foreignAlbumId,
-      foreignArtistId: input.foreignArtistId
+      foreignArtistId: input.foreignArtistId,
+      qualityProfileId: qualityProfileId!,
+      metadataProfileId,
+      rootFolderPath: rootFolderPath!,
+      monitorMode: "none",
+      monitored: false,
+      searchForMissingAlbums: false
     });
+  }
 
-    return { exists: false, lidarrAlbumId: created.id, payload: created };
-  } catch (error) {
-    // If Lidarr needs artist context first, create the artist without monitoring all albums.
-    if (input.foreignArtistId && config.lidarrRootFolder && config.lidarrQualityProfileId) {
-      const existingArtist = await client.getExistingArtistByForeignId(input.foreignArtistId);
+  const resolvedAlbum = await resolveRequestedAlbumWithRetries(client, input, existingArtist?.id);
 
-      if (!existingArtist) {
-        await client.addArtist({
-          artistName: input.artistName,
-          foreignArtistId: input.foreignArtistId,
-          qualityProfileId: config.lidarrQualityProfileId,
-          metadataProfileId: config.lidarrMetadataProfileId ?? undefined,
-          rootFolderPath: config.lidarrRootFolder,
-          monitorMode: "none"
-        });
-      }
+  if (!resolvedAlbum?.id) {
+    throw new Error("Selected Lidarr release could not be resolved for monitoring");
+  }
 
-      const created = await client.addAlbum({
-        albumTitle: input.albumTitle,
-        artistName: input.artistName,
-        foreignAlbumId: input.foreignAlbumId,
-        foreignArtistId: input.foreignArtistId
-      });
+  await client.setAlbumsMonitored([resolvedAlbum.id], true);
+  await client.triggerAlbumSearch([resolvedAlbum.id]);
 
-      return { exists: false, lidarrAlbumId: created.id, payload: created };
+  return {
+    exists: false,
+    lidarrArtistId: existingArtist?.id,
+    lidarrAlbumId: resolvedAlbum.id,
+    payload: resolvedAlbum
+  };
+};
+
+export const deleteRequestFromLidarr = async (requestId: string) => {
+  const request = await prisma.request.findUnique({ where: { id: requestId } });
+  if (!request) {
+    throw new Error("Request not found");
+  }
+
+  const { client } = await getLidarrClientOrThrow();
+  const responsePayload = asRecord(request.lidarrResponse);
+  const requestArtistPayload = asRecord(responsePayload?.artist);
+
+  if (request.requestType === RequestType.ALBUM) {
+    const album = (request.lidarrAlbumId
+      ? await client.getAlbumById(request.lidarrAlbumId)
+      : null)
+      ?? (pickResponseId(responsePayload, "id") ? await client.getAlbumById(pickResponseId(responsePayload, "id")!) : null)
+      ?? (request.foreignAlbumId ? await client.getExistingAlbumByForeignId(request.foreignAlbumId) : null);
+
+    if (album?.id) {
+      await client.deleteAlbum(album.id, true);
     }
 
-    throw error;
+    return prisma.request.update({
+      where: { id: requestId },
+      data: {
+        lidarrArtistId: null,
+        lidarrAlbumId: null,
+        lidarrResponse: Prisma.JsonNull,
+        failureReason: null
+      }
+    });
   }
+
+  const artist = (request.lidarrArtistId
+    ? await client.getArtistById(request.lidarrArtistId)
+    : null)
+    ?? (pickResponseId(responsePayload, "id") ? await client.getArtistById(pickResponseId(responsePayload, "id")!) : null)
+    ?? (pickNestedResponseId(responsePayload, "artist", "id") ? await client.getArtistById(pickNestedResponseId(responsePayload, "artist", "id")!) : null)
+    ?? (request.foreignArtistId ? await client.getExistingArtistByForeignId(request.foreignArtistId) : null)
+    ?? (pickResponseId(requestArtistPayload, "id") ? await client.getArtistById(pickResponseId(requestArtistPayload, "id")!) : null)
+    ?? (request.foreignArtistId ? await client.getArtistByForeignId(request.foreignArtistId, request.artistName) : null);
+
+  if (artist?.id) {
+    await client.deleteArtist(artist.id, true);
+  }
+
+  return prisma.request.update({
+    where: { id: requestId },
+      data: {
+        lidarrArtistId: null,
+        lidarrAlbumId: null,
+        lidarrResponse: Prisma.JsonNull,
+        failureReason: null
+      }
+  });
 };
 
 const createPendingArtistRequest = async (input: CreateArtistRequestInput) => {
@@ -284,6 +495,7 @@ export const createAlbumRequest = async (input: CreateAlbumRequestInput) => {
       where: { id: created.id },
       data: {
         status: result.exists ? RequestStatus.ALREADY_EXISTS : RequestStatus.SUBMITTED,
+        lidarrArtistId: result.lidarrArtistId ?? null,
         lidarrAlbumId: result.lidarrAlbumId,
         lidarrResponse: result.payload as any,
         failureReason: null
@@ -336,6 +548,7 @@ export const approvePendingRequest = async (requestId: string) => {
         where: { id: requestId },
         data: {
           status: result.exists ? RequestStatus.ALREADY_EXISTS : RequestStatus.SUBMITTED,
+          lidarrArtistId: result.lidarrArtistId ?? null,
           lidarrAlbumId: result.lidarrAlbumId,
           lidarrResponse: result.payload as any,
           failureReason: null

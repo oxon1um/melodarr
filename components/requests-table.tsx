@@ -13,6 +13,8 @@ type RequestItem = {
   artistName: string;
   albumTitle?: string | null;
   foreignArtistId?: string | null;
+  lidarrArtistId?: number | null;
+  lidarrAlbumId?: number | null;
   status: "PENDING" | "APPROVED" | "REJECTED" | "SUBMITTED" | "FAILED" | "ALREADY_EXISTS";
   failureReason?: string | null;
   createdAt: string;
@@ -37,6 +39,7 @@ export function RequestsTable({ admin = false }: Props) {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteFromLidarrId, setDeleteFromLidarrId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -108,6 +111,33 @@ export function RequestsTable({ admin = false }: Props) {
     await load();
   };
 
+  const onDeleteFromLidarr = async () => {
+    if (!deleteFromLidarrId) return;
+
+    setActing(deleteFromLidarrId);
+    setDeleteFromLidarrId(null);
+
+    const response = await fetch(`/api/requests/${deleteFromLidarrId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ action: "deleteFromLidarr" })
+    });
+
+    const payload = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      toast.error(payload.error ?? "Failed to delete item from Lidarr", "Requests");
+      setActing(null);
+      return;
+    }
+
+    setActing(null);
+    toast.success("Item deleted from Lidarr.", "Requests");
+    await load();
+  };
+
   if (loading) {
     return (
       <Card className="space-y-5">
@@ -162,6 +192,7 @@ export function RequestsTable({ admin = false }: Props) {
               item.requestType === "ALBUM" && item.albumTitle
                 ? `${item.artistName} • ${item.albumTitle}`
                 : item.artistName;
+            const canUntrack = Boolean(item.lidarrAlbumId || item.lidarrArtistId);
 
             return (
               <article
@@ -206,6 +237,20 @@ export function RequestsTable({ admin = false }: Props) {
                     <StatusBadge status={item.status} />
                     {admin ? (
                       <>
+                        {canUntrack ? (
+                          <button
+                            type="button"
+                            disabled={acting === item.id}
+                            onClick={() => setDeleteFromLidarrId(item.id)}
+                            className="rounded-xl border border-accent/35 bg-accent/12 px-3.5 py-2 text-xs font-medium text-white transition-all hover:bg-accent/20 hover:border-accent/55 disabled:opacity-60"
+                            title="Delete from Lidarr"
+                          >
+                            <span className="inline-flex items-center gap-1.5">
+                              <IconX className="h-3.5 w-3.5" />
+                              {acting === item.id ? "Working..." : "Delete From Lidarr"}
+                            </span>
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           disabled={acting === item.id}
@@ -262,6 +307,16 @@ export function RequestsTable({ admin = false }: Props) {
         variant="danger"
         onConfirm={onDelete}
         onCancel={() => setDeleteId(null)}
+      />
+      <ConfirmDialog
+        open={deleteFromLidarrId !== null}
+        title="Delete From Lidarr"
+        message="This will delete the item from Lidarr and remove local files. The request record will be kept. Continue?"
+        confirmLabel="Delete From Lidarr"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={onDeleteFromLidarr}
+        onCancel={() => setDeleteFromLidarrId(null)}
       />
     </Card>
   );

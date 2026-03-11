@@ -1,0 +1,139 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { RequestStatus, RequestType } from "@prisma/client";
+
+const prismaRequest = {
+  findFirst: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  findUnique: vi.fn()
+};
+
+const getRuntimeConfig = vi.fn();
+
+const clientInstance = {
+  getExistingArtistByForeignId: vi.fn(),
+  getEffectiveAddDefaults: vi.fn(),
+  getExistingAlbumByForeignId: vi.fn(),
+  addArtist: vi.fn(),
+  getAlbumsByArtistId: vi.fn(),
+  getAlbumsByArtistForeignId: vi.fn(),
+  getAlbumById: vi.fn(),
+  setAlbumsMonitored: vi.fn(),
+  triggerAlbumSearch: vi.fn(),
+  addAlbum: vi.fn()
+};
+
+const LidarrClient = vi.fn(function LidarrClientMock() {
+  return clientInstance;
+});
+
+vi.mock("@/lib/db/prisma", () => ({
+  prisma: {
+    request: prismaRequest
+  }
+}));
+
+vi.mock("@/lib/settings/store", () => ({
+  getRuntimeConfig
+}));
+
+vi.mock("@/lib/lidarr/client", () => ({
+  LidarrClient
+}));
+
+describe("request service", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("adds the artist shell, then monitors and searches only the selected release", async () => {
+    prismaRequest.findFirst.mockResolvedValue(null);
+    prismaRequest.create
+      .mockResolvedValueOnce({
+        id: "request-1",
+        requestType: RequestType.ALBUM,
+        artistName: "U2",
+        albumTitle: "War",
+        status: RequestStatus.APPROVED
+      });
+    prismaRequest.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
+      id: "request-1",
+      requestType: RequestType.ALBUM,
+      artistName: "U2",
+      albumTitle: "War",
+      ...data
+    }));
+
+    getRuntimeConfig.mockResolvedValue({
+      lidarrUrl: "http://lidarr",
+      lidarrApiKey: "test-key",
+      lidarrRootFolder: "/music",
+      lidarrQualityProfileId: 7,
+      lidarrMetadataProfileId: 3,
+      requestAutoApprove: true
+    });
+
+    clientInstance.getExistingArtistByForeignId.mockResolvedValue(null);
+    clientInstance.getEffectiveAddDefaults.mockResolvedValue({
+      rootFolderPath: "/music",
+      qualityProfileId: 7,
+      metadataProfileId: 3
+    });
+    clientInstance.getExistingAlbumByForeignId.mockResolvedValue(null);
+    clientInstance.addArtist.mockResolvedValue({
+      id: 41,
+      artistName: "U2",
+      foreignArtistId: "artist-u2",
+      qualityProfileId: 7,
+      metadataProfileId: 3,
+      rootFolderPath: "/music"
+    });
+    clientInstance.getAlbumsByArtistId.mockResolvedValue([
+      {
+        id: 99,
+        title: "War",
+        foreignAlbumId: "album-war",
+        artistName: "U2",
+        foreignArtistId: "artist-u2"
+      }
+    ]);
+    clientInstance.getAlbumById.mockResolvedValue({
+      id: 99,
+      title: "War",
+      foreignAlbumId: "album-war",
+      artist: {
+        artistName: "U2",
+        foreignArtistId: "artist-u2"
+      }
+    });
+    clientInstance.setAlbumsMonitored.mockResolvedValue(undefined);
+    clientInstance.triggerAlbumSearch.mockResolvedValue(undefined);
+
+    const { createAlbumRequest } = await import("../lib/requests/service");
+    const result = await createAlbumRequest({
+      requestedById: "user-1",
+      artistName: "U2",
+      albumTitle: "War",
+      foreignArtistId: "artist-u2",
+      foreignAlbumId: "album-war"
+    });
+
+    expect(clientInstance.addArtist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        artistName: "U2",
+        foreignArtistId: "artist-u2",
+        monitorMode: "none",
+        monitored: false,
+        searchForMissingAlbums: false
+      })
+    );
+    expect(clientInstance.setAlbumsMonitored).toHaveBeenCalledWith([99], true);
+    expect(clientInstance.triggerAlbumSearch).toHaveBeenCalledWith([99]);
+    expect(clientInstance.addAlbum).not.toHaveBeenCalled();
+    expect(result.request).toMatchObject({
+      status: RequestStatus.SUBMITTED,
+      lidarrArtistId: 41,
+      lidarrAlbumId: 99
+    });
+  });
+});

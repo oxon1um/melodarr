@@ -1,7 +1,8 @@
 "use client";
 
+import type { Route } from "next";
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { IconAlbum, IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
@@ -31,7 +32,8 @@ type Track = {
 type AlbumData = {
   album: AlbumDetails | null;
   tracks: Track[];
-  isExisting: boolean;
+  isTracked: boolean;
+  hasFiles: boolean;
 };
 
 const chooseImage = (images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>) => {
@@ -41,6 +43,11 @@ const chooseImage = (images?: Array<{ coverType?: string; remoteUrl?: string; ur
     images.find((item) => item.coverType === "cover")?.remoteUrl ??
     images.find((item) => item.coverType === "poster")?.remoteUrl ??
     images.find((item) => item.coverType === "fanart")?.remoteUrl ??
+    images.find((item) => item.coverType === "banner")?.remoteUrl ??
+    images.find((item) => item.coverType === "cover")?.url ??
+    images.find((item) => item.coverType === "poster")?.url ??
+    images.find((item) => item.coverType === "fanart")?.url ??
+    images.find((item) => item.coverType === "banner")?.url ??
     images[0]?.remoteUrl ??
     images[0]?.url
   );
@@ -57,8 +64,11 @@ const formatDuration = (ms?: number) => {
 export default function AlbumDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const artistId = params.artistId as string;
   const albumId = params.albumId as string;
+  const artistNameParam = searchParams.get("artistName") || undefined;
+  const from = searchParams.get("from") || undefined;
 
   const toast = useToast();
   const [data, setData] = useState<AlbumData | null>(null);
@@ -91,7 +101,12 @@ export default function AlbumDetailPage() {
 
     const fetchAlbum = async () => {
       try {
-        const response = await fetch(`/api/search/album/${encodeURIComponent(albumId)}`, {
+        const requestUrl = new URL(`/api/search/album/${encodeURIComponent(albumId)}`, window.location.origin);
+        if (artistNameParam) {
+          requestUrl.searchParams.set("artistName", artistNameParam);
+        }
+
+        const response = await fetch(requestUrl.toString(), {
           signal: abortController.signal
         });
 
@@ -131,7 +146,7 @@ export default function AlbumDetailPage() {
     return () => {
       abortController.abort();
     };
-  }, [albumId, toast]);
+  }, [albumId, artistNameParam, toast]);
 
   const requestAlbum = async () => {
     if (!data?.album) return;
@@ -173,11 +188,20 @@ export default function AlbumDetailPage() {
     setSubmitting(false);
   };
 
+  const goBack = () => {
+    if (from) {
+      router.push(from as Route);
+      return;
+    }
+
+    router.back();
+  };
+
   if (loading) {
     return (
       <div className="page-enter space-y-7">
         <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="btn-ghost rounded-lg">
+          <button onClick={goBack} className="btn-ghost rounded-lg">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -195,7 +219,7 @@ export default function AlbumDetailPage() {
     return (
       <div className="page-enter space-y-7">
         <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="btn-ghost rounded-lg">
+          <button onClick={goBack} className="btn-ghost rounded-lg">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -209,14 +233,19 @@ export default function AlbumDetailPage() {
     );
   }
 
-  const { album, tracks, isExisting } = data;
+  const { album, tracks, isTracked, hasFiles } = data;
   const image = chooseImage(album.images);
   const artistName = album.artistName ?? album.artist?.artistName ?? "Unknown Artist";
+  const currentArtistId = album.foreignArtistId ?? artistId;
+  const artistRoutePattern = new RegExp(`^/discover/${encodeURIComponent(currentArtistId)}(?:\\?.*)?$`);
+  const artistHref = artistRoutePattern.test(from ?? "")
+    ? (from as Route)
+    : (`/discover/${encodeURIComponent(currentArtistId)}?artistName=${encodeURIComponent(artistNameParam ?? artistName)}${from ? `&from=${encodeURIComponent(from)}` : ""}` as Route);
 
   return (
     <div className="page-enter space-y-7">
       <div className="flex items-center gap-2">
-        <button onClick={() => router.back()} className="btn-ghost rounded-lg">
+        <button onClick={goBack} className="btn-ghost rounded-lg">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
@@ -237,8 +266,8 @@ export default function AlbumDetailPage() {
           <h1 className="font-display text-3xl font-semibold tracking-tight">{album.title}</h1>
           <p className="text-lg text-muted">
             <Link
-              href={`/discover/${encodeURIComponent(album.foreignArtistId ?? artistId)}` as const}
-              className="text-accent hover:underline"
+              href={artistHref}
+              className="hover:text-text"
             >
               {artistName}
             </Link>
@@ -248,34 +277,39 @@ export default function AlbumDetailPage() {
               {new Date(album.releaseDate).getFullYear()}
             </p>
           )}
-          {isExisting && (
+          {hasFiles && (
             <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
               <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              In library
+              Available
             </p>
           )}
-          <button
-            type="button"
-            onClick={() => void requestAlbum()}
-            disabled={submitting || isExisting}
-            className="btn-primary mt-2 py-2.5"
-          >
-            {submitting ? (
-              <>
-                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Requesting...
-              </>
-            ) : isExisting ? (
-              "In Library"
-            ) : (
-              <>
-                <IconDownload className="mr-2 h-4 w-4" />
-                Download Album
-              </>
-            )}
-          </button>
+          {isTracked && !hasFiles && (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1 text-xs font-medium text-muted">
+              Tracked in Lidarr
+            </p>
+          )}
+          {!isTracked && !hasFiles ? (
+            <button
+              type="button"
+              onClick={() => void requestAlbum()}
+              disabled={submitting}
+              className="btn-primary mt-2 py-2.5"
+            >
+              {submitting ? (
+                <>
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Requesting...
+                </>
+              ) : (
+                <>
+                  <IconDownload className="mr-2 h-4 w-4" />
+                  Download Album
+                </>
+              )}
+            </button>
+          ) : null}
         </div>
       </section>
 

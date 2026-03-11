@@ -60,13 +60,13 @@ export function ConfirmDialog({
       className="m-auto rounded-2xl border border-white/[0.1] bg-panel p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fade-in"
     >
       <div className="p-6">
-        <h2 className="mb-2 font-display text-xl font-semibold tracking-tight">{title}</h2>
+        <h2 className="mb-2 font-display text-xl font-semibold tracking-tight text-white">{title}</h2>
         <p className="mb-6 text-sm text-muted">{message}</p>
         <div className="flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-xl border border-white/[0.1] bg-white/5 px-4 py-2 text-sm font-medium transition-colors hover:bg-white/10"
+            className="rounded-xl border border-white/[0.1] bg-white/5 px-4 py-2 text-sm font-medium !text-white transition-colors hover:bg-white/10"
           >
             {cancelLabel}
           </button>
@@ -75,8 +75,8 @@ export function ConfirmDialog({
             onClick={onConfirm}
             className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
               variant === "danger"
-                ? "bg-danger text-white hover:bg-danger/80"
-                : "bg-accent text-white hover:bg-accent/80"
+                ? "bg-danger !text-white hover:bg-danger/80"
+                : "bg-accent !text-white hover:bg-accent/80"
             }`}
           >
             {confirmLabel}
