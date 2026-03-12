@@ -136,4 +136,67 @@ describe("request service", () => {
       lidarrAlbumId: 99
     });
   });
+
+  it("monitors existing unmonitored albums and marks request as SUBMITTED, not ALREADY_EXISTS", async () => {
+    prismaRequest.findFirst.mockResolvedValue(null);
+    prismaRequest.create.mockResolvedValueOnce({
+      id: "request-2",
+      requestType: RequestType.ALBUM,
+      artistName: "U2",
+      albumTitle: "War",
+      status: RequestStatus.APPROVED
+    });
+    prismaRequest.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
+      id: "request-2",
+      requestType: RequestType.ALBUM,
+      ...data
+    }));
+
+    getRuntimeConfig.mockResolvedValue({
+      lidarrUrl: "http://lidarr",
+      lidarrApiKey: "test-key",
+      requestAutoApprove: true
+    });
+
+    clientInstance.getExistingArtistByForeignId.mockResolvedValue({
+      id: 41,
+      artistName: "U2",
+      foreignArtistId: "artist-u2"
+    });
+
+    clientInstance.getEffectiveAddDefaults.mockResolvedValue({
+      rootFolderPath: "/music",
+      qualityProfileId: 7,
+      metadataProfileId: 3
+    });
+
+    clientInstance.getExistingAlbumByForeignId.mockResolvedValue({
+      id: 99,
+      title: "War",
+      foreignAlbumId: "album-war",
+      monitored: false
+    });
+
+    clientInstance.setAlbumsMonitored.mockResolvedValue(undefined);
+    clientInstance.triggerAlbumSearch.mockResolvedValue(undefined);
+
+    const { createAlbumRequest } = await import("../lib/requests/service");
+    const result = await createAlbumRequest({
+      requestedById: "user-1",
+      artistName: "U2",
+      albumTitle: "War",
+      foreignArtistId: "artist-u2",
+      foreignAlbumId: "album-war"
+    });
+
+    // We shouldn't add an artist because getExistingAlbumByForeignId succeeds and returns early
+    expect(clientInstance.addArtist).not.toHaveBeenCalled();
+    expect(clientInstance.setAlbumsMonitored).toHaveBeenCalledWith([99], true);
+    expect(clientInstance.triggerAlbumSearch).toHaveBeenCalledWith([99]);
+    expect(result.request).toMatchObject({
+      status: RequestStatus.SUBMITTED,
+      lidarrArtistId: 41,
+      lidarrAlbumId: 99
+    });
+  });
 });

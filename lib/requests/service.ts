@@ -274,11 +274,12 @@ const submitAlbumToLidarr = async (input: {
   if (input.foreignAlbumId) {
     const existingAlbum = await client.getExistingAlbumByForeignId(input.foreignAlbumId);
     if (existingAlbum) {
+      const wasAlreadyMonitored = existingAlbum.monitored === true;
       await client.setAlbumsMonitored([existingAlbum.id], true);
       await client.triggerAlbumSearch([existingAlbum.id]);
 
       return {
-        exists: true,
+        exists: wasAlreadyMonitored,
         lidarrArtistId: existingArtist?.id,
         lidarrAlbumId: existingAlbum.id,
         payload: existingAlbum
