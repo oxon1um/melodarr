@@ -11,3 +11,4 @@ docker-compose.local.yml
 .playwright-mcp/
 .claude/
 plans/
+AGENTS.md

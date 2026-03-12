@@ -53,12 +53,6 @@ export const sortReleases = <T extends ReleaseLike>(releases: T[], sort: Release
       return sort === "za" ? -titleComparison : titleComparison;
     }
 
-    if (sort === "newest" || sort === "oldest") {
-      if (leftHasDate && rightHasDate && leftTimestamp !== rightTimestamp) {
-        return sort === "newest" ? rightTimestamp - leftTimestamp : leftTimestamp - rightTimestamp;
-      }
-    }
-
     return 0;
   });
 };
