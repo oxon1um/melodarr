@@ -1,10 +1,11 @@
 "use client";
 
 import type { Route } from "next";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { CoverImage } from "@/components/ui/cover-image";
 import { IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
 import {
@@ -13,13 +14,15 @@ import {
   type ReleaseSort,
   sortReleases
 } from "@/lib/discover/release-browser";
+import type { ImageAsset } from "@/lib/images";
+import { useProgressiveCount } from "@/lib/use-progressive-count";
 
 type Artist = {
   artistName: string;
   foreignArtistId?: string;
   mbid?: string;
   overview?: string;
-  images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
+  images?: ImageAsset[];
 };
 
 type Album = {
@@ -32,7 +35,7 @@ type Album = {
   secondaryTypes?: string[];
   releaseStatuses?: string[];
   overview?: string;
-  images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
+  images?: ImageAsset[];
   isTracked?: boolean;
   hasFiles?: boolean;
 };
@@ -86,23 +89,25 @@ const RECENT_SEARCHES_KEY = "melodarr:discover-recent-searches";
 const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
 
 const pickImage = (
-  images: Array<{ coverType?: string; remoteUrl?: string; url?: string }> | undefined,
+  images: ImageAsset[] | undefined,
   preferredTypes: string[]
 ) => {
   if (!images || images.length === 0) return undefined;
 
   return (
+    preferredTypes.map((type) => images.find((item) => item.coverType === type)?.optimizedUrl).find(Boolean) ??
     preferredTypes.map((type) => images.find((item) => item.coverType === type)?.remoteUrl).find(Boolean) ??
     preferredTypes.map((type) => images.find((item) => item.coverType === type)?.url).find(Boolean) ??
+    images[0]?.optimizedUrl ??
     images[0]?.remoteUrl ??
     images[0]?.url
   );
 };
 
-const chooseArtistImage = (images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>) =>
+const chooseArtistImage = (images?: ImageAsset[]) =>
   pickImage(images, ["poster", "cover", "fanart", "banner"]);
 
-const chooseAlbumImage = (images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>) =>
+const chooseAlbumImage = (images?: ImageAsset[]) =>
   pickImage(images, ["cover", "poster", "fanart", "banner"]);
 
 const albumKey = (album: { foreignAlbumId?: string; artistName: string; title: string }) =>
@@ -166,7 +171,36 @@ export function DiscoverClient() {
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSuggestionsHovered, setIsSuggestionsHovered] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<SavedSearch[]>([]);
+  const [recentSearches, setRecentSearches] = useState<SavedSearch[]>(() => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+
+    const saved = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!saved) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(saved) as SavedSearch[];
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter((entry): entry is SavedSearch =>
+        Boolean(
+          entry
+          && typeof entry.query === "string"
+          && typeof entry.filter === "string"
+          && typeof entry.sort === "string"
+          && typeof entry.hideNoisySingles === "boolean"
+        )
+      );
+    } catch {
+      window.localStorage.removeItem(RECENT_SEARCHES_KEY);
+      return [];
+    }
+  });
 
   const requestSequence = useRef(0);
   const searchRegionRef = useRef<HTMLFormElement | null>(null);
@@ -190,7 +224,7 @@ export function DiscoverClient() {
     return search ? `${pathname}?${search}` : pathname;
   }, [filter, hideNoisySingles, pathname, query, sort]);
 
-  const buildDiscoverStateHref = (
+  const buildDiscoverStateHref = useCallback((
     nextQuery: string,
     nextFilter: FilterType,
     nextSort: ReleaseSort,
@@ -212,9 +246,9 @@ export function DiscoverClient() {
 
     const search = params.toString();
     return search ? `${pathname}?${search}` : pathname;
-  };
+  }, [pathname]);
 
-  const fetchDiscovery = async (
+  const fetchDiscovery = useCallback(async (
     term: string,
     showLoader = true,
     stateOverride?: {
@@ -285,36 +319,11 @@ export function DiscoverClient() {
     window.history.replaceState(null, "", buildDiscoverStateHref(term, nextFilter, nextSort, nextHideNoisySingles));
 
     if (showLoader) setLoading(false);
-  };
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (!saved) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(saved) as SavedSearch[];
-      if (Array.isArray(parsed)) {
-        setRecentSearches(
-          parsed.filter((entry): entry is SavedSearch =>
-            Boolean(
-              entry
-              && typeof entry.query === "string"
-              && typeof entry.filter === "string"
-              && typeof entry.sort === "string"
-              && typeof entry.hideNoisySingles === "boolean"
-            )
-          )
-        );
-      }
-    } catch {
-      window.localStorage.removeItem(RECENT_SEARCHES_KEY);
-    }
-  }, []);
+  }, [buildDiscoverStateHref, filter, hideNoisySingles, pathname, recentSearches, searchParams, sort, toast]);
 
   useEffect(() => {
     if (query.trim().length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults(emptyResults);
       return;
     }
@@ -324,14 +333,7 @@ export function DiscoverClient() {
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [query]);
-
-  useEffect(() => {
-    if (query.trim().length >= 2) {
-      void fetchDiscovery(query, true);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [query, fetchDiscovery]);
 
   useEffect(() => {
     window.history.replaceState(null, "", discoverStateHref);
@@ -418,6 +420,24 @@ export function DiscoverClient() {
   );
 
   const totalCount = counts.artists + counts.albums + counts.singles;
+  const {
+    visibleCount: visibleAlbumCount,
+    sentinelRef: albumSentinelRef,
+    hasMore: hasMoreAlbums
+  } = useProgressiveCount(displayedAlbums.length, [query, filter, sort, hideNoisySingles, displayedAlbums.length]);
+  const {
+    visibleCount: visibleSingleCount,
+    sentinelRef: singleSentinelRef,
+    hasMore: hasMoreSingles
+  } = useProgressiveCount(displayedSingles.length, [query, filter, sort, hideNoisySingles, displayedSingles.length]);
+  const visibleAlbums = useMemo(
+    () => displayedAlbums.slice(0, visibleAlbumCount),
+    [displayedAlbums, visibleAlbumCount]
+  );
+  const visibleSingles = useMemo(
+    () => displayedSingles.slice(0, visibleSingleCount),
+    [displayedSingles, visibleSingleCount]
+  );
 
   const filters: Array<{ id: FilterType; label: string }> = [
     { id: "all", label: `All (${totalCount})` },
@@ -468,12 +488,6 @@ export function DiscoverClient() {
 
     return [...artistSuggestions, ...albumSuggestions, ...singleSuggestions].slice(0, 10);
   }, [displayedAlbums, displayedSingles, results.artists]);
-
-  useEffect(() => {
-    if (activeSuggestionIndex >= suggestions.length) {
-      setActiveSuggestionIndex(0);
-    }
-  }, [activeSuggestionIndex, suggestions.length]);
 
   useEffect(() => {
     if (!showSuggestions || suggestions.length === 0 || isSuggestionsHovered) {
@@ -588,9 +602,9 @@ export function DiscoverClient() {
                 setActiveSuggestionIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
               }
 
-              if (event.key === "Enter" && suggestions[activeSuggestionIndex]) {
+              if (event.key === "Enter" && suggestions.length > 0) {
                 event.preventDefault();
-                chooseSuggestion(suggestions[activeSuggestionIndex]);
+                chooseSuggestion(suggestions[activeSuggestionIndex] ?? suggestions[0]);
               }
 
               if (event.key === "Escape") {
@@ -753,17 +767,16 @@ export function DiscoverClient() {
                 <Card
                   key={`artist:${key}`}
                   className="space-y-4 motion-safe:animate-fade-in-up"
-                  style={{ animationDelay: `${Math.min(artistIndex * 50, 280)}ms` }}
+                    style={{ animationDelay: `${Math.min(artistIndex * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
-                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
-                      {image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={image} alt={artist.artistName} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
-                      )}
-                    </div>
+                    <CoverImage
+                      alt={artist.artistName}
+                      src={image}
+                      sizes="96px"
+                      className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2"
+                      imageClassName="object-cover transition-transform duration-300 hover:scale-105"
+                    />
                     <div className="min-w-0 flex-1">
                       {artistHref ? (
                         <Link
@@ -800,7 +813,7 @@ export function DiscoverClient() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">Albums</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {displayedAlbums.map((album, index) => {
+            {visibleAlbums.map((album, index) => {
               const key = albumKey({
                 foreignAlbumId: album.foreignAlbumId,
                 artistName: album.artistName,
@@ -824,22 +837,22 @@ export function DiscoverClient() {
                     <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
                       {albumHref ? (
                         <Link href={albumHref} className="block h-full w-full">
-                          {image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={image} alt={album.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
-                          )}
+                          <CoverImage
+                            alt={album.title}
+                            src={image}
+                            sizes="96px"
+                            className="relative h-full w-full"
+                            imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
                         </Link>
                       ) : (
-                        <>
-                          {image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={image} alt={album.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
-                          )}
-                        </>
+                        <CoverImage
+                          alt={album.title}
+                          src={image}
+                          sizes="96px"
+                          className="relative h-full w-full"
+                          imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
                       )}
                       {album.hasFiles && (
                         <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
@@ -917,6 +930,11 @@ export function DiscoverClient() {
               );
             })}
           </div>
+          {hasMoreAlbums ? (
+            <div ref={albumSentinelRef} className="flex justify-center pt-2 text-xs text-muted/70">
+              Loading more albums...
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -924,7 +942,7 @@ export function DiscoverClient() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">Singles</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {displayedSingles.map((single, index) => {
+            {visibleSingles.map((single, index) => {
               const key = albumKey({
                 foreignAlbumId: single.foreignAlbumId,
                 artistName: single.artistName,
@@ -948,22 +966,22 @@ export function DiscoverClient() {
                     <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
                       {singleHref ? (
                         <Link href={singleHref} className="block h-full w-full">
-                          {image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={image} alt={single.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
-                          )}
+                          <CoverImage
+                            alt={single.title}
+                            src={image}
+                            sizes="96px"
+                            className="relative h-full w-full"
+                            imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
                         </Link>
                       ) : (
-                        <>
-                          {image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={image} alt={single.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
-                          )}
-                        </>
+                        <CoverImage
+                          alt={single.title}
+                          src={image}
+                          sizes="96px"
+                          className="relative h-full w-full"
+                          imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
                       )}
                       {single.hasFiles && (
                         <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
@@ -1041,6 +1059,11 @@ export function DiscoverClient() {
               );
             })}
           </div>
+          {hasMoreSingles ? (
+            <div ref={singleSentinelRef} className="flex justify-center pt-2 text-xs text-muted/70">
+              Loading more singles...
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -1052,7 +1075,7 @@ export function DiscoverClient() {
             </svg>
           </div>
           <p className="text-base font-medium text-muted">No results found</p>
-          <p className="mt-1.5 text-sm text-muted/70">Try a different search term for "{query}"</p>
+          <p className="mt-1.5 text-sm text-muted/70">Try a different search term for &quot;{query}&quot;</p>
         </div>
       ) : null}
     </div>

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth/session";
 import { jsonError, jsonOk } from "@/lib/http";
+import { withOptimizedImageUrlsForMany } from "@/lib/images";
 import { LidarrClient } from "@/lib/lidarr/client";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
@@ -79,9 +80,9 @@ export async function GET(req: NextRequest) {
     const singlesWithStatus: AlbumWithStatus[] = results.singles.map(mapStatus);
 
     return jsonOk({
-      ...results,
-      albums: albumsWithStatus,
-      singles: singlesWithStatus
+      artists: await withOptimizedImageUrlsForMany(results.artists),
+      albums: await withOptimizedImageUrlsForMany(albumsWithStatus),
+      singles: await withOptimizedImageUrlsForMany(singlesWithStatus)
     });
   } catch (error) {
     const status = (error as { status?: number }).status ?? 500;

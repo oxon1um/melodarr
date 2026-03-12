@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth/session";
 import { jsonError, jsonOk } from "@/lib/http";
+import { withOptimizedImageUrls } from "@/lib/images";
 import { LidarrClient } from "@/lib/lidarr/client";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ albu
       : {};
 
     return jsonOk({
-      album,
+      album: await withOptimizedImageUrls(album),
       tracks,
       isTracked: existingAlbum?.monitored === true,
       hasFiles: existingAlbum

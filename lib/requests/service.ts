@@ -91,6 +91,9 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
     ? value as Record<string, unknown>
     : null;
 
+const toInputJsonValue = (value: unknown): Prisma.InputJsonValue =>
+  JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+
 const normalizeIdentity = (value?: string | null) =>
   (value ?? "")
     .toLowerCase()
@@ -438,7 +441,7 @@ export const createArtistRequest = async (input: CreateArtistRequestInput) => {
       data: {
         status: result.exists ? RequestStatus.ALREADY_EXISTS : RequestStatus.SUBMITTED,
         lidarrArtistId: result.lidarrArtistId,
-        lidarrResponse: result.payload as any,
+        lidarrResponse: toInputJsonValue(result.payload),
         failureReason: null
       }
     });
@@ -498,7 +501,7 @@ export const createAlbumRequest = async (input: CreateAlbumRequestInput) => {
         status: result.exists ? RequestStatus.ALREADY_EXISTS : RequestStatus.SUBMITTED,
         lidarrArtistId: result.lidarrArtistId ?? null,
         lidarrAlbumId: result.lidarrAlbumId,
-        lidarrResponse: result.payload as any,
+        lidarrResponse: toInputJsonValue(result.payload),
         failureReason: null
       }
     });
@@ -551,7 +554,7 @@ export const approvePendingRequest = async (requestId: string) => {
           status: result.exists ? RequestStatus.ALREADY_EXISTS : RequestStatus.SUBMITTED,
           lidarrArtistId: result.lidarrArtistId ?? null,
           lidarrAlbumId: result.lidarrAlbumId,
-          lidarrResponse: result.payload as any,
+          lidarrResponse: toInputJsonValue(result.payload),
           failureReason: null
         }
       });
@@ -568,7 +571,7 @@ export const approvePendingRequest = async (requestId: string) => {
       data: {
         status: result.exists ? RequestStatus.ALREADY_EXISTS : RequestStatus.SUBMITTED,
         lidarrArtistId: result.lidarrArtistId,
-        lidarrResponse: result.payload as any,
+        lidarrResponse: toInputJsonValue(result.payload),
         failureReason: null
       }
     });

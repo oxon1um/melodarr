@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth/session";
 import { jsonError, jsonOk } from "@/lib/http";
+import { withOptimizedImageUrls, withOptimizedImageUrlsForMany } from "@/lib/images";
 import { LidarrClient } from "@/lib/lidarr/client";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
@@ -97,9 +98,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ arti
     const availableCount = [...mappedAlbums, ...mappedSingles].filter((album) => album.hasFiles).length;
 
     return jsonOk({
-      artist,
-      albums: mappedAlbums,
-      singles: mappedSingles,
+      artist: await withOptimizedImageUrls(artist),
+      albums: await withOptimizedImageUrlsForMany(mappedAlbums),
+      singles: await withOptimizedImageUrlsForMany(mappedSingles),
       trackedCount,
       availableCount
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { IconCheck, IconRefresh, IconX, IconAlbum, IconUser, IconTrash } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -27,6 +27,13 @@ type Props = {
   admin?: boolean;
 };
 
+type RequestsPayload = {
+  error?: string;
+  requests?: RequestItem[];
+  nextCursor?: string | null;
+  hasMore?: boolean;
+};
+
 const timestamp = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
@@ -37,32 +44,69 @@ export function RequestsTable({ admin = false }: Props) {
   const toast = useToast();
   const [items, setItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteFromLidarrId, setDeleteFromLidarrId] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const loadPage = useCallback(async (cursor?: string | null): Promise<RequestsPayload | null> => {
+    const params = new URLSearchParams({ limit: "25" });
+    if (cursor) {
+      params.set("cursor", cursor);
+    }
 
-    const response = await fetch("/api/requests");
-    const payload = (await response.json()) as {
-      error?: string;
-      requests?: RequestItem[];
-    };
+    const response = await fetch(`/api/requests?${params.toString()}`);
+    const payload = (await response.json()) as RequestsPayload;
 
     if (!response.ok) {
       toast.error(payload.error ?? "Failed to load requests", admin ? "Manage Requests" : "My Requests");
+      return null;
+    }
+
+    return payload;
+  }, [admin, toast]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const payload = await loadPage();
+    if (!payload) {
       setLoading(false);
       return;
     }
 
     setItems(payload.requests ?? []);
+    setNextCursor(payload.nextCursor ?? null);
+    setHasMore(payload.hasMore ?? false);
     setLoading(false);
+  }, [loadPage]);
+
+  const loadMore = async () => {
+    if (!hasMore || !nextCursor) {
+      return;
+    }
+
+    setLoadingMore(true);
+    const payload = await loadPage(nextCursor);
+    if (!payload) {
+      setLoadingMore(false);
+      return;
+    }
+
+    setItems((current) => [...current, ...(payload.requests ?? [])]);
+    setNextCursor(payload.nextCursor ?? null);
+    setHasMore(payload.hasMore ?? false);
+    setLoadingMore(false);
   };
 
   useEffect(() => {
-    void load();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const onModerate = async (id: string, action: "approve" | "reject") => {
     setActing(id);
@@ -296,6 +340,18 @@ export function RequestsTable({ admin = false }: Props) {
               </article>
             );
           })}
+          {hasMore ? (
+            <div className="flex justify-center pt-3">
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="btn-ghost rounded-lg"
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
       <ConfirmDialog

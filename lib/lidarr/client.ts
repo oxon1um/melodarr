@@ -1,3 +1,5 @@
+import { clearJsonCache, fromJsonCache, invalidateJsonCacheNamespace } from "@/lib/cache/json-cache";
+
 export type LidarrImage = {
   coverType?: string;
   remoteUrl?: string;
@@ -189,11 +191,6 @@ type LidarrReleaseFilterRules = {
   allowedPrimaryTypes: Set<string>;
   allowedSecondaryTypes: Set<string>;
   allowedReleaseStatuses: Set<string>;
-};
-
-type CacheEntry = {
-  expiresAt: number;
-  value: Promise<unknown> | unknown;
 };
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -471,23 +468,6 @@ const matchesSongToAlbum = (
   return normalizeText(song.artistName) === normalizedArtistName;
 };
 
-const matchesSongArtistIdentity = (
-  song: Pick<LidarrSongSearchResult, "artistName" | "foreignArtistId">,
-  foreignArtistId: string,
-  artistName?: string
-): boolean => {
-  if (song.foreignArtistId) {
-    return song.foreignArtistId === foreignArtistId;
-  }
-
-  const normalizedArtistName = normalizeText(artistName);
-  if (!normalizedArtistName) {
-    return false;
-  }
-
-  return normalizeText(song.artistName) === normalizedArtistName;
-};
-
 const firstNonEmptyText = (...values: Array<string | undefined>): string | undefined =>
   values.find((value) => typeof value === "string" && value.trim().length > 0);
 
@@ -666,8 +646,6 @@ const isReleaseAllowedByRules = (
 };
 
 export class LidarrClient {
-  private static readonly cache = new Map<string, CacheEntry>();
-
   private static readonly libraryCacheTtlMs = 30_000;
 
   private static readonly searchCacheTtlMs = 20_000;
@@ -685,41 +663,28 @@ export class LidarrClient {
   ) {}
 
   static clearCache(): void {
-    LidarrClient.cache.clear();
+    clearJsonCache();
   }
 
-  private static async fromCache<T>(key: string, ttlMs: number, loader: () => Promise<T>): Promise<T> {
-    const now = Date.now();
-    const cached = LidarrClient.cache.get(key);
-    if (cached && cached.expiresAt > now) {
-      return await Promise.resolve(cached.value as T | Promise<T>);
-    }
-
-    const pending = loader();
-    LidarrClient.cache.set(key, {
-      expiresAt: now + ttlMs,
-      value: pending
-    });
-
-    try {
-      const resolved = await pending;
-      LidarrClient.cache.set(key, {
-        expiresAt: now + ttlMs,
-        value: resolved
-      });
-      return resolved;
-    } catch (error) {
-      LidarrClient.cache.delete(key);
-      throw error;
-    }
+  private static async fromCache<T>(
+    namespace: string,
+    scope: string,
+    ttlMs: number,
+    loader: () => Promise<T>
+  ): Promise<T> {
+    return fromJsonCache(namespace, scope, ttlMs, loader);
   }
 
-  private getCacheKey(scope: string): string {
-    return `${this.baseUrl.replace(/\/$/, "")}:${scope}`;
+  private getCacheNamespace(): string {
+    return `lidarr:${this.baseUrl.replace(/\/$/, "")}`;
   }
 
-  private invalidateCaches(): void {
-    LidarrClient.clearCache();
+  private async fromCache<T>(scope: string, ttlMs: number, loader: () => Promise<T>): Promise<T> {
+    return LidarrClient.fromCache(this.getCacheNamespace(), scope, ttlMs, loader);
+  }
+
+  private async invalidateCaches(): Promise<void> {
+    await invalidateJsonCacheNamespace(this.getCacheNamespace());
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -816,8 +781,8 @@ export class LidarrClient {
   }
 
   private async getPublicArtistProfile(foreignArtistId: string): Promise<LidarrPublicArtistProfile | null> {
-    const payload = await LidarrClient.fromCache(
-      this.getCacheKey(`public-artist:${foreignArtistId}`),
+    const payload = await this.fromCache(
+      `public-artist:${foreignArtistId}`,
       LidarrClient.publicCacheTtlMs,
       async () =>
         this.tryRequestJson<unknown>(
@@ -890,8 +855,8 @@ export class LidarrClient {
       return null;
     }
 
-    const payload = await LidarrClient.fromCache(
-      this.getCacheKey(`metadata-profile:${profileId}`),
+    const payload = await this.fromCache(
+      `metadata-profile:${profileId}`,
       LidarrClient.profileCacheTtlMs,
       async () => this.tryRequest<unknown[]>("/api/v1/metadataprofile")
     );
@@ -903,8 +868,8 @@ export class LidarrClient {
   }
 
   async getRootFolders(): Promise<LidarrRootFolder[]> {
-    const payload = await LidarrClient.fromCache(
-      this.getCacheKey("root-folders"),
+    const payload = await this.fromCache(
+      "root-folders",
       LidarrClient.profileCacheTtlMs,
       async () => this.tryRequest<unknown[]>("/api/v1/rootfolder")
     );
@@ -923,8 +888,8 @@ export class LidarrClient {
   }
 
   async getQualityProfiles(): Promise<LidarrQualityProfile[]> {
-    const payload = await LidarrClient.fromCache(
-      this.getCacheKey("quality-profiles"),
+    const payload = await this.fromCache(
+      "quality-profiles",
       LidarrClient.profileCacheTtlMs,
       async () => this.tryRequest<unknown[]>("/api/v1/qualityprofile")
     );
@@ -1016,8 +981,8 @@ export class LidarrClient {
 
   private async getExactArtistLookupMatch(foreignArtistId: string): Promise<LidarrArtistMatch | null> {
     const encoded = encodeURIComponent(`lidarr:${foreignArtistId}`);
-    const searchResults = await LidarrClient.fromCache(
-      this.getCacheKey(`artist-exact:${foreignArtistId}`),
+    const searchResults = await this.fromCache(
+      `artist-exact:${foreignArtistId}`,
       LidarrClient.exactLookupCacheTtlMs,
       async () => this.tryRequest<LidarrArtist[]>(`/api/v1/artist/lookup?term=${encoded}`)
     );
@@ -1094,8 +1059,8 @@ export class LidarrClient {
 
   private async getExactAlbumLookupPayload(foreignAlbumId: string): Promise<Record<string, unknown> | null> {
     const encoded = encodeURIComponent(`lidarr:${foreignAlbumId}`);
-    const payload = await LidarrClient.fromCache(
-      this.getCacheKey(`album-exact-payload:${foreignAlbumId}`),
+    const payload = await this.fromCache(
+      `album-exact-payload:${foreignAlbumId}`,
       LidarrClient.exactLookupCacheTtlMs,
       async () => this.tryRequest<unknown>(`/api/v1/album/lookup?term=${encoded}`)
     );
@@ -1268,8 +1233,8 @@ export class LidarrClient {
   }
 
   private async getPublicAlbumProfile(foreignAlbumId: string): Promise<LidarrPublicAlbumProfile | null> {
-    const payload = await LidarrClient.fromCache(
-      this.getCacheKey(`public-album:${foreignAlbumId}`),
+    const payload = await this.fromCache(
+      `public-album:${foreignAlbumId}`,
       LidarrClient.publicCacheTtlMs,
       async () =>
         this.tryRequestJson<unknown>(
@@ -1620,8 +1585,8 @@ export class LidarrClient {
   }
 
   async searchDiscover(term: string, metadataProfileId?: number | null): Promise<LidarrDiscoverSearchResult> {
-    return LidarrClient.fromCache(
-      this.getCacheKey(`discover:${normalizeText(term) ?? term}:${metadataProfileId ?? "default"}`),
+    return this.fromCache(
+      `discover:${normalizeText(term) ?? term}:${metadataProfileId ?? "default"}`,
       LidarrClient.searchCacheTtlMs,
       async () => {
         const encoded = encodeURIComponent(term);
@@ -1687,8 +1652,8 @@ export class LidarrClient {
   }
 
   private async getAllArtists(): Promise<LidarrArtist[]> {
-    const result = await LidarrClient.fromCache(
-      this.getCacheKey("artists"),
+    const result = await this.fromCache(
+      "artists",
       LidarrClient.libraryCacheTtlMs,
       async () => this.tryRequest<LidarrArtist[]>("/api/v1/artist")
     );
@@ -2112,8 +2077,8 @@ export class LidarrClient {
   }
 
   async getAllAlbums(): Promise<LidarrAlbum[]> {
-    const result = await LidarrClient.fromCache(
-      this.getCacheKey("albums"),
+    const result = await this.fromCache(
+      "albums",
       LidarrClient.libraryCacheTtlMs,
       async () => this.tryRequest<LidarrAlbum[]>("/api/v1/album")
     );
@@ -2187,7 +2152,7 @@ export class LidarrClient {
       })
     });
 
-    this.invalidateCaches();
+    await this.invalidateCaches();
     return createdArtist;
   }
 
@@ -2266,7 +2231,7 @@ export class LidarrClient {
         body: JSON.stringify(body)
       });
 
-      this.invalidateCaches();
+      await this.invalidateCaches();
       return createdAlbum;
     } catch (error) {
       if (
@@ -2313,7 +2278,7 @@ export class LidarrClient {
       })
     });
 
-    this.invalidateCaches();
+    await this.invalidateCaches();
   }
 
   async deleteAlbum(albumId: number, deleteFiles: boolean = true): Promise<void> {
@@ -2323,7 +2288,7 @@ export class LidarrClient {
         method: "DELETE"
       }
     );
-    this.invalidateCaches();
+    await this.invalidateCaches();
   }
 
   async deleteArtist(artistId: number, deleteFiles: boolean = true): Promise<void> {
@@ -2333,6 +2298,6 @@ export class LidarrClient {
         method: "DELETE"
       }
     );
-    this.invalidateCaches();
+    await this.invalidateCaches();
   }
 }

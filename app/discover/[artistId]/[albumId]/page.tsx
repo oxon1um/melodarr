@@ -1,11 +1,13 @@
 "use client";
 
 import type { Route } from "next";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { CoverImage } from "@/components/ui/cover-image";
 import { IconAlbum, IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
+import type { ImageAsset } from "@/lib/images";
 
 type AlbumDetails = {
   title: string;
@@ -13,7 +15,7 @@ type AlbumDetails = {
   foreignArtistId?: string;
   artistName?: string;
   releaseDate?: string;
-  images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
+  images?: ImageAsset[];
   artist?: {
     artistName?: string;
     foreignArtistId?: string;
@@ -36,10 +38,14 @@ type AlbumData = {
   hasFiles: boolean;
 };
 
-const chooseImage = (images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>) => {
+const chooseImage = (images?: ImageAsset[]) => {
   if (!images || images.length === 0) return undefined;
 
   return (
+    images.find((item) => item.coverType === "cover")?.optimizedUrl ??
+    images.find((item) => item.coverType === "poster")?.optimizedUrl ??
+    images.find((item) => item.coverType === "fanart")?.optimizedUrl ??
+    images.find((item) => item.coverType === "banner")?.optimizedUrl ??
     images.find((item) => item.coverType === "cover")?.remoteUrl ??
     images.find((item) => item.coverType === "poster")?.remoteUrl ??
     images.find((item) => item.coverType === "fanart")?.remoteUrl ??
@@ -61,12 +67,14 @@ const formatDuration = (ms?: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
-export default function AlbumDetailPage() {
-  const params = useParams();
+type AlbumDetailContentProps = {
+  artistId: string;
+  albumId: string;
+};
+
+function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const artistId = params.artistId as string;
-  const albumId = params.albumId as string;
   const artistNameParam = searchParams.get("artistName") || undefined;
   const from = searchParams.get("from") || undefined;
 
@@ -94,10 +102,6 @@ export default function AlbumDetailPage() {
     // Create new abort controller for this request
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-
-    // Reset state when albumId changes
-    setData(null);
-    setLoading(true);
 
     const fetchAlbum = async () => {
       try {
@@ -254,14 +258,13 @@ export default function AlbumDetailPage() {
       </div>
 
       <section className="flex flex-col gap-6 sm:flex-row sm:items-start">
-        <div className="h-48 w-48 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2">
-          {image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt={album.title} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full items-center justify-center text-xs text-muted">No cover</div>
-          )}
-        </div>
+        <CoverImage
+          alt={album.title}
+          src={image}
+          sizes="192px"
+          priority
+          className="relative h-48 w-48 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2"
+        />
         <div className="space-y-2">
           <h1 className="font-display text-3xl font-semibold tracking-tight">{album.title}</h1>
           <p className="text-lg text-muted">
@@ -356,4 +359,12 @@ export default function AlbumDetailPage() {
       </section>
     </div>
   );
+}
+
+export default function AlbumDetailPage() {
+  const params = useParams();
+  const artistId = params.artistId as string;
+  const albumId = params.albumId as string;
+
+  return <AlbumDetailContent key={albumId} artistId={artistId} albumId={albumId} />;
 }

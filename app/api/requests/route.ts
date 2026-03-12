@@ -6,6 +6,9 @@ import { prisma } from "@/lib/db/prisma";
 import { jsonError, jsonOk } from "@/lib/http";
 import { createAlbumRequest, createArtistRequest } from "@/lib/requests/service";
 
+const DEFAULT_PAGE_SIZE = 25;
+const MAX_PAGE_SIZE = 100;
+
 const createRequestSchema = z.object({
   requestType: z.enum(["artist", "album"]).optional(),
   artistName: z.string().min(1),
@@ -18,7 +21,15 @@ const createRequestSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const statusFilter = req.nextUrl.searchParams.get("status") as RequestStatus | null;
+    const statusFilterRaw = req.nextUrl.searchParams.get("status");
+    const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
+    const limitRaw = Number.parseInt(req.nextUrl.searchParams.get("limit") ?? "", 10);
+    const limit = Number.isFinite(limitRaw)
+      ? Math.min(Math.max(limitRaw, 1), MAX_PAGE_SIZE)
+      : DEFAULT_PAGE_SIZE;
+    const statusFilter = statusFilterRaw && Object.values(RequestStatus).includes(statusFilterRaw as RequestStatus)
+      ? (statusFilterRaw as RequestStatus)
+      : null;
 
     const requests = await prisma.request.findMany({
       where: {
@@ -32,13 +43,23 @@ export async function GET(req: NextRequest) {
           }
         }
       },
-      orderBy: {
-        createdAt: "desc"
-      },
-      take: 200
+      orderBy: [
+        { createdAt: "desc" },
+        { id: "desc" }
+      ],
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      take: limit + 1
     });
 
-    return jsonOk({ requests });
+    const hasMore = requests.length > limit;
+    const page = hasMore ? requests.slice(0, limit) : requests;
+    const nextCursor = hasMore ? page[page.length - 1]?.id ?? null : null;
+
+    return jsonOk({
+      requests: page,
+      nextCursor,
+      hasMore
+    });
   } catch (error) {
     const status = (error as { status?: number }).status ?? 500;
     return jsonError(error instanceof Error ? error.message : "Failed to load requests", status);
