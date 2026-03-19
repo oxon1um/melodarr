@@ -105,7 +105,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
     <div className="panel page-enter mx-auto w-full max-w-5xl space-y-8 p-6 sm:p-8">
       <div className="space-y-2">
         <h1 className="font-display text-3xl font-semibold tracking-tight">Welcome Back</h1>
-        <p className="text-sm text-muted">Sign in with Jellyfin or your Melodarr account.</p>
+        <p className="text-sm text-muted">Sign in with Jellyfin or your local admin account.</p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -121,7 +121,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             </div>
             <div>
               <h2 className="section-heading">Jellyfin</h2>
-              <p className="text-xs text-muted">Use your Jellyfin credentials</p>
+              <p className="text-xs text-muted">Sign in with your Jellyfin username and password</p>
             </div>
           </div>
 
@@ -174,7 +174,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             </div>
             <div>
               <h2 className="section-heading">Local Admin</h2>
-              <p className="text-xs text-muted">Use your Melodarr account</p>
+              <p className="text-xs text-muted">Sign in with your admin username and password</p>
             </div>
           </div>
 

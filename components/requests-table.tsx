@@ -210,8 +210,8 @@ export function RequestsTable({ admin = false }: Props) {
           </h1>
           <p className="text-sm text-muted">
             {admin
-              ? "Review pending requests and moderate approvals."
-              : "View your request history and current statuses."}
+              ? "Review pending requests and approve or reject them."
+              : "See your requests and their current status."}
           </p>
         </div>
         <button type="button" onClick={() => void load()} className="btn-ghost w-fit rounded-lg">
@@ -228,7 +228,7 @@ export function RequestsTable({ admin = false }: Props) {
             </svg>
           </div>
           <p className="text-base font-medium text-muted">No requests yet</p>
-          <p className="mt-1.5 text-sm text-muted/70">Discover music and submit your first request.</p>
+          <p className="mt-1.5 text-sm text-muted/70">Find music you want and request it here.</p>
           <Link href="/discover" className="btn-primary mt-4 inline-flex">
             Browse Music
           </Link>

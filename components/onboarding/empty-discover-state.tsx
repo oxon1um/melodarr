@@ -34,7 +34,7 @@ export function EmptyDiscoverState() {
 
       {/* Suggested searches */}
       <div className="mt-10 space-y-4">
-        <p className="text-center text-sm text-muted/70">Popular searches to get you started</p>
+        <p className="text-center text-sm text-muted/70">Try searching for</p>
         <div className="flex flex-wrap justify-center gap-2">
           {SUGGESTED_SEARCHES.map((search) => (
             <Link
@@ -77,7 +77,7 @@ export function EmptyDiscoverState() {
             </svg>
           </div>
           <h3 className="mt-3 font-medium text-text">Enjoy</h3>
-          <p className="mt-1 text-sm text-muted">Music downloads automatically and appears in Jellyfin.</p>
+          <p className="mt-1 text-sm text-muted">Music downloads automatically and becomes available in your library.</p>
         </div>
       </div>
     </div>

@@ -115,16 +115,13 @@ export function WelcomeTour() {
         </div>
 
         {/* Dismiss */}
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-xs text-muted/60">
-            Your admin can configure integrations in Settings.
-          </p>
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={dismiss}
             className="text-sm text-muted transition-colors hover:text-text"
           >
-            Skip setup
+            Skip tour
           </button>
         </div>
       </div>

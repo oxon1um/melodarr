@@ -546,7 +546,7 @@ export function DiscoverClient() {
   return (
     <div className="page-enter space-y-8">
       <section className="space-y-1">
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Discover Music</h1>
+        <h1 className="font-display text-4xl font-bold tracking-wide">Discover Music</h1>
         <p className="text-sm text-muted">Search artists, albums, and singles.</p>
       </section>
 
@@ -742,7 +742,7 @@ export function DiscoverClient() {
 
       {(filter === "all" || filter === "artists") && results.artists.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Artists</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">Artists</h2>
           <div className="space-y-5">
             {results.artists.map((artist, artistIndex) => {
               const key = artistKey(artist);
@@ -777,12 +777,12 @@ export function DiscoverClient() {
                       {artistHref ? (
                         <Link
                           href={artistHref}
-                          className="truncate text-lg font-semibold tracking-tight hover:text-accent-hover"
+                          className="font-display truncate text-base font-bold tracking-tight hover:text-accent-hover"
                         >
                           {artist.artistName}
                         </Link>
                       ) : (
-                        <h3 className="truncate text-lg font-semibold tracking-tight">{artist.artistName}</h3>
+                        <h3 className="font-display truncate text-base font-bold tracking-tight">{artist.artistName}</h3>
                       )}
                       <p className="mt-1.5 line-clamp-2 text-sm text-muted">
                         {artist.overview ?? "No description provided by Lidarr metadata."}
@@ -807,7 +807,7 @@ export function DiscoverClient() {
 
       {(filter === "all" || filter === "albums") && displayedAlbums.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Albums</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">Albums</h2>
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             {visibleAlbums.map((album, index) => {
               const key = albumKey({
@@ -890,11 +890,11 @@ export function DiscoverClient() {
                     </div>
                     <div className="min-w-0 flex-1">
                       {albumHref ? (
-                        <Link href={albumHref} className="truncate text-lg font-semibold tracking-tight hover:text-accent-hover">
+                        <Link href={albumHref} className="truncate text-base font-medium tracking-tight hover:text-accent-hover">
                           {album.title}
                         </Link>
                       ) : (
-                        <h3 className="truncate text-lg font-semibold tracking-tight">{album.title}</h3>
+                        <h3 className="truncate text-base font-medium tracking-tight">{album.title}</h3>
                       )}
                       <p className="truncate text-sm text-muted">{album.artistName}</p>
                       <p className="mt-1.5 line-clamp-2 text-xs text-muted/80">
@@ -936,7 +936,7 @@ export function DiscoverClient() {
 
       {(filter === "all" || filter === "singles") && displayedSingles.length > 0 ? (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Singles</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">Singles</h2>
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             {visibleSingles.map((single, index) => {
               const key = albumKey({
@@ -1019,11 +1019,11 @@ export function DiscoverClient() {
                     </div>
                     <div className="min-w-0 flex-1">
                       {singleHref ? (
-                        <Link href={singleHref} className="truncate text-lg font-semibold tracking-tight hover:text-accent-hover">
+                        <Link href={singleHref} className="truncate text-base font-medium tracking-tight hover:text-accent-hover">
                           {single.title}
                         </Link>
                       ) : (
-                        <h3 className="truncate text-lg font-semibold tracking-tight">{single.title}</h3>
+                        <h3 className="truncate text-base font-medium tracking-tight">{single.title}</h3>
                       )}
                       <p className="truncate text-sm text-muted">{single.artistName}</p>
                       <p className="mt-1.5 line-clamp-2 text-xs text-muted/80">
@@ -1071,7 +1071,7 @@ export function DiscoverClient() {
             </svg>
           </div>
           <p className="text-base font-medium text-muted">No results for &quot;{query}&quot;</p>
-          <p className="mt-1.5 text-sm text-muted/70">Try a different spelling or browse an artist directly.</p>
+          <p className="mt-1.5 text-sm text-muted/70">Check the spelling or try a different artist name.</p>
           <button
             type="button"
             onClick={() => { setQuery(""); }}

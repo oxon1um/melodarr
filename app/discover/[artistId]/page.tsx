@@ -323,7 +323,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
           className="relative h-40 w-40 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2"
         />
         <div className="space-y-2">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{artist.artistName}</h1>
+          <h1 className="font-display text-4xl font-bold tracking-wide">{artist.artistName}</h1>
           {availableCount > 0 && (
             <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
               <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -375,7 +375,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <IconAlbum className="h-5 w-5 text-accent" />
-          <h2 className="text-xl font-semibold tracking-tight">Albums</h2>
+          <h2 className="text-sm font-medium uppercase tracking-widest text-muted">Albums</h2>
           <span className="chip">{displayedAlbums.length} found</span>
         </div>
 
@@ -488,7 +488,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <IconAlbum className="h-5 w-5 text-accent" />
-          <h2 className="text-xl font-semibold tracking-tight">Singles</h2>
+          <h2 className="text-sm font-medium uppercase tracking-widest text-muted">Singles</h2>
           <span className="chip">{displayedSingles.length} found</span>
         </div>
 
