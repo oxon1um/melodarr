@@ -617,7 +617,7 @@ export function DiscoverClient() {
 
           {showSuggestions && suggestions.length > 0 ? (
             <div
-              className="absolute left-0 right-0 top-[3.75rem] z-[10001] rounded-2xl border border-white/[0.1] bg-[#060c1a]/95 p-1 shadow-panel backdrop-blur-xl"
+              className="absolute left-0 right-0 top-[3.75rem] z-[var(--z-dropdown)] rounded-2xl border border-white/[0.1] bg-[#060c1a]/95 p-1 shadow-panel backdrop-blur-xl"
               onMouseEnter={() => setIsSuggestionsHovered(true)}
               onMouseLeave={() => {
                 setIsSuggestionsHovered(false);
@@ -633,7 +633,7 @@ export function DiscoverClient() {
                       type="button"
                       className={`flex w-full items-start justify-between rounded-xl px-3 py-2.5 text-left transition ${
                         index === activeSuggestionIndex
-                          ? "bg-accent/15 text-accent-glow"
+                          ? "bg-accent/15 text-accent-active"
                           : "text-muted hover:bg-white/[0.04] hover:text-white"
                       }`}
                       onMouseDown={(event) => {
@@ -694,53 +694,54 @@ export function DiscoverClient() {
       ) : null}
 
       <section className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="chip border-accent/25 bg-accent/10 text-accent-glow">{sectionTitle(filter)}</span>
-          <span className="chip">{totalCount} results</span>
-        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {filters.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setFilter(item.id)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  filter === item.id
+                    ? "bg-accent/15 text-accent-active border border-accent/40"
+                    : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+            {filter === "singles" && (
+              <button
+                type="button"
+                onClick={() => setHideNoisySingles((current) => !current)}
+                className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                  hideNoisySingles
+                    ? "bg-accent/15 text-accent-active border border-accent/40"
+                    : "border border-white/[0.08] bg-white/[0.02] text-muted/70 hover:border-white/[0.15] hover:text-muted"
+                }`}
+              >
+                Hide noise
+              </button>
+            )}
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {filters.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setFilter(item.id)}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                filter === item.id
-                  ? "bg-accent/15 text-accent-glow border border-accent/40 shadow-[0_0_12px_rgba(94,186,255,0.15)]"
-                  : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-
-          <label className="ml-auto flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-muted">
-            <span>Sort</span>
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value as ReleaseSort)}
-              className="bg-transparent text-white outline-none"
-            >
-              {RELEASE_SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value} className="bg-[#060c1a] text-white">
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button
-            type="button"
-            onClick={() => setHideNoisySingles((current) => !current)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              hideNoisySingles
-                ? "bg-accent/15 text-accent-glow border border-accent/40 shadow-[0_0_12px_rgba(94,186,255,0.15)]"
-                : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
-            }`}
-          >
-            Hide Noisy Singles
-          </button>
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span>{totalCount} result{totalCount !== 1 ? "s" : ""}</span>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <span className="sr-only">Sort by</span>
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value as ReleaseSort)}
+                className="field-select rounded-lg border-0 bg-transparent px-1 py-0.5 text-xs"
+              >
+                {RELEASE_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value} style={{ background: "var(--panel)", color: "var(--text)" }}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -781,12 +782,12 @@ export function DiscoverClient() {
                       {artistHref ? (
                         <Link
                           href={artistHref}
-                          className="text-lg font-semibold tracking-tight hover:text-accent-glow"
+                          className="truncate text-lg font-semibold tracking-tight hover:text-accent-hover"
                         >
                           {artist.artistName}
                         </Link>
                       ) : (
-                        <h3 className="text-lg font-semibold tracking-tight">{artist.artistName}</h3>
+                        <h3 className="truncate text-lg font-semibold tracking-tight">{artist.artistName}</h3>
                       )}
                       <p className="mt-1.5 line-clamp-2 text-sm text-muted">
                         {artist.overview ?? "No description provided by Lidarr metadata."}
@@ -812,7 +813,7 @@ export function DiscoverClient() {
       {(filter === "all" || filter === "albums") && displayedAlbums.length > 0 ? (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">Albums</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             {visibleAlbums.map((album, index) => {
               const key = albumKey({
                 foreignAlbumId: album.foreignAlbumId,
@@ -894,13 +895,13 @@ export function DiscoverClient() {
                     </div>
                     <div className="min-w-0 flex-1">
                       {albumHref ? (
-                        <Link href={albumHref} className="text-lg font-semibold tracking-tight hover:text-accent-glow">
+                        <Link href={albumHref} className="truncate text-lg font-semibold tracking-tight hover:text-accent-hover">
                           {album.title}
                         </Link>
                       ) : (
-                        <h3 className="text-lg font-semibold tracking-tight">{album.title}</h3>
+                        <h3 className="truncate text-lg font-semibold tracking-tight">{album.title}</h3>
                       )}
-                      <p className="text-sm text-muted">{album.artistName}</p>
+                      <p className="truncate text-sm text-muted">{album.artistName}</p>
                       <p className="mt-1.5 line-clamp-2 text-xs text-muted/80">
                         {album.overview ?? "No album overview available."}
                       </p>
@@ -941,7 +942,7 @@ export function DiscoverClient() {
       {(filter === "all" || filter === "singles") && displayedSingles.length > 0 ? (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">Singles</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             {visibleSingles.map((single, index) => {
               const key = albumKey({
                 foreignAlbumId: single.foreignAlbumId,
@@ -1023,13 +1024,13 @@ export function DiscoverClient() {
                     </div>
                     <div className="min-w-0 flex-1">
                       {singleHref ? (
-                        <Link href={singleHref} className="text-lg font-semibold tracking-tight hover:text-accent-glow">
+                        <Link href={singleHref} className="truncate text-lg font-semibold tracking-tight hover:text-accent-hover">
                           {single.title}
                         </Link>
                       ) : (
-                        <h3 className="text-lg font-semibold tracking-tight">{single.title}</h3>
+                        <h3 className="truncate text-lg font-semibold tracking-tight">{single.title}</h3>
                       )}
-                      <p className="text-sm text-muted">{single.artistName}</p>
+                      <p className="truncate text-sm text-muted">{single.artistName}</p>
                       <p className="mt-1.5 line-clamp-2 text-xs text-muted/80">
                         {single.overview ?? "No release overview available."}
                       </p>

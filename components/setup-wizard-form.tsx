@@ -58,10 +58,8 @@ export function SetupWizardForm() {
   return (
     <form className="panel page-enter mx-auto max-w-2xl space-y-8 p-6 sm:p-8" onSubmit={onSubmit}>
       <div className="space-y-2">
-        <h1 className="font-display text-4xl font-semibold tracking-tight">
-          <span className="bg-gradient-to-r from-accent via-accent-glow to-[#a78bfa] bg-clip-text text-transparent">
-            Welcome to Melodarr
-          </span>
+        <h1 className="font-display text-4xl font-semibold tracking-tight text-accent">
+          Welcome to Melodarr
         </h1>
         <p className="text-sm text-muted">Create your administrator account to get started.</p>
       </div>
@@ -78,6 +76,7 @@ export function SetupWizardForm() {
             <span className="mb-2 block text-muted">Username</span>
             <input
               required
+              autoComplete="username"
               value={state.username}
               onChange={(event) => setState((prev) => ({ ...prev, username: event.target.value }))}
               className="field"
@@ -89,6 +88,7 @@ export function SetupWizardForm() {
             <span className="mb-2 block text-muted">Password</span>
             <input
               required
+              autoComplete="new-password"
               type="password"
               value={state.password}
               onChange={(event) => setState((prev) => ({ ...prev, password: event.target.value }))}
@@ -100,6 +100,7 @@ export function SetupWizardForm() {
             <span className="mb-2 block text-muted">Confirm Password</span>
             <input
               required
+              autoComplete="new-password"
               type="password"
               value={state.confirmPassword}
               onChange={(event) =>
@@ -114,7 +115,7 @@ export function SetupWizardForm() {
 
       <p className="rounded-xl border border-white/[0.06] bg-panel-2/30 p-4 text-sm text-muted">
         You can connect Jellyfin and Lidarr from{" "}
-        <span className="text-accent-glow font-medium">Settings</span> after completing setup.
+        <span className="text-accent-active font-medium">Settings</span> after completing setup.
       </p>
 
       <button

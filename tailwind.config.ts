@@ -20,7 +20,8 @@ const config: Config = {
         text: "var(--text)",
         muted: "var(--muted)",
         accent: "var(--accent)",
-        "accent-glow": "var(--accent-glow)",
+        "accent-active": "var(--accent-active)",
+        "accent-hover": "var(--accent-hover)",
         danger: "var(--danger)",
         success: "var(--success)"
       },

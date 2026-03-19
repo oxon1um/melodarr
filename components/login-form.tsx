@@ -65,6 +65,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <span className="mb-2 block text-muted">Username</span>
             <input
               required
+              autoComplete="username"
               value={localUsername}
               onChange={(event) => setLocalUsername(event.target.value)}
               className="field"
@@ -76,6 +77,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <span className="mb-2 block text-muted">Password</span>
             <input
               required
+              autoComplete="current-password"
               type="password"
               value={localPassword}
               onChange={(event) => setLocalPassword(event.target.value)}
@@ -114,7 +116,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
           }
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff]/5 border border-white/10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff]/5 border border-white/10" aria-label="Jellyfin">
               <Image src="/brands/jellyfin.svg" alt="" aria-hidden width={22} height={22} />
             </div>
             <div>
@@ -127,6 +129,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <span className="mb-2 block text-muted">Username</span>
             <input
               required
+              autoComplete="username"
               value={jellyfinUsername}
               onChange={(event) => setJellyfinUsername(event.target.value)}
               className="field"
@@ -138,6 +141,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <span className="mb-2 block text-muted">Password</span>
             <input
               required
+              autoComplete="current-password"
               type="password"
               value={jellyfinPassword}
               onChange={(event) => setJellyfinPassword(event.target.value)}

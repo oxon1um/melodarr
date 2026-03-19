@@ -262,11 +262,11 @@ export function RequestsTable({ admin = false }: Props) {
                         {item.requestType === "ALBUM" ? "Album" : "Artist"}
                       </span>
                     </div>
-                    <p className="text-xs text-muted/80">
+                    <p className="truncate text-xs text-muted/80">
                       {admin && item.requestedBy ? (
                         <span className="inline-flex items-center gap-1.5">
                           <span className="inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-accent/60" />
-                          {item.requestedBy.username}
+                          <span className="truncate">{item.requestedBy.username}</span>
                           <span className="mx-1 text-muted/40">·</span>
                         </span>
                       ) : null}

@@ -1,45 +1,30 @@
 import { RequestStatus } from "@prisma/client";
 import { IconClock, IconCircleCheck, IconCircleX, IconCloudDown, IconAlertTriangle, IconMusic } from "./icons";
 
-const statusConfig: Record<RequestStatus, { bg: string; border: string; text: string; glow?: string; icon: React.ReactNode }> = {
+const statusConfig: Record<RequestStatus, { className: string; icon: React.ReactNode }> = {
   PENDING: {
-    bg: "bg-amber-500/15",
-    border: "border-amber-400/30",
-    text: "text-amber-200",
-    glow: "shadow-[0_0_12px_rgba(251,191,36,0.25)]",
-    icon: <IconClock className="h-3 w-3" />
+    className: "status-pending",
+    icon: <IconClock className="h-3 w-3" aria-hidden="true" />
   },
   APPROVED: {
-    bg: "bg-sky-500/15",
-    border: "border-sky-400/30",
-    text: "text-sky-200",
-    glow: "shadow-[0_0_12px_rgba(56,189,248,0.2)]",
-    icon: <IconCircleCheck className="h-3 w-3" />
+    className: "status-approved",
+    icon: <IconCircleCheck className="h-3 w-3" aria-hidden="true" />
   },
   REJECTED: {
-    bg: "bg-rose-500/12",
-    border: "border-rose-400/25",
-    text: "text-rose-200",
-    icon: <IconCircleX className="h-3 w-3" />
+    className: "status-rejected",
+    icon: <IconCircleX className="h-3 w-3" aria-hidden="true" />
   },
   SUBMITTED: {
-    bg: "bg-emerald-500/15",
-    border: "border-emerald-400/30",
-    text: "text-emerald-200",
-    glow: "shadow-[0_0_12px_rgba(52,211,153,0.2)]",
-    icon: <IconCloudDown className="h-3 w-3" />
+    className: "status-submitted",
+    icon: <IconCloudDown className="h-3 w-3" aria-hidden="true" />
   },
   FAILED: {
-    bg: "bg-rose-500/12",
-    border: "border-rose-400/25",
-    text: "text-rose-200",
-    icon: <IconAlertTriangle className="h-3 w-3" />
+    className: "status-failed",
+    icon: <IconAlertTriangle className="h-3 w-3" aria-hidden="true" />
   },
   ALREADY_EXISTS: {
-    bg: "bg-slate-500/12",
-    border: "border-slate-400/20",
-    text: "text-slate-300",
-    icon: <IconMusic className="h-3 w-3" />
+    className: "status-exists",
+    icon: <IconMusic className="h-3 w-3" aria-hidden="true" />
   }
 };
 
@@ -55,8 +40,7 @@ export function StatusBadge({ status }: Props) {
     <span
       className={`
         relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium tracking-wide
-        ${config.bg} ${config.border} ${config.text}
-        ${config.glow || ""}
+        ${config.className}
         ${isPending ? "animate-pulse-glow" : ""}
       `}
     >

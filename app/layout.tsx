@@ -40,31 +40,15 @@ export default async function RootLayout({
       <body className={`${syne.variable} ${dmSans.variable}`}>
         <ToastProvider>
           <div className="relative min-h-screen text-text">
-            {/* Aurora background effects */}
-            <div className="pointer-events-none fixed inset-0 overflow-hidden">
-              <div className="aurora-blob aurora-blob-1" />
-              <div className="aurora-blob aurora-blob-2" />
-              <div className="aurora-blob aurora-blob-3" />
-            </div>
-
-            {/* Subtle gradient mesh overlay */}
-            <div className="pointer-events-none fixed inset-0 opacity-30">
-              <div className="absolute -left-32 top-20 h-80 w-80 rounded-full bg-[#3b6ee0]/15 blur-3xl" />
-              <div className="absolute right-0 top-40 h-72 w-72 rounded-full bg-[#8b5cf6]/10 blur-3xl" />
-              <div className="absolute -bottom-20 left-1/3 h-64 w-64 rounded-full bg-[#22d3ee]/10 blur-3xl" />
-            </div>
-
             {/* Header */}
             <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#03070d]/70 backdrop-blur-xl">
               <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-wrap items-center gap-3">
                   <Link
-                    className="font-display text-2xl font-semibold tracking-tight transition-colors hover:text-accent-glow"
+                    className="font-display text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover"
                     href="/discover"
                   >
-                    <span className="bg-gradient-to-r from-accent to-accent-glow bg-clip-text text-transparent">
-                      Melodarr
-                    </span>
+                    Melodarr
                   </Link>
                   {user ? (
                     <nav className="flex flex-wrap items-center gap-1.5 text-sm text-muted">

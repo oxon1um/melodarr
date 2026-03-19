@@ -364,7 +364,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
           onClick={() => setHideNoisySingles((current) => !current)}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             hideNoisySingles
-              ? "bg-accent/15 text-accent-glow border border-accent/40 shadow-[0_0_12px_rgba(94,186,255,0.15)]"
+              ? "bg-accent/15 text-accent-active border border-accent/40"
               : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
           }`}
         >

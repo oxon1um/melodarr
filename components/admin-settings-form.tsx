@@ -248,7 +248,7 @@ export function AdminSettingsForm() {
         <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff]/5 border border-white/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff]/5 border border-white/10" aria-label="Jellyfin">
                 <Image src="/brands/jellyfin.svg" alt="" aria-hidden width={22} height={22} />
               </div>
               <h2 className="section-heading leading-none">Jellyfin</h2>
@@ -295,7 +295,7 @@ export function AdminSettingsForm() {
         <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20" aria-label="Lidarr">
                 <Image src="/brands/lidarr.svg" alt="" aria-hidden width={22} height={22} className="h-5 w-5" />
               </div>
               <h2 className="section-heading leading-none">Lidarr</h2>
@@ -445,6 +445,7 @@ export function AdminSettingsForm() {
                 <span className="mb-2 block text-muted">Current Password</span>
                 <input
                   type="password"
+                  autoComplete="current-password"
                   value={passwordState.currentPassword}
                   onChange={(event) =>
                     setPasswordState((prev) => ({ ...prev, currentPassword: event.target.value }))
@@ -456,6 +457,7 @@ export function AdminSettingsForm() {
                 <span className="mb-2 block text-muted">New Password</span>
                 <input
                   type="password"
+                  autoComplete="new-password"
                   minLength={8}
                   value={passwordState.newPassword}
                   onChange={(event) =>
@@ -468,6 +470,7 @@ export function AdminSettingsForm() {
                 <span className="mb-2 block text-muted">Confirm New Password</span>
                 <input
                   type="password"
+                  autoComplete="new-password"
                   minLength={8}
                   value={passwordState.confirmPassword}
                   onChange={(event) =>
