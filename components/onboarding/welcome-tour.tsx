@@ -53,18 +53,17 @@ const TOUR_STEPS: Array<{
 ];
 
 export function WelcomeTour() {
-  const [seen, setSeen] = useState(() => {
+  const [dismissed, setDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(TOUR_KEY) === "true";
   });
-  const [dismissed, setDismissed] = useState(false);
 
   const dismiss = () => {
     window.localStorage.setItem(TOUR_KEY, "true");
     setDismissed(true);
   };
 
-  if (seen || dismissed) {
+  if (dismissed) {
     return null;
   }
 
