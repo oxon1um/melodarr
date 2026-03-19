@@ -35,17 +35,6 @@ export const getRuntimeSecret = async (): Promise<string> => {
     return cachedSecret;
   }
 
-  const hasEncryptedConfig = Boolean(
-    stored.jellyfinApiKeyEncrypted || stored.lidarrApiKeyEncrypted
-  );
-
-  if (hasEncryptedConfig) {
-    throw new Error(
-      "Runtime secret required: encrypted configuration exists but no secret is available. " +
-        "Set SESSION_SECRET environment variable or ensure runtimeSecret is stored in the database."
-    );
-  }
-
   const created = randomBytes(64).toString("hex");
   await saveRuntimeSecret(created);
   cachedSecret = created;
