@@ -222,30 +222,32 @@ export function AdminSettingsForm() {
         <h1 className="font-display text-3xl font-semibold tracking-tight">Settings</h1>
       </div>
 
-      <form className="space-y-6" onSubmit={save}>
-        {/* Application Section */}
-        <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
-          <h2 className="section-heading flex items-center gap-2">
-            <svg className="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Application
-          </h2>
-          <label className="block text-sm">
-            <span className="mb-2 block text-muted">Public App URL</span>
-            <input
-              type="url"
-              value={state.appUrl ?? ""}
-              onChange={(event) => setState((prev) => ({ ...prev, appUrl: event.target.value }))}
-              className="field"
-              placeholder="https://melodarr.example.com"
-            />
-          </label>
-        </section>
+      <form className="grid gap-8 lg:grid-cols-2" onSubmit={save}>
+        {/* Left column — integrations */}
+        <div className="space-y-6">
+          {/* Application Section */}
+          <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
+            <h2 className="section-heading flex items-center gap-2">
+              <svg className="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Application
+            </h2>
+            <label className="block text-sm">
+              <span className="mb-2 block text-muted">Public App URL</span>
+              <input
+                type="url"
+                value={state.appUrl ?? ""}
+                onChange={(event) => setState((prev) => ({ ...prev, appUrl: event.target.value }))}
+                className="field"
+                placeholder="https://melodarr.example.com"
+              />
+            </label>
+          </section>
 
-        {/* Jellyfin Section */}
-        <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
+          {/* Jellyfin Section */}
+          <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff]/5 border border-white/10" aria-label="Jellyfin">
@@ -378,7 +380,10 @@ export function AdminSettingsForm() {
             </label>
           </div>
         </section>
+        </div>
 
+        {/* Right column — behavior & security */}
+        <div className="space-y-6">
         {/* Auto Approve Toggle */}
         <button
           type="button"
@@ -386,7 +391,7 @@ export function AdminSettingsForm() {
           onClick={() =>
             setState((prev) => ({ ...prev, requestAutoApprove: !prev.requestAutoApprove }))
           }
-          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(86,177,255,0.15)]"
+          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30"
         >
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
@@ -411,7 +416,7 @@ export function AdminSettingsForm() {
           onClick={() =>
             setState((prev) => ({ ...prev, debugMode: !prev.debugMode }))
           }
-          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(86,177,255,0.15)]"
+          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30"
         >
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
@@ -440,7 +445,7 @@ export function AdminSettingsForm() {
                 Change Password
               </h2>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-4">
               <label className="block text-sm">
                 <span className="mb-2 block text-muted">Current Password</span>
                 <input
@@ -453,37 +458,39 @@ export function AdminSettingsForm() {
                   className="field"
                 />
               </label>
-              <label className="block text-sm">
-                <span className="mb-2 block text-muted">New Password</span>
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  value={passwordState.newPassword}
-                  onChange={(event) =>
-                    setPasswordState((prev) => ({ ...prev, newPassword: event.target.value }))
-                  }
-                  className="field"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-2 block text-muted">Confirm New Password</span>
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  value={passwordState.confirmPassword}
-                  onChange={(event) =>
-                    setPasswordState((prev) => ({ ...prev, confirmPassword: event.target.value }))
-                  }
-                  className="field"
-                />
-              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm">
+                  <span className="mb-2 block text-muted">New Password</span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    value={passwordState.newPassword}
+                    onChange={(event) =>
+                      setPasswordState((prev) => ({ ...prev, newPassword: event.target.value }))
+                    }
+                    className="field"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-2 block text-muted">Confirm New Password</span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    value={passwordState.confirmPassword}
+                    onChange={(event) =>
+                      setPasswordState((prev) => ({ ...prev, confirmPassword: event.target.value }))
+                    }
+                    className="field"
+                  />
+                </label>
+              </div>
             </div>
           </section>
         ) : null}
 
-        <button type="submit" disabled={saving} className="btn-primary py-3">
+        <button type="submit" disabled={saving} className="btn-primary w-full py-3">
           {saving ? (
             <span className="flex items-center gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -496,6 +503,7 @@ export function AdminSettingsForm() {
             </>
           )}
         </button>
+        </div>
       </form>
     </Card>
   );

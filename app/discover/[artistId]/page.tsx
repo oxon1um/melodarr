@@ -443,10 +443,10 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                             `album:${key}`
                           );
                         }}
-                        disabled={submitting === `album:${key}` || album.isTracked}
+                        disabled={submitting === `album:${key}` || album.hasFiles || album.isTracked}
                         className="quick-icon"
-                        aria-label={`Quick download ${album.title}`}
-                        title={album.isTracked ? "Already tracked in Lidarr" : "Quick download album"}
+                        aria-label={`Request ${album.title}`}
+                        title={album.hasFiles ? "Already available" : album.isTracked ? "Already tracked in Lidarr" : "Request album"}
                       >
                         {submitting === `album:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -457,7 +457,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                       </button>
                       <Link
                         href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
-                        className="btn-primary flex-1 py-2 text-sm"
+                        className={`flex-1 py-2 text-sm text-center rounded-xl font-medium transition-all ${album.hasFiles ? "btn-ghost" : "btn-primary"}`}
                       >
                         {submitting === `album:${key}`
                           ? "Requesting..."
@@ -556,10 +556,10 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                             `single:${key}`
                           );
                         }}
-                        disabled={submitting === `single:${key}` || single.isTracked}
+                        disabled={submitting === `single:${key}` || single.hasFiles || single.isTracked}
                         className="quick-icon"
-                        aria-label={`Quick download ${single.title}`}
-                        title={single.isTracked ? "Already tracked in Lidarr" : "Quick download single"}
+                        aria-label={`Request ${single.title}`}
+                        title={single.hasFiles ? "Already available" : single.isTracked ? "Already tracked in Lidarr" : "Request single"}
                       >
                         {submitting === `single:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -570,7 +570,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                       </button>
                       <Link
                         href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(single.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
-                        className="btn-primary flex-1 py-2 text-sm"
+                        className={`flex-1 py-2 text-sm text-center rounded-xl font-medium transition-all ${single.hasFiles ? "btn-ghost" : "btn-primary"}`}
                       >
                         {submitting === `single:${key}`
                           ? "Requesting..."

@@ -182,6 +182,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <span className="mb-2 block text-muted">Username</span>
             <input
               required
+              autoComplete="username"
               value={localUsername}
               onChange={(event) => setLocalUsername(event.target.value)}
               className="field"
@@ -193,6 +194,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <span className="mb-2 block text-muted">Password</span>
             <input
               required
+              autoComplete="current-password"
               type="password"
               value={localPassword}
               onChange={(event) => setLocalPassword(event.target.value)}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import Link from "next/link";
 import { IconCheck, IconRefresh, IconX, IconAlbum, IconUser, IconTrash } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast-provider";
@@ -202,7 +203,7 @@ export function RequestsTable({ admin = false }: Props) {
 
   return (
     <Card className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <h1 className="font-display text-3xl font-semibold tracking-tight">
             {admin ? "Manage Requests" : "My Requests"}
@@ -226,8 +227,11 @@ export function RequestsTable({ admin = false }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <p className="text-base font-medium text-muted">No requests found</p>
-          <p className="mt-1.5 text-sm text-muted/70">Start by discovering and requesting music</p>
+          <p className="text-base font-medium text-muted">No requests yet</p>
+          <p className="mt-1.5 text-sm text-muted/70">Discover music and submit your first request.</p>
+          <Link href="/discover" className="btn-primary mt-4 inline-flex">
+            Browse Music
+          </Link>
         </div>
       ) : (
         <div className="soft-scroll max-h-[68vh] space-y-3 overflow-auto pr-1">
@@ -277,62 +281,54 @@ export function RequestsTable({ admin = false }: Props) {
                     ) : null}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={item.status} />
                     {admin ? (
                       <>
+                        {item.status === "PENDING" && (
+                          <button
+                            type="button"
+                            disabled={acting === item.id}
+                            onClick={() => void onModerate(item.id, "approve")}
+                            className="btn-primary rounded-xl px-4 py-2 text-sm"
+                          >
+                            <span className="inline-flex items-center gap-1.5">
+                              <IconCheck className="h-4 w-4" />
+                              {acting === item.id ? "Working..." : "Approve"}
+                            </span>
+                          </button>
+                        )}
+                        {item.status === "PENDING" && (
+                          <button
+                            type="button"
+                            disabled={acting === item.id}
+                            onClick={() => void onModerate(item.id, "reject")}
+                            className="icon-btn rounded-xl px-3"
+                            title="Reject"
+                          >
+                            <IconX className="h-4 w-4" />
+                          </button>
+                        )}
                         {canUntrack ? (
                           <button
                             type="button"
                             disabled={acting === item.id}
                             onClick={() => setDeleteFromLidarrId(item.id)}
-                            className="rounded-xl border border-accent/35 bg-accent/12 px-3.5 py-2 text-xs font-medium text-white transition-all hover:bg-accent/20 hover:border-accent/55 disabled:opacity-60"
+                            className="icon-btn rounded-xl px-3"
                             title="Delete from Lidarr"
                           >
-                            <span className="inline-flex items-center gap-1.5">
-                              <IconX className="h-3.5 w-3.5" />
-                              {acting === item.id ? "Working..." : "Delete From Lidarr"}
-                            </span>
+                            <IconTrash className="h-4 w-4" />
                           </button>
                         ) : null}
                         <button
                           type="button"
                           disabled={acting === item.id}
                           onClick={() => setDeleteId(item.id)}
-                          className="rounded-xl border border-danger/40 bg-danger/12 px-3.5 py-2 text-xs font-medium text-danger transition-all hover:bg-danger/20 hover:border-danger/60 disabled:opacity-60"
+                          className="icon-btn-danger rounded-xl px-3"
                           title="Delete request"
                         >
-                          <span className="inline-flex items-center gap-1.5">
-                            <IconTrash className="h-3.5 w-3.5" />
-                            {acting === item.id ? "Working..." : "Delete"}
-                          </span>
+                          <IconTrash className="h-4 w-4" />
                         </button>
-                        {item.status === "PENDING" && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={acting === item.id}
-                              onClick={() => void onModerate(item.id, "approve")}
-                              className="rounded-xl border border-success/40 bg-success/12 px-3.5 py-2 text-xs font-medium text-success transition-all hover:bg-success/20 hover:border-success/60 disabled:opacity-60"
-                            >
-                              <span className="inline-flex items-center gap-1.5">
-                                <IconCheck className="h-3.5 w-3.5" />
-                                {acting === item.id ? "Working..." : "Approve"}
-                              </span>
-                            </button>
-                            <button
-                              type="button"
-                              disabled={acting === item.id}
-                              onClick={() => void onModerate(item.id, "reject")}
-                              className="rounded-xl border border-danger/40 bg-danger/12 px-3.5 py-2 text-xs font-medium text-danger transition-all hover:bg-danger/20 hover:border-danger/60 disabled:opacity-60"
-                            >
-                              <span className="inline-flex items-center gap-1.5">
-                                <IconX className="h-3.5 w-3.5" />
-                                {acting === item.id ? "Working..." : "Reject"}
-                              </span>
-                            </button>
-                          </>
-                        )}
                       </>
                     ) : null}
                   </div>

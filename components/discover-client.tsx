@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { CoverImage } from "@/components/ui/cover-image";
 import { IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
+import { EmptyDiscoverState } from "@/components/onboarding/empty-discover-state";
 import {
   filterNoisySingles,
   RELEASE_SORT_OPTIONS,
@@ -133,16 +134,10 @@ const sectionTitle = (value: FilterType) => {
   return "All Results";
 };
 
-const albumActionLabel = (album: Pick<Album, "isTracked" | "hasFiles">) => {
-  if (album.hasFiles) return "Available";
+const albumActionLabel = (album: Pick<Album, "isTracked" | "hasFiles">, label = "Album") => {
+  if (album.hasFiles) return label === "Single" ? "Available" : "Available";
   if (album.isTracked) return "Tracked in Lidarr";
-  return "Download Album";
-};
-
-const albumActionTitle = (album: Pick<Album, "isTracked" | "hasFiles">) => {
-  if (album.hasFiles) return "Already available";
-  if (album.isTracked) return "Already tracked in Lidarr";
-  return "Quick download album";
+  return `Download ${label}`;
 };
 
 export function DiscoverClient() {
@@ -385,7 +380,7 @@ export function DiscoverClient() {
     if (payload.duplicate) {
       toast.info("This album has already been requested.", "Requests");
     } else {
-      toast.success(`Request saved with status: ${payload.request?.status ?? "unknown"}`, "Requests");
+      toast.success("Request submitted — it's now in the queue.", "Requests");
     }
 
     setSubmitting(null);
@@ -549,7 +544,7 @@ export function DiscoverClient() {
   };
 
   return (
-    <div className="page-enter space-y-7">
+    <div className="page-enter space-y-8">
       <section className="space-y-1">
         <h1 className="font-display text-3xl font-semibold tracking-tight">Discover Music</h1>
         <p className="text-sm text-muted">Search artists, albums, and singles.</p>
@@ -880,10 +875,10 @@ export function DiscoverClient() {
                             `album:${key}`
                           )
                         }
-                        disabled={submitting === `album:${key}` || album.isTracked}
+                        disabled={submitting === `album:${key}` || album.hasFiles || album.isTracked}
                         className="quick-icon"
-                        aria-label={`Quick download ${album.title}`}
-                        title={albumActionTitle(album)}
+                        aria-label={`Request ${album.title}`}
+                        title={album.hasFiles ? "Already available" : album.isTracked ? "Already tracked in Lidarr" : "Request album"}
                       >
                         {submitting === `album:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -919,7 +914,7 @@ export function DiscoverClient() {
                           )
                         }
                         disabled={submitting === `album:${key}` || album.isTracked}
-                        className="btn-primary mt-3 py-2 text-sm"
+                        className={`mt-3 py-2 text-sm ${album.hasFiles ? "btn-ghost" : "btn-primary"}`}
                       >
                         {submitting === `album:${key}`
                             ? "Requesting..."
@@ -1009,10 +1004,10 @@ export function DiscoverClient() {
                             `single:${key}`
                           )
                         }
-                        disabled={submitting === `single:${key}` || single.isTracked}
+                        disabled={submitting === `single:${key}` || single.hasFiles || single.isTracked}
                         className="quick-icon"
-                        aria-label={`Quick download ${single.title}`}
-                        title={albumActionTitle(single)}
+                        aria-label={`Request ${single.title}`}
+                        title={single.hasFiles ? "Already available" : single.isTracked ? "Already tracked in Lidarr" : "Request single"}
                       >
                         {submitting === `single:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -1048,11 +1043,11 @@ export function DiscoverClient() {
                           )
                         }
                         disabled={submitting === `single:${key}` || single.isTracked}
-                        className="btn-primary mt-3 py-2 text-sm"
+                        className={`mt-3 py-2 text-sm ${single.hasFiles ? "btn-ghost" : "btn-primary"}`}
                       >
                         {submitting === `single:${key}`
                           ? "Requesting..."
-                          : albumActionLabel(single)}
+                          : albumActionLabel(single, "Single")}
                       </button>
                     </div>
                   </div>
@@ -1075,9 +1070,20 @@ export function DiscoverClient() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <p className="text-base font-medium text-muted">No results found</p>
-          <p className="mt-1.5 text-sm text-muted/70">Try a different search term for &quot;{query}&quot;</p>
+          <p className="text-base font-medium text-muted">No results for &quot;{query}&quot;</p>
+          <p className="mt-1.5 text-sm text-muted/70">Try a different spelling or browse an artist directly.</p>
+          <button
+            type="button"
+            onClick={() => { setQuery(""); }}
+            className="btn-ghost mt-4 mx-auto"
+          >
+            Clear search
+          </button>
         </div>
+      ) : null}
+
+      {totalCount === 0 && query.trim().length === 0 && !loading ? (
+        <EmptyDiscoverState />
       ) : null}
     </div>
   );
