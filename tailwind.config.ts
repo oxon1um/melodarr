@@ -27,13 +27,17 @@ const config: Config = {
       },
       boxShadow: {
         panel: "0 20px 60px rgba(4, 10, 28, 0.45)",
-        glow: "0 0 20px rgba(94, 186, 255, 0.3)",
-        "glow-sm": "0 0 10px rgba(94, 186, 255, 0.2)"
+        glow: "0 0 20px rgba(245, 158, 11, 0.3)",
+        "glow-sm": "0 0 10px rgba(245, 158, 11, 0.2)"
       },
       keyframes: {
         "fade-in-up": {
           "0%": { opacity: "0", transform: "translateY(12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" }
+        },
+        "fade-in-up-overdrive": {
+          "0%": { opacity: "0", transform: "translateY(16px) scale(0.97)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" }
         },
         "fade-in": {
           "0%": { opacity: "0" },
@@ -48,8 +52,8 @@ const config: Config = {
           "100%": { opacity: "0", transform: "translateY(10px)" }
         },
         "pulse-glow": {
-          "0%, 100%": { boxShadow: "0 0 10px rgba(94, 186, 255, 0.3)" },
-          "50%": { boxShadow: "0 0 20px rgba(94, 186, 255, 0.5)" }
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.65" }
         },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
@@ -58,6 +62,7 @@ const config: Config = {
       },
       animation: {
         "fade-in-up": "fade-in-up 320ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "fade-in-up-overdrive": "fade-in-up-overdrive 400ms cubic-bezier(0.22, 1, 0.36, 1)",
         "fade-in": "fade-in 260ms ease-out",
         "toast-in": "toast-in 230ms ease-out",
         "toast-out": "toast-out 210ms ease-in forwards",

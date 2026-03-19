@@ -318,14 +318,14 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
         <CoverImage
           alt={artist.artistName}
           src={image}
-          sizes="160px"
+          sizes="(max-width: 639px) 128px, (min-width: 640px) 160px"
           priority
-          className="relative h-40 w-40 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2"
+          className="relative h-32 w-32 sm:h-40 sm:w-40 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2"
         />
         <div className="space-y-2">
           <h1 className="font-display text-4xl font-bold tracking-wide">{artist.artistName}</h1>
           {availableCount > 0 && (
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+            <p className="inline-flex items-center gap-1.5 rounded-full badge-available-pill px-3 py-1 text-xs font-medium">
               <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
@@ -344,15 +344,16 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
       </section>
 
       <section className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm text-muted">
-          <span>Sort</span>
+        <label htmlFor="artist-sort-select" className="flex items-center gap-2 text-sm text-muted">
+          <span className="sr-only">Sort by</span>
           <select
+            id="artist-sort-select"
             value={sort}
             onChange={(event) => setSort(event.target.value as ReleaseSort)}
-            className="bg-transparent text-white outline-none"
+            className="field-select rounded-lg border border-white/[0.08] bg-panel px-1.5 py-0.5 text-xs"
           >
             {RELEASE_SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value} className="bg-[#060c1a] text-white">
+              <option key={option.value} value={option.value} style={{ background: "var(--panel)", color: "var(--text)" }}>
                 {option.label}
               </option>
             ))}
@@ -362,6 +363,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
         <button
           type="button"
           onClick={() => setHideNoisySingles((current) => !current)}
+          aria-pressed={hideNoisySingles}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             hideNoisySingles
               ? "bg-accent/15 text-accent-active border border-accent/40"
@@ -390,7 +392,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                   <Card
                     key={`album:${key}`}
                     className="group motion-safe:animate-fade-in-up"
-                    style={{ animationDelay: `${Math.min(index * 40, 200)}ms` }}
+                    style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                   >
                     <Link
                       href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
@@ -405,7 +407,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                           imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       {album.hasFiles && (
-                        <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-medium text-white shadow-lg">
+                        <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full badge-available px-2 py-1 text-[10px] font-medium shadow-lg">
                           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
@@ -413,7 +415,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                         </div>
                       )}
                       {!album.hasFiles && album.isTracked && (
-                        <div className="absolute left-2 top-2 rounded-full bg-slate-900/85 px-2 py-1 text-[10px] font-medium text-slate-100 shadow-lg">
+                        <div className="absolute left-2 top-2 rounded-full badge-tracked px-2 py-1 text-[10px] font-medium shadow-lg">
                           Tracked
                         </div>
                       )}
@@ -503,7 +505,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                   <Card
                     key={`single:${key}`}
                     className="group motion-safe:animate-fade-in-up"
-                    style={{ animationDelay: `${Math.min(index * 40, 200)}ms` }}
+                    style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                   >
                     <Link
                       href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(single.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
@@ -518,7 +520,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                           imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                         {single.hasFiles && (
-                          <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-medium text-white shadow-lg">
+                          <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full badge-available px-2 py-1 text-[10px] font-medium shadow-lg">
                             <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
@@ -526,7 +528,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                           </div>
                         )}
                         {!single.hasFiles && single.isTracked && (
-                          <div className="absolute left-2 top-2 rounded-full bg-slate-900/85 px-2 py-1 text-[10px] font-medium text-slate-100 shadow-lg">
+                          <div className="absolute left-2 top-2 rounded-full badge-tracked px-2 py-1 text-[10px] font-medium shadow-lg">
                             Tracked
                           </div>
                         )}

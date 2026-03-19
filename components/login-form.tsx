@@ -66,6 +66,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <input
               required
               autoComplete="username"
+              maxLength={100}
               value={localUsername}
               onChange={(event) => setLocalUsername(event.target.value)}
               className="field"
@@ -79,6 +80,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
               required
               autoComplete="current-password"
               type="password"
+              maxLength={128}
               value={localPassword}
               onChange={(event) => setLocalPassword(event.target.value)}
               className="field"
@@ -130,6 +132,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <input
               required
               autoComplete="username"
+              maxLength={100}
               value={jellyfinUsername}
               onChange={(event) => setJellyfinUsername(event.target.value)}
               className="field"
@@ -143,6 +146,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
               required
               autoComplete="current-password"
               type="password"
+              maxLength={128}
               value={jellyfinPassword}
               onChange={(event) => setJellyfinPassword(event.target.value)}
               className="field"
@@ -183,6 +187,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <input
               required
               autoComplete="username"
+              maxLength={100}
               value={localUsername}
               onChange={(event) => setLocalUsername(event.target.value)}
               className="field"
@@ -196,6 +201,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
               required
               autoComplete="current-password"
               type="password"
+              maxLength={128}
               value={localPassword}
               onChange={(event) => setLocalPassword(event.target.value)}
               className="field"

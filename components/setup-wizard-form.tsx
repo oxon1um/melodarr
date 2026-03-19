@@ -89,6 +89,7 @@ export function SetupWizardForm() {
               <input
                 required
                 autoComplete="username"
+                maxLength={100}
                 value={state.username}
                 onChange={(event) => setState((prev) => ({ ...prev, username: event.target.value }))}
                 className="field"
@@ -103,6 +104,8 @@ export function SetupWizardForm() {
                 required
                 autoComplete="new-password"
                 type="password"
+                minLength={8}
+                maxLength={128}
                 value={state.password}
                 onChange={(event) => setState((prev) => ({ ...prev, password: event.target.value }))}
                 className="field"
@@ -116,6 +119,8 @@ export function SetupWizardForm() {
                 required
                 autoComplete="new-password"
                 type="password"
+                minLength={8}
+                maxLength={128}
                 value={state.confirmPassword}
                 onChange={(event) =>
                   setState((prev) => ({ ...prev, confirmPassword: event.target.value }))

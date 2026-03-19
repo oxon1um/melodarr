@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Syne, DM_Sans } from "next/font/google";
 import { getCurrentUser } from "@/lib/auth/server";
 import { ToastProvider } from "@/components/ui/toast-provider";
-import { LogoutButton } from "@/components/ui/logout-button";
+import { AppHeader } from "@/components/app-header";
 import "@/styles/globals.css";
 
 const syne = Syne({
@@ -40,52 +39,19 @@ export default async function RootLayout({
       <body className={`${syne.variable} ${dmSans.variable}`}>
         <ToastProvider>
           <div className="relative min-h-screen text-text">
+            {/* Skip link for keyboard users */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--btn-primary-text)] focus:shadow-lg"
+            >
+              Skip to main content
+            </a>
+
             {/* Header */}
-            <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#03070d]/70 backdrop-blur-xl">
-              <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-3">
-                  <Link
-                    className="font-display text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover"
-                    href="/discover"
-                  >
-                    Melodarr
-                  </Link>
-                  {user ? (
-                    <nav className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
-                      <Link className="btn-ghost rounded-lg px-3 py-1.5" href="/discover">
-                        Discover
-                      </Link>
-                      <Link className="btn-ghost rounded-lg px-3 py-1.5" href="/requests">
-                        Requests
-                      </Link>
-                      {user.role === "ADMIN" ? (
-                        <>
-                          <Link className="btn-ghost rounded-lg px-3 py-1.5" href="/admin/requests">
-                            Manage Requests
-                          </Link>
-                          <Link className="btn-ghost rounded-lg px-3 py-1.5" href="/admin/settings">
-                            Settings
-                          </Link>
-                        </>
-                      ) : null}
-                    </nav>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-muted md:self-auto">
-                  {user ? (
-                    <>
-                      <span className="rounded-xl border border-white/[0.08] bg-panel/50 px-3 py-1.5 backdrop-blur-sm">
-                        {user.username}
-                      </span>
-                      <LogoutButton />
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </header>
+            <AppHeader user={user} />
 
             {/* Main content */}
-            <main className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+            <main id="main-content" className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
           </div>
         </ToastProvider>
       </body>

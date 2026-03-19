@@ -1,7 +1,7 @@
 "use client";
 
 import type { Route } from "next";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 
@@ -57,6 +57,14 @@ export function WelcomeTour() {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(TOUR_KEY) === "true";
   });
+  const dismissButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Focus the dismiss button when modal opens for keyboard users
+  useEffect(() => {
+    if (!dismissed && dismissButtonRef.current) {
+      dismissButtonRef.current.focus();
+    }
+  }, [dismissed]);
 
   const dismiss = () => {
     window.localStorage.setItem(TOUR_KEY, "true");
@@ -68,18 +76,23 @@ export function WelcomeTour() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="welcome-tour-title"
+    >
       {/* Backdrop */}
-      <div className="absolute inset-0" onClick={dismiss} />
+      <div className="absolute inset-0" onClick={dismiss} aria-hidden="true" />
 
       {/* Modal */}
       <div className="panel relative w-full max-w-lg space-y-6 p-6 animate-fade-in-up">
         {/* Header */}
         <div className="space-y-1.5">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-accent">
+          <h2 id="welcome-tour-title" className="font-display text-2xl font-semibold tracking-tight text-accent">
             Welcome to Melodarr
           </h2>
-          <p className="text-sm text-muted">
+          <p className="text-base text-muted leading-relaxed">
             Your personal music request system. Here&apos;s how to get started.
           </p>
         </div>
@@ -103,7 +116,7 @@ export function WelcomeTour() {
                     {step.title}
                   </h3>
                 </div>
-                <p className="mt-0.5 text-sm text-muted">{step.description}</p>
+                <p className="mt-0.5 text-base text-muted leading-relaxed">{step.description}</p>
               </div>
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.15] text-muted/50 transition-all group-hover:border-accent/40 group-hover:text-accent group-hover:bg-accent/10">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -118,8 +131,9 @@ export function WelcomeTour() {
         <div className="flex justify-end">
           <button
             type="button"
+            ref={dismissButtonRef}
             onClick={dismiss}
-            className="text-sm text-muted transition-colors hover:text-text"
+            className="text-sm text-muted transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
           >
             Skip tour
           </button>

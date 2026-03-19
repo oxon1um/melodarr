@@ -297,7 +297,7 @@ export function AdminSettingsForm() {
         <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20" aria-label="Lidarr">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-lidarr-icon" aria-label="Lidarr">
                 <Image src="/brands/lidarr.svg" alt="" aria-hidden width={22} height={22} className="h-5 w-5" />
               </div>
               <h2 className="section-heading leading-none">Lidarr</h2>
@@ -387,11 +387,12 @@ export function AdminSettingsForm() {
         {/* Auto Approve Toggle */}
         <button
           type="button"
-          aria-pressed={state.requestAutoApprove}
+          role="switch"
+          aria-checked={state.requestAutoApprove}
           onClick={() =>
             setState((prev) => ({ ...prev, requestAutoApprove: !prev.requestAutoApprove }))
           }
-          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30"
+          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
         >
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
@@ -412,11 +413,12 @@ export function AdminSettingsForm() {
         {/* Debug Mode Toggle */}
         <button
           type="button"
-          aria-pressed={state.debugMode}
+          role="switch"
+          aria-checked={state.debugMode}
           onClick={() =>
             setState((prev) => ({ ...prev, debugMode: !prev.debugMode }))
           }
-          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/30"
+          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
         >
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
@@ -451,6 +453,7 @@ export function AdminSettingsForm() {
                 <input
                   type="password"
                   autoComplete="current-password"
+                  maxLength={128}
                   value={passwordState.currentPassword}
                   onChange={(event) =>
                     setPasswordState((prev) => ({ ...prev, currentPassword: event.target.value }))
@@ -465,6 +468,7 @@ export function AdminSettingsForm() {
                     type="password"
                     autoComplete="new-password"
                     minLength={8}
+                    maxLength={128}
                     value={passwordState.newPassword}
                     onChange={(event) =>
                       setPasswordState((prev) => ({ ...prev, newPassword: event.target.value }))
@@ -478,6 +482,7 @@ export function AdminSettingsForm() {
                     type="password"
                     autoComplete="new-password"
                     minLength={8}
+                    maxLength={128}
                     value={passwordState.confirmPassword}
                     onChange={(event) =>
                       setPasswordState((prev) => ({ ...prev, confirmPassword: event.target.value }))

@@ -127,13 +127,6 @@ export const buildAlbumHref = ({ artistName, foreignArtistId, foreignAlbumId, fr
     ? (`/discover/${encodeURIComponent(foreignArtistId)}/${encodeURIComponent(foreignAlbumId)}?artistName=${encodeURIComponent(artistName)}${from ? `&from=${encodeURIComponent(from)}` : ""}` as Route)
     : undefined;
 
-const sectionTitle = (value: FilterType) => {
-  if (value === "artists") return "Artists";
-  if (value === "albums") return "Albums";
-  if (value === "singles") return "Singles";
-  return "All Results";
-};
-
 const albumActionLabel = (album: Pick<Album, "isTracked" | "hasFiles">, label = "Album") => {
   if (album.hasFiles) return label === "Single" ? "Available" : "Available";
   if (album.isTracked) return "Tracked in Lidarr";
@@ -564,6 +557,7 @@ export function DiscoverClient() {
         <div className="relative min-w-0 flex-1">
           <input
             value={query}
+            role="combobox"
             onChange={(event) => {
               setQuery(event.target.value);
               setShowSuggestions(true);
@@ -608,11 +602,28 @@ export function DiscoverClient() {
             }}
             placeholder="Search for music..."
             className="field w-full pl-4 pr-4"
+            aria-activedescendant={
+              showSuggestions && suggestions.length > 0 && suggestions[activeSuggestionIndex]
+                ? `suggestion-${suggestions[activeSuggestionIndex].id}`
+                : undefined
+            }
+            aria-controls="search-suggestions"
+            aria-expanded={showSuggestions && suggestions.length > 0}
+            aria-autocomplete="list"
           />
 
           {showSuggestions && suggestions.length > 0 ? (
             <div
-              className="absolute left-0 right-0 top-[3.75rem] z-[var(--z-dropdown)] rounded-2xl border border-white/[0.1] bg-[#060c1a]/95 p-1 shadow-panel backdrop-blur-xl"
+              id="search-suggestions"
+              className="dropdown"
+              role="listbox"
+              aria-label="Search suggestions"
+              aria-orientation="vertical"
+              aria-activedescendant={
+                suggestions[activeSuggestionIndex]
+                  ? `suggestion-${suggestions[activeSuggestionIndex].id}`
+                  : undefined
+              }
               onMouseEnter={() => setIsSuggestionsHovered(true)}
               onMouseLeave={() => {
                 setIsSuggestionsHovered(false);
@@ -623,13 +634,18 @@ export function DiscoverClient() {
             >
               <ul className="soft-scroll max-h-[30rem] overflow-auto">
                 {suggestions.map((suggestion, index) => (
-                  <li key={suggestion.id}>
+                  <li
+                    key={suggestion.id}
+                    id={`suggestion-${suggestion.id}`}
+                    role="option"
+                    aria-selected={index === activeSuggestionIndex}
+                  >
                     <button
                       type="button"
                       className={`flex w-full items-start justify-between rounded-xl px-3 py-2.5 text-left transition ${
                         index === activeSuggestionIndex
                           ? "bg-accent/15 text-accent-active"
-                          : "text-muted hover:bg-white/[0.04] hover:text-white"
+                          : "text-muted hover:bg-white/[0.04] hover:text-text"
                       }`}
                       onMouseDown={(event) => {
                         event.preventDefault();
@@ -679,7 +695,7 @@ export function DiscoverClient() {
                     hideNoisySingles: entry.hideNoisySingles
                   });
                 }}
-                className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm text-muted transition hover:border-accent/35 hover:text-white"
+                className="rounded-xl border px-4 py-2 text-sm transition recent-tag"
               >
                 {entry.query}
               </button>
@@ -696,10 +712,11 @@ export function DiscoverClient() {
                 key={item.id}
                 type="button"
                 onClick={() => setFilter(item.id)}
+                aria-pressed={filter === item.id}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                   filter === item.id
                     ? "bg-accent/15 text-accent-active border border-accent/40"
-                    : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
+                    : "border border-[var(--edge)] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
                 }`}
               >
                 {item.label}
@@ -709,10 +726,11 @@ export function DiscoverClient() {
               <button
                 type="button"
                 onClick={() => setHideNoisySingles((current) => !current)}
+                aria-pressed={hideNoisySingles}
                 className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
                   hideNoisySingles
                     ? "bg-accent/15 text-accent-active border border-accent/40"
-                    : "border border-white/[0.08] bg-white/[0.02] text-muted/70 hover:border-white/[0.15] hover:text-muted"
+                    : "border border-[var(--edge)] bg-white/[0.02] text-muted/70 hover:border-white/[0.15] hover:text-muted"
                 }`}
               >
                 Hide noise
@@ -722,12 +740,13 @@ export function DiscoverClient() {
 
           <div className="flex items-center gap-3 text-xs text-muted">
             <span>{totalCount} result{totalCount !== 1 ? "s" : ""}</span>
-            <label className="flex items-center gap-1.5 cursor-pointer">
+            <label htmlFor="sort-select" className="flex items-center gap-1.5 cursor-pointer">
               <span className="sr-only">Sort by</span>
               <select
+                id="sort-select"
                 value={sort}
                 onChange={(event) => setSort(event.target.value as ReleaseSort)}
-                className="field-select rounded-lg border-0 bg-transparent px-1 py-0.5 text-xs"
+                className="field-select rounded-lg px-1.5 py-0.5 text-xs"
               >
                 {RELEASE_SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value} style={{ background: "var(--panel)", color: "var(--text)" }}>
@@ -762,7 +781,7 @@ export function DiscoverClient() {
               return (
                 <Card
                   key={`artist:${key}`}
-                  className="space-y-4 motion-safe:animate-fade-in-up"
+                  className="space-y-4 motion-safe:animate-fade-in-up-overdrive"
                     style={{ animationDelay: `${Math.min(artistIndex * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
@@ -827,7 +846,7 @@ export function DiscoverClient() {
                 <Card
                   key={`album:${key}`}
                   className="group motion-safe:animate-fade-in-up"
-                  style={{ animationDelay: `${Math.min(index * 40, 240)}ms` }}
+                  style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
                     <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
@@ -851,14 +870,14 @@ export function DiscoverClient() {
                         />
                       )}
                       {album.hasFiles && (
-                        <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full badge-available px-1.5 py-0.5 text-[10px] font-medium">
                           <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </div>
                       )}
                       {!album.hasFiles && album.isTracked && (
-                        <div className="absolute left-1 top-1 rounded-full bg-slate-900/85 px-1.5 py-0.5 text-[10px] font-medium text-slate-100">
+                        <div className="absolute left-1 top-1 rounded-full badge-tracked px-1.5 py-0.5 text-[10px] font-medium">
                           Tracked
                         </div>
                       )}
@@ -927,7 +946,8 @@ export function DiscoverClient() {
             })}
           </div>
           {hasMoreAlbums ? (
-            <div ref={albumSentinelRef} className="flex justify-center pt-2 text-xs text-muted/70">
+            <div ref={albumSentinelRef} className="flex justify-center items-center gap-2 pt-3 text-xs text-muted/70">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Loading more albums...
             </div>
           ) : null}
@@ -956,7 +976,7 @@ export function DiscoverClient() {
                 <Card
                   key={`single:${key}`}
                   className="group motion-safe:animate-fade-in-up"
-                  style={{ animationDelay: `${Math.min(index * 40, 240)}ms` }}
+                  style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
                     <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
@@ -980,14 +1000,14 @@ export function DiscoverClient() {
                         />
                       )}
                       {single.hasFiles && (
-                        <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        <div className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full badge-available px-1.5 py-0.5 text-[10px] font-medium">
                           <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </div>
                       )}
                       {!single.hasFiles && single.isTracked && (
-                        <div className="absolute left-1 top-1 rounded-full bg-slate-900/85 px-1.5 py-0.5 text-[10px] font-medium text-slate-100">
+                        <div className="absolute left-1 top-1 rounded-full badge-tracked px-1.5 py-0.5 text-[10px] font-medium">
                           Tracked
                         </div>
                       )}
@@ -1056,7 +1076,8 @@ export function DiscoverClient() {
             })}
           </div>
           {hasMoreSingles ? (
-            <div ref={singleSentinelRef} className="flex justify-center pt-2 text-xs text-muted/70">
+            <div ref={singleSentinelRef} className="flex justify-center items-center gap-2 pt-3 text-xs text-muted/70">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Loading more singles...
             </div>
           ) : null}

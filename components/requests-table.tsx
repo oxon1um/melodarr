@@ -223,7 +223,7 @@ export function RequestsTable({ admin = false }: Props) {
       {!items.length ? (
         <div className="empty-state">
           <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-white/[0.08] bg-panel-2/30">
-            <svg className="h-10 w-10 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+            <svg aria-hidden="true" className="h-10 w-10 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
@@ -246,7 +246,7 @@ export function RequestsTable({ admin = false }: Props) {
               <article
                 key={item.id}
                 className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-panel-2/40 p-4 transition-all hover:border-white/[0.15] motion-safe:animate-fade-in-up"
-                style={{ animationDelay: `${Math.min(index * 40, 280)}ms` }}
+                style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
               >
                 {/* Subtle shine */}
                 <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -290,7 +290,7 @@ export function RequestsTable({ admin = false }: Props) {
                             type="button"
                             disabled={acting === item.id}
                             onClick={() => void onModerate(item.id, "approve")}
-                            className="btn-primary rounded-xl px-4 py-2 text-sm"
+                            className="btn-approve"
                           >
                             <span className="inline-flex items-center gap-1.5">
                               <IconCheck className="h-4 w-4" />
@@ -303,8 +303,9 @@ export function RequestsTable({ admin = false }: Props) {
                             type="button"
                             disabled={acting === item.id}
                             onClick={() => void onModerate(item.id, "reject")}
-                            className="icon-btn rounded-xl px-3"
+                            className="icon-btn"
                             title="Reject"
+                            aria-label="Reject"
                           >
                             <IconX className="h-4 w-4" />
                           </button>
@@ -314,8 +315,9 @@ export function RequestsTable({ admin = false }: Props) {
                             type="button"
                             disabled={acting === item.id}
                             onClick={() => setDeleteFromLidarrId(item.id)}
-                            className="icon-btn rounded-xl px-3"
+                            className="icon-btn"
                             title="Delete from Lidarr"
+                            aria-label="Delete from Lidarr"
                           >
                             <IconTrash className="h-4 w-4" />
                           </button>
@@ -324,8 +326,9 @@ export function RequestsTable({ admin = false }: Props) {
                           type="button"
                           disabled={acting === item.id}
                           onClick={() => setDeleteId(item.id)}
-                          className="icon-btn-danger rounded-xl px-3"
+                          className="icon-btn-danger"
                           title="Delete request"
+                          aria-label="Delete request"
                         >
                           <IconTrash className="h-4 w-4" />
                         </button>

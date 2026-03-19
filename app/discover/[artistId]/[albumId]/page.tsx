@@ -261,9 +261,9 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
         <CoverImage
           alt={album.title}
           src={image}
-          sizes="192px"
+          sizes="(max-width: 639px) 144px, (min-width: 640px) 192px"
           priority
-          className="relative h-48 w-48 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2"
+          className="relative h-36 w-36 sm:h-48 sm:w-48 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2"
         />
         <div className="space-y-2">
           <h1 className="font-display text-3xl font-semibold tracking-tight">{album.title}</h1>
@@ -281,7 +281,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
             </p>
           )}
           {hasFiles && (
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+            <p className="inline-flex items-center gap-1.5 rounded-full badge-available-pill px-3 py-1 text-xs font-medium">
               <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>

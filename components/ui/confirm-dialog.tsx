@@ -13,6 +13,15 @@ type ConfirmDialogProps = {
   onCancel: () => void;
 };
 
+const FOCUSABLE_SELECTORS = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])'
+].join(", ");
+
 export function ConfirmDialog({
   open,
   title,
@@ -24,10 +33,34 @@ export function ConfirmDialog({
   onCancel
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") {
+      e.preventDefault();
       onCancel();
+      return;
+    }
+
+    // Trap focus within dialog
+    if (e.key === "Tab" && dialogRef.current) {
+      const focusableElements = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
+      );
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
     }
   }, [onCancel]);
 
@@ -36,13 +69,28 @@ export function ConfirmDialog({
     if (!dialog) return;
 
     if (open) {
+      // Store the previously focused element to restore later
+      previousActiveElement.current = document.activeElement as HTMLElement;
+
       dialog.showModal();
       dialog.addEventListener("keydown", handleKeyDown);
-    }
 
-    return () => {
-      dialog.removeEventListener("keydown", handleKeyDown);
-    };
+      // Focus the cancel button (less destructive action) after opening
+      // Use setTimeout to ensure dialog is rendered and focusable
+      const timer = window.setTimeout(() => {
+        cancelButtonRef.current?.focus();
+      }, 0);
+
+      return () => {
+        clearTimeout(timer);
+        dialog.removeEventListener("keydown", handleKeyDown);
+
+        // Return focus to the previously focused element
+        if (previousActiveElement.current && previousActiveElement.current.focus) {
+          previousActiveElement.current.focus();
+        }
+      };
+    }
   }, [open, handleKeyDown]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -57,26 +105,29 @@ export function ConfirmDialog({
     <dialog
       ref={dialogRef}
       onClick={handleBackdropClick}
-      className="m-auto rounded-2xl border border-white/[0.1] bg-panel p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fade-in"
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-message"
+      className="m-auto rounded-2xl border border-[var(--edge)] bg-panel p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fade-in"
     >
       <div className="p-6">
-        <h2 className="mb-2 font-display text-xl font-semibold tracking-tight text-white">{title}</h2>
-        <p className="mb-6 text-sm text-muted">{message}</p>
+        <h2 id="confirm-dialog-title" className="mb-2 font-display text-xl font-semibold tracking-tight text-text">{title}</h2>
+        <p id="confirm-dialog-message" className="mb-6 text-sm text-muted">{message}</p>
         <div className="flex justify-end gap-3">
           <button
             type="button"
+            ref={cancelButtonRef}
             onClick={onCancel}
-            className="rounded-xl border border-white/[0.1] bg-white/5 px-4 py-2 text-sm font-medium !text-white transition-colors hover:bg-white/10"
+            className="rounded-xl border border-[var(--edge)] bg-white/5 px-4 py-2 text-sm font-medium text-text transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
               variant === "danger"
-                ? "bg-danger !text-white hover:bg-danger/80"
-                : "bg-accent !text-white hover:bg-accent/80"
+                ? "bg-danger text-white hover:bg-danger/80"
+                : "bg-accent text-[var(--btn-primary-text)] hover:bg-accent/80"
             }`}
           >
             {confirmLabel}

@@ -34,9 +34,9 @@ const defaultDuration = (variant: ToastVariant): number =>
   variant === "error" ? 6000 : 4200;
 
 const variantStyles: Record<ToastVariant, string> = {
-  success: "border-[rgba(106,215,173,0.46)] bg-[rgba(20,58,48,0.82)]",
-  error: "border-[rgba(255,129,146,0.52)] bg-[rgba(72,24,35,0.86)]",
-  info: "border-[rgba(131,180,255,0.5)] bg-[rgba(23,43,87,0.88)]"
+  success: "toast-success",
+  error: "toast-error",
+  info: "toast-info"
 };
 
 const variantIcon = (variant: ToastVariant) => {
@@ -46,9 +46,9 @@ const variantIcon = (variant: ToastVariant) => {
 };
 
 const variantIconStyles: Record<ToastVariant, string> = {
-  success: "border-[rgba(106,215,173,0.45)] text-success",
-  error: "border-[rgba(255,129,146,0.5)] text-danger",
-  info: "border-[rgba(131,180,255,0.48)] text-accent"
+  success: "border-success/40 text-success",
+  error: "border-danger/40 text-danger",
+  info: "border-accent/40 text-accent"
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -120,7 +120,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 left-1/2 z-[var(--z-toast)] flex w-[min(92vw,24rem)] -translate-x-1/2 flex-col gap-2 sm:left-auto sm:right-4 sm:translate-x-0">
+      <div
+        className="pointer-events-none fixed bottom-4 left-1/2 z-[var(--z-toast)] flex w-[min(92vw,24rem)] -translate-x-1/2 flex-col gap-2 sm:left-auto sm:right-4 sm:translate-x-0"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
         {toasts.map((toast) => (
           <div
             key={toast.id}
