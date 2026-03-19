@@ -13,8 +13,9 @@ const saveRuntimeSecret = async (secret: string) => {
 };
 
 export const getRuntimeSecret = async (): Promise<string> => {
-  if (env.sessionSecret?.trim()) {
-    const override = env.sessionSecret.trim();
+  const envSecret = env.sessionSecret?.trim();
+  if (envSecret) {
+    const override = envSecret;
     if (!cachedSecret) {
       cachedSecret = override;
       const stored = await getStoredRuntimeFields();
@@ -30,8 +31,9 @@ export const getRuntimeSecret = async (): Promise<string> => {
   }
 
   const stored = await getStoredRuntimeFields();
-  if (stored.runtimeSecret?.trim()) {
-    cachedSecret = stored.runtimeSecret.trim();
+  const storedSecret = stored.runtimeSecret?.trim();
+  if (storedSecret) {
+    cachedSecret = storedSecret;
     return cachedSecret;
   }
 
