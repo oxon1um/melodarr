@@ -50,7 +50,6 @@ export function RequestsTable({ admin = false }: Props) {
   const [hasMore, setHasMore] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleteFromLidarrId, setDeleteFromLidarrId] = useState<string | null>(null);
 
   const loadPage = useCallback(async (cursor?: string | null): Promise<RequestsPayload | null> => {
     const params = new URLSearchParams({ limit: "25" });
@@ -156,33 +155,6 @@ export function RequestsTable({ admin = false }: Props) {
     await load();
   };
 
-  const onDeleteFromLidarr = async () => {
-    if (!deleteFromLidarrId) return;
-
-    setActing(deleteFromLidarrId);
-    setDeleteFromLidarrId(null);
-
-    const response = await fetch(`/api/requests/${deleteFromLidarrId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ action: "deleteFromLidarr" })
-    });
-
-    const payload = (await response.json()) as { error?: string };
-
-    if (!response.ok) {
-      toast.error(payload.error ?? "Failed to delete item from Lidarr", "Requests");
-      setActing(null);
-      return;
-    }
-
-    setActing(null);
-    toast.success("Item deleted from Lidarr.", "Requests");
-    await load();
-  };
-
   if (loading) {
     return (
       <Card className="space-y-5">
@@ -222,13 +194,13 @@ export function RequestsTable({ admin = false }: Props) {
 
       {!items.length ? (
         <div className="empty-state">
-          <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-white/[0.08] bg-panel-2/30">
-            <svg aria-hidden="true" className="h-10 w-10 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+          <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-[var(--edge)] bg-panel-2/30">
+            <svg aria-hidden="true" className="h-10 w-10 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
           <p className="text-base font-medium text-muted">No requests yet</p>
-          <p className="mt-1.5 text-sm text-muted/70">Find music you want and request it here.</p>
+          <p className="mt-1.5 text-sm text-muted">Find music you want and request it here.</p>
           <Link href="/discover" className="btn-primary mt-4 inline-flex">
             Browse Music
           </Link>
@@ -240,12 +212,10 @@ export function RequestsTable({ admin = false }: Props) {
               item.requestType === "ALBUM" && item.albumTitle
                 ? `${item.artistName} • ${item.albumTitle}`
                 : item.artistName;
-            const canUntrack = Boolean(item.lidarrAlbumId || item.lidarrArtistId);
-
             return (
               <article
                 key={item.id}
-                className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-panel-2/40 p-4 transition-all hover:border-white/[0.15] motion-safe:animate-fade-in-up"
+                className="group relative overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2/40 p-4 transition-all hover:border-[var(--edge-bright)] motion-safe:animate-fade-in-up"
                 style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
               >
                 {/* Subtle shine */}
@@ -266,18 +236,18 @@ export function RequestsTable({ admin = false }: Props) {
                         {item.requestType === "ALBUM" ? "Album" : "Artist"}
                       </span>
                     </div>
-                    <p className="truncate text-xs text-muted/80">
+                    <p className="truncate text-xs text-muted">
                       {admin && item.requestedBy ? (
                         <span className="inline-flex items-center gap-1.5">
                           <span className="inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-accent/60" />
                           <span className="truncate">{item.requestedBy.username}</span>
-                          <span className="mx-1 text-muted/40">·</span>
+                          <span className="mx-1 text-muted">·</span>
                         </span>
                       ) : null}
                       {timestamp(item.createdAt)}
                     </p>
                     {item.failureReason ? (
-                      <p className="text-xs text-danger/90">{item.failureReason}</p>
+                      <p className="text-xs text-danger">{item.failureReason}</p>
                     ) : null}
                   </div>
 
@@ -310,18 +280,6 @@ export function RequestsTable({ admin = false }: Props) {
                             <IconX className="h-4 w-4" />
                           </button>
                         )}
-                        {canUntrack ? (
-                          <button
-                            type="button"
-                            disabled={acting === item.id}
-                            onClick={() => setDeleteFromLidarrId(item.id)}
-                            className="icon-btn"
-                            title="Delete from Lidarr"
-                            aria-label="Delete from Lidarr"
-                          >
-                            <IconTrash className="h-4 w-4" />
-                          </button>
-                        ) : null}
                         <button
                           type="button"
                           disabled={acting === item.id}
@@ -362,16 +320,6 @@ export function RequestsTable({ admin = false }: Props) {
         variant="danger"
         onConfirm={onDelete}
         onCancel={() => setDeleteId(null)}
-      />
-      <ConfirmDialog
-        open={deleteFromLidarrId !== null}
-        title="Delete From Lidarr"
-        message="This will delete the item from Lidarr and remove local files. The request record will be kept. Continue?"
-        confirmLabel="Delete From Lidarr"
-        cancelLabel="Cancel"
-        variant="danger"
-        onConfirm={onDeleteFromLidarr}
-        onCancel={() => setDeleteFromLidarrId(null)}
       />
     </Card>
   );

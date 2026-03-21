@@ -35,11 +35,13 @@ export function ConfirmDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      onCancel();
+      onCancelRef.current();
       return;
     }
 
@@ -62,7 +64,7 @@ export function ConfirmDialog({
         firstElement.focus();
       }
     }
-  }, [onCancel]);
+  }, []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -107,7 +109,7 @@ export function ConfirmDialog({
       onClick={handleBackdropClick}
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-message"
-      className="m-auto rounded-2xl border border-[var(--edge)] bg-panel p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fade-in"
+      className="m-auto rounded-2xl border border-[var(--edge)] bg-panel p-0 shadow-2xl backdrop:bg-[var(--scrim)] backdrop:backdrop-blur-sm open:motion-safe:animate-fade-in"
     >
       <div className="p-6">
         <h2 id="confirm-dialog-title" className="mb-2 font-display text-xl font-semibold tracking-tight text-text">{title}</h2>
@@ -117,7 +119,7 @@ export function ConfirmDialog({
             type="button"
             ref={cancelButtonRef}
             onClick={onCancel}
-            className="rounded-xl border border-[var(--edge)] bg-white/5 px-4 py-2 text-sm font-medium text-text transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            className="rounded-xl border border-[var(--edge)] bg-[var(--overlay-bg)] px-4 py-2 text-sm font-medium text-text transition-colors hover:bg-[var(--overlay-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             {cancelLabel}
           </button>
@@ -126,7 +128,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
               variant === "danger"
-                ? "bg-danger text-white hover:bg-danger/80"
+                ? "bg-danger text-[var(--danger-text)] hover:bg-danger/80"
                 : "bg-accent text-[var(--btn-primary-text)] hover:bg-accent/80"
             }`}
           >

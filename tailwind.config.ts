@@ -51,10 +51,6 @@ const config: Config = {
           "0%": { opacity: "1", transform: "translateY(0)" },
           "100%": { opacity: "0", transform: "translateY(10px)" }
         },
-        "pulse-glow": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.65" }
-        },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" }
@@ -65,8 +61,7 @@ const config: Config = {
         "fade-in-up-overdrive": "fade-in-up-overdrive 400ms cubic-bezier(0.22, 1, 0.36, 1)",
         "fade-in": "fade-in 260ms ease-out",
         "toast-in": "toast-in 230ms ease-out",
-        "toast-out": "toast-out 210ms ease-in forwards",
-        "pulse-glow": "pulse-glow 2s ease-in-out infinite"
+        "toast-out": "toast-out 210ms ease-in forwards"
       },
       backgroundImage: {
         shimmer: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)"

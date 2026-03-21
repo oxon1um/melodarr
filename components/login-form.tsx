@@ -51,19 +51,34 @@ export function LoginForm({ isHttps }: LoginFormProps) {
 
   if (!isHttps) {
     return (
-      <form
-        className="panel page-enter mx-auto w-full max-w-md space-y-8 p-6 sm:p-8"
-        onSubmit={(event) => void submitLogin(event, "local", localUsername, localPassword)}
-      >
-        <div className="space-y-2">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Welcome Back</h1>
-          <p className="text-sm text-muted">Sign in to your Melodarr account.</p>
+      <div className="panel page-enter mx-auto w-full max-w-md space-y-8 p-6 sm:p-8">
+        {/* Branding */}
+        <div className="text-center space-y-3">
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="absolute inset-0 blur-2xl bg-accent/20" />
+              <h1 className="relative font-display text-5xl font-bold tracking-tight text-accent">
+                Melodarr
+              </h1>
+            </div>
+          </div>
+          <p className="text-sm text-muted">Music discovery for Lidarr &amp; Jellyfin</p>
         </div>
 
+        <form
+          className="space-y-6"
+          onSubmit={(event) => void submitLogin(event, "local", localUsername, localPassword)}
+        >
+          <div className="space-y-2">
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-text">Welcome Back</h2>
+            <p className="text-sm text-muted">Sign in to your account.</p>
+          </div>
+
         <div className="space-y-4">
-          <label className="block text-sm">
+          <label className="block text-sm" htmlFor="local-username">
             <span className="mb-2 block text-muted">Username</span>
             <input
+              id="local-username"
               required
               autoComplete="username"
               maxLength={100}
@@ -74,9 +89,10 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             />
           </label>
 
-          <label className="block text-sm">
+          <label className="block text-sm" htmlFor="local-password">
             <span className="mb-2 block text-muted">Password</span>
             <input
+              id="local-password"
               required
               autoComplete="current-password"
               type="password"
@@ -99,26 +115,40 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             "Sign In"
           )}
         </button>
-      </form>
+        </form>
+      </div>
     );
   }
 
   return (
     <div className="panel page-enter mx-auto w-full max-w-5xl space-y-8 p-6 sm:p-8">
+      {/* Branding */}
+      <div className="text-center space-y-3">
+        <div className="flex justify-center">
+          <div className="relative">
+            <div className="absolute inset-0 blur-2xl bg-accent/20" />
+            <h1 className="relative font-display text-5xl font-bold tracking-tight text-accent">
+              Melodarr
+            </h1>
+          </div>
+        </div>
+        <p className="text-sm text-muted">Music discovery for Lidarr &amp; Jellyfin</p>
+      </div>
+
       <div className="space-y-2">
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Welcome Back</h1>
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-text">Welcome Back</h2>
         <p className="text-sm text-muted">Sign in with Jellyfin or your local admin account.</p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <form
-          className="group relative space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 transition-colors hover:border-white/[0.15]"
+          className="group relative space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5 transition-colors hover:border-[var(--edge-bright)]"
           onSubmit={(event) =>
             void submitLogin(event, "jellyfin", jellyfinUsername, jellyfinPassword)
           }
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff]/5 border border-white/10" aria-label="Jellyfin">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-jellyfin-icon" aria-label="Jellyfin">
               <Image src="/brands/jellyfin.svg" alt="" aria-hidden width={22} height={22} />
             </div>
             <div>
@@ -127,9 +157,10 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             </div>
           </div>
 
-          <label className="block text-sm">
+          <label className="block text-sm" htmlFor="jellyfin-username">
             <span className="mb-2 block text-muted">Username</span>
             <input
+              id="jellyfin-username"
               required
               autoComplete="username"
               maxLength={100}
@@ -140,9 +171,10 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             />
           </label>
 
-          <label className="block text-sm">
+          <label className="block text-sm" htmlFor="jellyfin-password">
             <span className="mb-2 block text-muted">Password</span>
             <input
+              id="jellyfin-password"
               required
               autoComplete="current-password"
               type="password"
@@ -167,7 +199,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
         </form>
 
         <form
-          className="group relative space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 transition-colors hover:border-white/[0.15]"
+          className="group relative space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5 transition-colors hover:border-[var(--edge-bright)]"
           onSubmit={(event) => void submitLogin(event, "local", localUsername, localPassword)}
         >
           <div className="flex items-center gap-3">
@@ -182,9 +214,10 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             </div>
           </div>
 
-          <label className="block text-sm">
+          <label className="block text-sm" htmlFor="admin-username">
             <span className="mb-2 block text-muted">Username</span>
             <input
+              id="admin-username"
               required
               autoComplete="username"
               maxLength={100}
@@ -195,9 +228,10 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             />
           </label>
 
-          <label className="block text-sm">
+          <label className="block text-sm" htmlFor="admin-password">
             <span className="mb-2 block text-muted">Password</span>
             <input
+              id="admin-password"
               required
               autoComplete="current-password"
               type="password"

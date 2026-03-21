@@ -63,7 +63,7 @@ export function AppHeader({ user }: Props) {
 
   return (
     <header
-      className={`sticky top-0 z-30 border-b border-white/[0.06] bg-[#03070d]/70 backdrop-blur-xl transition-all duration-300 ${
+      className={`sticky top-0 z-30 border-b border-[var(--edge)] bg-[var(--header-bg)] backdrop-blur-xl transition-all duration-300 ${
         scrolled ? "py-2" : "py-4"
       }`}
     >
@@ -71,17 +71,17 @@ export function AppHeader({ user }: Props) {
         {/* Row 1: Logo + Nav */}
         <div
           className={`flex flex-wrap items-center gap-3 transition-all duration-300 ${
-            hidden ? "opacity-0 -mt-2 pointer-events-none" : "opacity-100"
+            hidden ? "opacity-0 translate-y-[-8px] pointer-events-none" : "opacity-100 translate-y-0"
           }`}
         >
           <Link
-            className="font-display text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover"
+            className="font-display text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-lg"
             href="/discover"
           >
             Melodarr
           </Link>
           {user ? (
-            <nav className="flex flex-wrap items-center gap-1.5 text-sm text-muted" aria-label="Main navigation">
+            <nav className="flex flex-wrap items-center gap-1.5 text-sm" aria-label="Main navigation">
               {[
                 { href: "/discover", label: "Discover" },
                 { href: "/requests", label: "Requests" }
@@ -90,10 +90,10 @@ export function AppHeader({ user }: Props) {
                   key={href}
                   href={href as Route}
                   aria-current={isActive(href) ? "page" : undefined}
-                  className={`rounded-lg px-3 py-1.5 transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                     isActive(href)
                       ? "bg-accent/10 text-accent"
-                      : "btn-ghost"
+                      : "text-muted hover:text-text hover:bg-[var(--hover-bg)]"
                   }`}
                 >
                   {label}
@@ -112,7 +112,7 @@ export function AppHeader({ user }: Props) {
                       className={`rounded-lg px-3 py-1.5 transition-colors ${
                         isActive(href)
                           ? "bg-accent/10 text-accent"
-                          : "btn-ghost"
+                          : "text-muted hover:text-text hover:bg-[var(--hover-bg)]"
                       }`}
                     >
                       {label}
@@ -124,15 +124,15 @@ export function AppHeader({ user }: Props) {
           ) : null}
         </div>
 
-        {/* Row 2: User info — always visible once scrolled */}
+        {/* Row 2: User info — hides with Row 1 */}
         <div
-          className={`flex items-center gap-3 text-sm text-muted transition-all duration-300 ${
-            hidden ? "justify-end" : "justify-end md:justify-start"
-          }`}
+          className={`flex items-center gap-3 text-sm transition-all duration-300 ${
+            hidden ? "opacity-0 translate-y-[-8px] pointer-events-none" : "opacity-100 translate-y-0"
+          } ${user ? "text-muted" : ""}`}
         >
           {user ? (
             <>
-              <span className="rounded-xl border border-white/[0.08] bg-panel/50 px-3 py-1.5 backdrop-blur-sm">
+              <span className="rounded-xl border border-[var(--edge)] bg-panel/50 px-3 py-1.5 text-muted">
                 {user.username}
               </span>
               <LogoutButton />

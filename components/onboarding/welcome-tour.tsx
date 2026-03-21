@@ -53,31 +53,38 @@ const TOUR_STEPS: Array<{
 ];
 
 export function WelcomeTour() {
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(TOUR_KEY) === "true";
-  });
+  // Always start with false to avoid hydration mismatch; sync with localStorage in useEffect
+  const [dismissed, setDismissed] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const dismissButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Sync with localStorage after mount
+  useEffect(() => {
+    const wasDismissed = window.localStorage.getItem(TOUR_KEY) === "true";
+    setDismissed(wasDismissed);
+    setHydrated(true);
+  }, []);
 
   // Focus the dismiss button when modal opens for keyboard users
   useEffect(() => {
-    if (!dismissed && dismissButtonRef.current) {
+    if (!dismissed && dismissButtonRef.current && hydrated) {
       dismissButtonRef.current.focus();
     }
-  }, [dismissed]);
+  }, [dismissed, hydrated]);
 
   const dismiss = () => {
     window.localStorage.setItem(TOUR_KEY, "true");
     setDismissed(true);
   };
 
-  if (dismissed) {
+  // Don't render until hydrated to avoid hydration mismatch
+  if (!hydrated || dismissed) {
     return null;
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop:bg-[var(--scrim)] backdrop-blur-sm p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-tour-title"
@@ -86,7 +93,7 @@ export function WelcomeTour() {
       <div className="absolute inset-0" onClick={dismiss} aria-hidden="true" />
 
       {/* Modal */}
-      <div className="panel relative w-full max-w-lg space-y-6 p-6 animate-fade-in-up">
+      <div className="panel relative w-full max-w-lg space-y-6 p-6 motion-safe:animate-fade-in-up">
         {/* Header */}
         <div className="space-y-1.5">
           <h2 id="welcome-tour-title" className="font-display text-2xl font-semibold tracking-tight text-accent">
@@ -104,21 +111,21 @@ export function WelcomeTour() {
               key={step.id}
               href={step.href as Route}
               onClick={dismiss}
-              className="group flex items-start gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/40 p-4 transition-all hover:border-accent/30 hover:bg-panel-2/60"
+              className="group flex items-start gap-4 rounded-2xl border border-[var(--edge)] bg-panel-2/40 p-4 transition-all hover:border-accent/30 hover:bg-panel-2/60"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent transition-transform group-hover:scale-105">
                 {step.icon}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted/60">0{index + 1}</span>
+                  <span className="text-xs font-medium text-muted">0{index + 1}</span>
                   <h3 className="font-medium text-text group-hover:text-accent-active transition-colors">
                     {step.title}
                   </h3>
                 </div>
                 <p className="mt-0.5 text-base text-muted leading-relaxed">{step.description}</p>
               </div>
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.15] text-muted/50 transition-all group-hover:border-accent/40 group-hover:text-accent group-hover:bg-accent/10">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--edge-bright)] text-muted transition-all group-hover:border-accent/40 group-hover:text-accent group-hover:bg-accent/10">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>

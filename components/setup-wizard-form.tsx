@@ -84,9 +84,10 @@ export function SetupWizardForm() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="setup-username">
               <span className="mb-2 block text-muted">Username</span>
               <input
+                id="setup-username"
                 required
                 autoComplete="username"
                 maxLength={100}
@@ -98,9 +99,10 @@ export function SetupWizardForm() {
             </label>
             <div />
 
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="setup-password">
               <span className="mb-2 block text-muted">Password</span>
               <input
+                id="setup-password"
                 required
                 autoComplete="new-password"
                 type="password"
@@ -113,9 +115,10 @@ export function SetupWizardForm() {
               />
             </label>
 
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="setup-confirm-password">
               <span className="mb-2 block text-muted">Confirm Password</span>
               <input
+                id="setup-confirm-password"
                 required
                 autoComplete="new-password"
                 type="password"
@@ -137,19 +140,19 @@ export function SetupWizardForm() {
           <p className="text-sm font-medium text-accent/90">What happens next</p>
           <ul className="text-sm text-muted space-y-1.5">
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 mt-0.5 text-accent/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-4 w-4 mt-0.5 text-accent/80 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
               <span>Create your admin account</span>
             </li>
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 mt-0.5 text-accent/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-4 w-4 mt-0.5 text-accent/80 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
               <span>Configure Jellyfin and Lidarr in Settings</span>
             </li>
             <li className="flex items-start gap-2">
-              <svg className="h-4 w-4 mt-0.5 text-accent/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-4 w-4 mt-0.5 text-accent/80 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
               <span>Start discovering and requesting music</span>
@@ -174,7 +177,7 @@ export function SetupWizardForm() {
       </form>
 
       {/* Integrations note */}
-      <p className="text-center text-sm text-muted/70">
+      <p className="text-center text-sm text-muted">
         You can connect Jellyfin and Lidarr from Settings after setup.
       </p>
     </div>

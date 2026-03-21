@@ -1,7 +1,7 @@
 "use client";
 
 import type { Route } from "next";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CoverImage } from "@/components/ui/cover-image";
@@ -152,7 +152,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
     };
   }, [albumId, artistNameParam, toast]);
 
-  const requestAlbum = async () => {
+  const requestAlbum = useCallback(async () => {
     if (!data?.album) return;
 
     setSubmitting(true);
@@ -190,16 +190,16 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
     }
 
     setSubmitting(false);
-  };
+  }, []);
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     if (from) {
       router.push(from as Route);
       return;
     }
 
     router.back();
-  };
+  }, [from, router]);
 
   if (loading) {
     return (
@@ -263,7 +263,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
           src={image}
           sizes="(max-width: 639px) 144px, (min-width: 640px) 192px"
           priority
-          className="relative h-36 w-36 sm:h-48 sm:w-48 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2"
+          className="relative h-36 w-36 sm:h-48 sm:w-48 shrink-0 overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2"
         />
         <div className="space-y-2">
           <h1 className="font-display text-3xl font-semibold tracking-tight">{album.title}</h1>
@@ -289,8 +289,8 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
             </p>
           )}
           {isTracked && !hasFiles && (
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1 text-xs font-medium text-muted">
-              Tracked in Lidarr
+            <p className="pill inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-muted">
+              Monitored
             </p>
           )}
           {!isTracked && !hasFiles ? (
@@ -308,7 +308,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
               ) : (
                 <>
                   <IconDownload className="mr-2 h-4 w-4" />
-                  Download Album
+                  Request Album
                 </>
               )}
             </button>
@@ -324,10 +324,10 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
         </div>
 
         {tracks.length > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
+          <div className="overflow-x-auto soft-scroll rounded-xl border border-[var(--edge)] bg-panel-2">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.1] text-left text-sm text-muted">
+                <tr className="border-b border-[var(--edge)] text-left text-sm text-muted">
                   <th className="px-4 py-3 font-medium">#</th>
                   <th className="px-4 py-3 font-medium">Title</th>
                   <th className="px-4 py-3 font-medium text-right">Duration</th>
@@ -337,7 +337,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
                 {tracks.map((track, index) => (
                   <tr
                     key={track.foreignSongId ?? index}
-                    className="border-b border-white/[0.05] text-sm last:border-0 hover:bg-white/[0.02]"
+                    className="border-b border-[var(--edge)] text-sm last:border-0 hover:bg-[var(--hover-bg)]"
                   >
                     <td className="px-4 py-3 text-muted">
                       {(track.trackNumber ?? 0) || index + 1}

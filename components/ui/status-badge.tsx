@@ -34,14 +34,12 @@ type Props = {
 
 export function StatusBadge({ status }: Props) {
   const config = statusConfig[status];
-  const isPending = status === "PENDING";
 
   return (
     <span
       className={`
         relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium tracking-wide
         ${config.className}
-        ${isPending ? "animate-pulse-glow" : ""}
       `}
     >
       {config.icon}

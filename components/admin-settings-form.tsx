@@ -226,7 +226,7 @@ export function AdminSettingsForm() {
         {/* Left column — integrations */}
         <div className="space-y-6">
           {/* Application Section */}
-          <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
+          <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
             <h2 className="section-heading flex items-center gap-2">
               <svg className="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -234,9 +234,10 @@ export function AdminSettingsForm() {
               </svg>
               Application
             </h2>
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="app-url">
               <span className="mb-2 block text-muted">Public App URL</span>
               <input
+                id="app-url"
                 type="url"
                 value={state.appUrl ?? ""}
                 onChange={(event) => setState((prev) => ({ ...prev, appUrl: event.target.value }))}
@@ -247,10 +248,10 @@ export function AdminSettingsForm() {
           </section>
 
           {/* Jellyfin Section */}
-          <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
+          <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff]/5 border border-white/10" aria-label="Jellyfin">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-jellyfin-icon" aria-label="Jellyfin">
                 <Image src="/brands/jellyfin.svg" alt="" aria-hidden width={22} height={22} />
               </div>
               <h2 className="section-heading leading-none">Jellyfin</h2>
@@ -267,9 +268,10 @@ export function AdminSettingsForm() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="jellyfin-url">
               <span className="mb-2 block text-muted">Server URL</span>
               <input
+                id="jellyfin-url"
                 type="url"
                 value={state.jellyfinUrl ?? ""}
                 onChange={(event) =>
@@ -279,9 +281,10 @@ export function AdminSettingsForm() {
                 placeholder="http://jellyfin:8096"
               />
             </label>
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="jellyfin-api-key">
               <span className="mb-2 block text-muted">API Key</span>
               <input
+                id="jellyfin-api-key"
                 value={state.jellyfinApiKey ?? ""}
                 onChange={(event) =>
                   setState((prev) => ({ ...prev, jellyfinApiKey: event.target.value }))
@@ -294,7 +297,7 @@ export function AdminSettingsForm() {
         </section>
 
         {/* Lidarr Section */}
-        <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
+        <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-lidarr-icon" aria-label="Lidarr">
@@ -314,9 +317,10 @@ export function AdminSettingsForm() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="lidarr-url">
               <span className="mb-2 block text-muted">Server URL</span>
               <input
+                id="lidarr-url"
                 type="url"
                 value={state.lidarrUrl ?? ""}
                 onChange={(event) => setState((prev) => ({ ...prev, lidarrUrl: event.target.value }))}
@@ -324,9 +328,10 @@ export function AdminSettingsForm() {
                 placeholder="http://lidarr:8686"
               />
             </label>
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="lidarr-api-key">
               <span className="mb-2 block text-muted">API Key</span>
               <input
+                id="lidarr-api-key"
                 value={state.lidarrApiKey ?? ""}
                 onChange={(event) =>
                   setState((prev) => ({ ...prev, lidarrApiKey: event.target.value }))
@@ -336,9 +341,10 @@ export function AdminSettingsForm() {
               />
             </label>
 
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="lidarr-root-folder">
               <span className="mb-2 block text-muted">Root Folder</span>
               <input
+                id="lidarr-root-folder"
                 value={state.lidarrRootFolder ?? ""}
                 onChange={(event) =>
                   setState((prev) => ({ ...prev, lidarrRootFolder: event.target.value }))
@@ -347,9 +353,10 @@ export function AdminSettingsForm() {
                 placeholder="/music"
               />
             </label>
-            <label className="block text-sm">
+            <label className="block text-sm" htmlFor="lidarr-quality-profile">
               <span className="mb-2 block text-muted">Quality Profile ID</span>
               <input
+                id="lidarr-quality-profile"
                 type="number"
                 value={state.lidarrQualityProfileId ?? ""}
                 onChange={(event) =>
@@ -363,9 +370,10 @@ export function AdminSettingsForm() {
               />
             </label>
 
-            <label className="block text-sm md:col-span-2">
+            <label className="block text-sm md:col-span-2" htmlFor="lidarr-metadata-profile">
               <span className="mb-2 block text-muted">Metadata Profile ID (optional)</span>
               <input
+                id="lidarr-metadata-profile"
                 type="number"
                 value={state.lidarrMetadataProfileId ?? ""}
                 onChange={(event) =>
@@ -392,20 +400,20 @@ export function AdminSettingsForm() {
           onClick={() =>
             setState((prev) => ({ ...prev, requestAutoApprove: !prev.requestAutoApprove }))
           }
-          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
+          className="flex w-full items-center gap-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-[var(--edge-bright)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
         >
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
               state.requestAutoApprove
                 ? "border-accent/60 bg-accent/20 text-accent"
-                : "border-white/[0.15] bg-transparent text-transparent"
+                : "border-[var(--edge)] bg-[var(--bg-soft)] text-[var(--muted)]"
             }`}
             aria-hidden
           >
             <IconCheck className="h-4 w-4" />
           </span>
           <span className="leading-none">
-            <span className="font-medium text-text">Automatically approve requests</span>
+            <span className={`font-medium transition-colors ${state.requestAutoApprove ? "text-accent-active" : "text-text"}`}>Automatically approve requests</span>
             <span className="ml-2 text-xs text-muted">(Skip moderation queue)</span>
           </span>
         </button>
@@ -418,27 +426,27 @@ export function AdminSettingsForm() {
           onClick={() =>
             setState((prev) => ({ ...prev, debugMode: !prev.debugMode }))
           }
-          className="flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-white/[0.15] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
+          className="flex w-full items-center gap-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-[var(--edge-bright)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
         >
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
               state.debugMode
                 ? "border-accent/60 bg-accent/20 text-accent"
-                : "border-white/[0.15] bg-transparent text-transparent"
+                : "border-[var(--edge)] bg-[var(--bg-soft)] text-[var(--muted)]"
             }`}
             aria-hidden
           >
             <IconCheck className="h-4 w-4" />
           </span>
           <span className="leading-none">
-            <span className="font-medium text-text">Debug mode</span>
+            <span className={`font-medium transition-colors ${state.debugMode ? "text-accent-active" : "text-text"}`}>Debug mode</span>
             <span className="ml-2 text-xs text-muted">(Enable verbose logging)</span>
           </span>
         </button>
 
         {/* Password Section */}
         {canManagePassword ? (
-          <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-panel-2/30 p-5">
+          <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
             <div>
               <h2 className="section-heading flex items-center gap-2">
                 <svg className="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -448,9 +456,10 @@ export function AdminSettingsForm() {
               </h2>
             </div>
             <div className="space-y-4">
-              <label className="block text-sm">
+              <label className="block text-sm" htmlFor="password-current">
                 <span className="mb-2 block text-muted">Current Password</span>
                 <input
+                  id="password-current"
                   type="password"
                   autoComplete="current-password"
                   maxLength={128}
@@ -462,9 +471,10 @@ export function AdminSettingsForm() {
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm">
+                <label className="block text-sm" htmlFor="password-new">
                   <span className="mb-2 block text-muted">New Password</span>
                   <input
+                    id="password-new"
                     type="password"
                     autoComplete="new-password"
                     minLength={8}
@@ -476,9 +486,10 @@ export function AdminSettingsForm() {
                     className="field"
                   />
                 </label>
-                <label className="block text-sm">
+                <label className="block text-sm" htmlFor="password-confirm">
                   <span className="mb-2 block text-muted">Confirm New Password</span>
                   <input
+                    id="password-confirm"
                     type="password"
                     autoComplete="new-password"
                     minLength={8}

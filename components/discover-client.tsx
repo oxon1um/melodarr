@@ -128,9 +128,9 @@ export const buildAlbumHref = ({ artistName, foreignArtistId, foreignAlbumId, fr
     : undefined;
 
 const albumActionLabel = (album: Pick<Album, "isTracked" | "hasFiles">, label = "Album") => {
-  if (album.hasFiles) return label === "Single" ? "Available" : "Available";
-  if (album.isTracked) return "Tracked in Lidarr";
-  return `Download ${label}`;
+  if (album.hasFiles) return "Available";
+  if (album.isTracked) return "Monitored";
+  return `Request ${label}`;
 };
 
 export function DiscoverClient() {
@@ -327,11 +327,11 @@ export function DiscoverClient() {
     window.history.replaceState(null, "", discoverStateHref);
   }, [discoverStateHref]);
 
-  const runSearch = async (event?: FormEvent) => {
+  const runSearch = useCallback(async (event?: FormEvent) => {
     event?.preventDefault();
     setShowSuggestions(false);
     await fetchDiscovery(query, true);
-  };
+  }, [query, fetchDiscovery]);
 
   const requestAlbum = async (
     input: {
@@ -504,7 +504,7 @@ export function DiscoverClient() {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
 
-  const chooseSuggestion = (suggestion: Suggestion) => {
+  const chooseSuggestion = useCallback((suggestion: Suggestion) => {
     setShowSuggestions(false);
 
     const artistHref = buildArtistHref({
@@ -534,7 +534,7 @@ export function DiscoverClient() {
     if (suggestion.type === "artist") setFilter("artists");
     if (suggestion.type === "album") setFilter("albums");
     if (suggestion.type === "single") setFilter("singles");
-  };
+  }, [discoverStateHref, filter, query]);
 
   return (
     <div className="page-enter space-y-8">
@@ -645,7 +645,7 @@ export function DiscoverClient() {
                       className={`flex w-full items-start justify-between rounded-xl px-3 py-2.5 text-left transition ${
                         index === activeSuggestionIndex
                           ? "bg-accent/15 text-accent-active"
-                          : "text-muted hover:bg-white/[0.04] hover:text-text"
+                          : "text-muted hover:bg-[var(--hover-bg)] hover:text-text"
                       }`}
                       onMouseDown={(event) => {
                         event.preventDefault();
@@ -716,7 +716,7 @@ export function DiscoverClient() {
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                   filter === item.id
                     ? "bg-accent/15 text-accent-active border border-accent/40"
-                    : "border border-[var(--edge)] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
+                    : "border border-[var(--edge)] bg-[var(--overlay-bg-subtle)] text-muted hover:border-[var(--edge-bright)] hover:bg-[var(--hover-bg)] hover:text-text"
                 }`}
               >
                 {item.label}
@@ -730,7 +730,7 @@ export function DiscoverClient() {
                 className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
                   hideNoisySingles
                     ? "bg-accent/15 text-accent-active border border-accent/40"
-                    : "border border-[var(--edge)] bg-white/[0.02] text-muted/70 hover:border-white/[0.15] hover:text-muted"
+                    : "border border-[var(--edge)] bg-[var(--overlay-bg-subtle)] text-muted hover:border-[var(--edge-bright)] hover:text-text"
                 }`}
               >
                 Hide noise
@@ -788,8 +788,8 @@ export function DiscoverClient() {
                     <CoverImage
                       alt={artist.artistName}
                       src={image}
-                      sizes="96px"
-                      className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2"
+                      sizes="(min-width: 640px) 128px, 96px"
+                      className="relative h-24 w-24 sm:h-32 sm:w-32 shrink-0 overflow-hidden rounded-xl border border-[var(--edge)] bg-panel-2"
                       imageClassName="object-cover transition-transform duration-300 hover:scale-105"
                     />
                     <div className="min-w-0 flex-1">
@@ -804,9 +804,9 @@ export function DiscoverClient() {
                         <h3 className="font-display truncate text-base font-bold tracking-tight">{artist.artistName}</h3>
                       )}
                       <p className="mt-1.5 line-clamp-2 text-sm text-muted">
-                        {artist.overview ?? "No description provided by Lidarr metadata."}
+                        {artist.overview ?? "No description available."}
                       </p>
-                      <p className="mt-2 text-xs text-muted/70">
+                      <p className="mt-2 text-xs text-muted">
                         {artistReleases.length > 0
                           ? availableAlbumCount > 0
                             ? `${availableAlbumCount} release${availableAlbumCount === 1 ? "" : "s"} available${trackedAlbumCount > availableAlbumCount ? ` · ${trackedAlbumCount} tracked` : ""}`
@@ -849,13 +849,13 @@ export function DiscoverClient() {
                   style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
-                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
+                    <div className="relative h-24 w-24 sm:h-32 sm:w-32 shrink-0 overflow-hidden rounded-xl border border-[var(--edge)] bg-panel-2">
                       {albumHref ? (
                         <Link href={albumHref} className="block h-full w-full">
                           <CoverImage
                             alt={album.title}
                             src={image}
-                            sizes="96px"
+                            sizes="(min-width: 640px) 128px, 96px"
                             className="relative h-full w-full"
                             imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
                           />
@@ -897,7 +897,7 @@ export function DiscoverClient() {
                         disabled={submitting === `album:${key}` || album.hasFiles || album.isTracked}
                         className="quick-icon"
                         aria-label={`Request ${album.title}`}
-                        title={album.hasFiles ? "Already available" : album.isTracked ? "Already tracked in Lidarr" : "Request album"}
+                        title={album.hasFiles ? "Already available" : album.isTracked ? "Already monitored" : "Request album"}
                       >
                         {submitting === `album:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -916,7 +916,7 @@ export function DiscoverClient() {
                         <h3 className="truncate text-base font-medium tracking-tight">{album.title}</h3>
                       )}
                       <p className="truncate text-sm text-muted">{album.artistName}</p>
-                      <p className="mt-1.5 line-clamp-2 text-xs text-muted/80">
+                      <p className="mt-1.5 line-clamp-2 text-xs text-muted">
                         {album.overview ?? "No album overview available."}
                       </p>
                       <button
@@ -946,7 +946,7 @@ export function DiscoverClient() {
             })}
           </div>
           {hasMoreAlbums ? (
-            <div ref={albumSentinelRef} className="flex justify-center items-center gap-2 pt-3 text-xs text-muted/70">
+            <div ref={albumSentinelRef} className="flex justify-center items-center gap-2 pt-3 text-xs text-muted">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Loading more albums...
             </div>
@@ -979,13 +979,13 @@ export function DiscoverClient() {
                   style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
-                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
+                    <div className="relative h-24 w-24 sm:h-32 sm:w-32 shrink-0 overflow-hidden rounded-xl border border-[var(--edge)] bg-panel-2">
                       {singleHref ? (
                         <Link href={singleHref} className="block h-full w-full">
                           <CoverImage
                             alt={single.title}
                             src={image}
-                            sizes="96px"
+                            sizes="(min-width: 640px) 128px, 96px"
                             className="relative h-full w-full"
                             imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
                           />
@@ -1027,7 +1027,7 @@ export function DiscoverClient() {
                         disabled={submitting === `single:${key}` || single.hasFiles || single.isTracked}
                         className="quick-icon"
                         aria-label={`Request ${single.title}`}
-                        title={single.hasFiles ? "Already available" : single.isTracked ? "Already tracked in Lidarr" : "Request single"}
+                        title={single.hasFiles ? "Already available" : single.isTracked ? "Already monitored" : "Request single"}
                       >
                         {submitting === `single:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -1046,7 +1046,7 @@ export function DiscoverClient() {
                         <h3 className="truncate text-base font-medium tracking-tight">{single.title}</h3>
                       )}
                       <p className="truncate text-sm text-muted">{single.artistName}</p>
-                      <p className="mt-1.5 line-clamp-2 text-xs text-muted/80">
+                      <p className="mt-1.5 line-clamp-2 text-xs text-muted">
                         {single.overview ?? "No release overview available."}
                       </p>
                       <button
@@ -1076,7 +1076,7 @@ export function DiscoverClient() {
             })}
           </div>
           {hasMoreSingles ? (
-            <div ref={singleSentinelRef} className="flex justify-center items-center gap-2 pt-3 text-xs text-muted/70">
+            <div ref={singleSentinelRef} className="flex justify-center items-center gap-2 pt-3 text-xs text-muted">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Loading more singles...
             </div>
@@ -1086,13 +1086,13 @@ export function DiscoverClient() {
 
       {totalCount === 0 && query.trim().length > 0 && !loading ? (
         <div className="empty-state">
-          <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-white/[0.08] bg-panel-2/30">
-            <svg className="h-10 w-10 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+          <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-[var(--edge)] bg-panel-2/30">
+            <svg className="h-10 w-10 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
           <p className="text-base font-medium text-muted">No results for &quot;{query}&quot;</p>
-          <p className="mt-1.5 text-sm text-muted/70">Check the spelling or try a different artist name.</p>
+          <p className="mt-1.5 text-sm text-muted">Check the spelling or try a different artist name.</p>
           <button
             type="button"
             onClick={() => { setQuery(""); }}

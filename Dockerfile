@@ -4,8 +4,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL=postgresql://melodarr:melodarr@db:5432/melodarr
 
 FROM base AS deps
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci --prefer-offline --no-audit --no-fund
 
 FROM deps AS builder
 COPY . .

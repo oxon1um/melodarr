@@ -320,21 +320,21 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
           src={image}
           sizes="(max-width: 639px) 128px, (min-width: 640px) 160px"
           priority
-          className="relative h-32 w-32 sm:h-40 sm:w-40 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-panel-2"
+          className="relative h-32 w-32 sm:h-40 sm:w-40 shrink-0 overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2"
         />
         <div className="space-y-2">
-          <h1 className="font-display text-4xl font-bold tracking-wide">{artist.artistName}</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{artist.artistName}</h1>
           {availableCount > 0 && (
-            <p className="inline-flex items-center gap-1.5 rounded-full badge-available-pill px-3 py-1 text-xs font-medium">
-              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <p className="inline-flex items-center gap-1.5 text-sm text-muted">
+              <svg className="h-3.5 w-3.5 text-success shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               {availableCount} release{availableCount === 1 ? "" : "s"} available
             </p>
           )}
           {trackedCount > availableCount && (
-            <p className="text-xs text-muted/80">
-              {trackedCount} tracked in Lidarr
+            <p className="text-xs text-muted">
+              {trackedCount} monitored
             </p>
           )}
           <p className="max-w-2xl text-sm text-muted">
@@ -350,7 +350,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
             id="artist-sort-select"
             value={sort}
             onChange={(event) => setSort(event.target.value as ReleaseSort)}
-            className="field-select rounded-lg border border-white/[0.08] bg-panel px-1.5 py-0.5 text-xs"
+            className="field-select rounded-lg border border-[var(--edge)] bg-panel px-1.5 py-0.5 text-xs"
           >
             {RELEASE_SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value} style={{ background: "var(--panel)", color: "var(--text)" }}>
@@ -367,7 +367,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             hideNoisySingles
               ? "bg-accent/15 text-accent-active border border-accent/40"
-              : "border border-white/[0.08] bg-white/[0.02] text-muted hover:border-white/[0.15] hover:bg-white/[0.04] hover:text-white"
+              : "border border-[var(--edge)] bg-[var(--overlay-bg-subtle)] text-muted hover:border-[var(--edge-bright)] hover:bg-[var(--hover-bg)] hover:text-text"
           }`}
         >
           Hide Noisy Singles
@@ -398,7 +398,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                       href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(album.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
                       className="block"
                     >
-                      <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
+                      <div className="relative overflow-hidden rounded-xl border border-[var(--edge)] bg-panel-2">
                         <CoverImage
                           alt={album.title}
                           src={cover}
@@ -423,7 +423,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                     <div className="mt-3 space-y-1">
                       <p className="truncate text-sm font-medium text-text">{album.title}</p>
                       {album.releaseDate && (
-                        <p className="text-xs text-muted/70">
+                        <p className="text-xs text-muted">
                           {new Date(album.releaseDate).getFullYear()}
                         </p>
                       )}
@@ -448,7 +448,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                         disabled={submitting === `album:${key}` || album.hasFiles || album.isTracked}
                         className="quick-icon"
                         aria-label={`Request ${album.title}`}
-                        title={album.hasFiles ? "Already available" : album.isTracked ? "Already tracked in Lidarr" : "Request album"}
+                        title={album.hasFiles ? "Already available" : album.isTracked ? "Already monitored" : "Request album"}
                       >
                         {submitting === `album:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -466,8 +466,8 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                           : album.hasFiles
                             ? "View Album"
                             : album.isTracked
-                              ? "Tracked in Lidarr"
-                            : "Download Album"}
+                              ? "Monitored"
+                            : "Request Album"}
                       </Link>
                     </div>
                   </Card>
@@ -475,7 +475,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
               })}
             </div>
             {hasMoreAlbums ? (
-              <div ref={albumSentinelRef} className="flex justify-center pt-2 text-xs text-muted/70">
+              <div ref={albumSentinelRef} className="flex justify-center pt-2 text-xs text-muted">
                 Loading more albums...
               </div>
             ) : null}
@@ -511,7 +511,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                       href={`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}/${encodeURIComponent(single.foreignAlbumId ?? key)}?artistName=${encodeURIComponent(artist.artistName)}&from=${encodeURIComponent(artistHref)}` as const}
                       className="block"
                     >
-                      <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-panel-2">
+                      <div className="relative overflow-hidden rounded-xl border border-[var(--edge)] bg-panel-2">
                         <CoverImage
                           alt={single.title}
                           src={cover}
@@ -536,7 +536,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                       <div className="mt-3 space-y-1">
                         <p className="truncate text-sm font-medium text-text">{single.title}</p>
                         {single.releaseDate && (
-                          <p className="text-xs text-muted/70">
+                          <p className="text-xs text-muted">
                             {new Date(single.releaseDate).getFullYear()}
                           </p>
                         )}
@@ -561,7 +561,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                         disabled={submitting === `single:${key}` || single.hasFiles || single.isTracked}
                         className="quick-icon"
                         aria-label={`Request ${single.title}`}
-                        title={single.hasFiles ? "Already available" : single.isTracked ? "Already tracked in Lidarr" : "Request single"}
+                        title={single.hasFiles ? "Already available" : single.isTracked ? "Already monitored" : "Request single"}
                       >
                         {submitting === `single:${key}` ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -579,8 +579,8 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                           : single.hasFiles
                             ? "View Single"
                             : single.isTracked
-                              ? "Tracked in Lidarr"
-                              : "Download Single"}
+                              ? "Monitored"
+                              : "Request Single"}
                       </Link>
                     </div>
                   </Card>
@@ -588,7 +588,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
               })}
             </div>
             {hasMoreSingles ? (
-              <div ref={singleSentinelRef} className="flex justify-center pt-2 text-xs text-muted/70">
+              <div ref={singleSentinelRef} className="flex justify-center pt-2 text-xs text-muted">
                 Loading more singles...
               </div>
             ) : null}

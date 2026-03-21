@@ -2,20 +2,23 @@
 @config "../tailwind.config.ts";
 
 :root {
-  --bg: #050914;
-  --bg-soft: #0c1219;
-  --panel: #111827;
-  --panel-2: #1a2234;
-  --text: #f1f5f9;
-  --muted: #94a3b8;
+  /* Warm dark palette — amber brand with warm stone/cream neutrals */
+  --bg: #09080a;
+  --bg-soft: #110f10;
+  --panel: #1a1618;
+  --panel-2: #231e20;
+  --text: #f5f0eb;
+  --muted: #a89888;
   --accent: #f59e0b;
   --accent-active: #fbbf24;
   --accent-hover: #fbbf24;
   --danger: #f87171;
   --danger-hover: #fca5a5;
+  /* Danger button text — uses danger-hover (lighter red) for contrast on dark bg */
+  --danger-text: #fee2e2;
   --success: #4ade80;
-  --edge: rgba(148, 163, 184, 0.12);
-  --edge-bright: rgba(148, 163, 184, 0.22);
+  --edge: rgba(175, 155, 138, 0.12);
+  --edge-bright: rgba(185, 165, 148, 0.22);
 
   /* Status colors */
   --status-pending-bg: rgba(251, 191, 36, 0.15);
@@ -36,9 +39,10 @@
   --status-failed-bg: rgba(248, 113, 113, 0.12);
   --status-failed-border: rgba(248, 113, 113, 0.25);
   --status-failed-text: #fca5a5;
-  --status-exists-bg: rgba(100, 116, 139, 0.12);
-  --status-exists-border: rgba(100, 116, 139, 0.2);
-  --status-exists-text: #94a3b8;
+  /* Already exists = already in library — muted teal (success family, less prominent than APPROVED) */
+  --status-exists-bg: rgba(52, 211, 153, 0.12);
+  --status-exists-border: rgba(52, 211, 153, 0.25);
+  --status-exists-text: #6ee7b7;
 
   /* Z-index scale */
   --z-base: 0;
@@ -48,18 +52,18 @@
   --z-modal: 200;
   --z-toast: 300;
 
-  /* Dropdown */
-  --dropdown-bg: rgba(6, 12, 26, 0.96);
+  /* Dropdown — warm dark surface */
+  --dropdown-bg: rgba(15, 10, 8, 0.96);
 
   /* Warm background gradients - amber, orange, rust */
   --bg-gradient-1: rgba(245, 158, 11, 0.12);
   --bg-gradient-2: rgba(234, 88, 12, 0.10);
   --bg-gradient-3: rgba(220, 38, 38, 0.06);
   --bg-gradient-4: rgba(251, 146, 60, 0.05);
-  --bg-gradient-base: linear-gradient(180deg, #050914 0%, #0c1219 50%, #050710 100%);
+  --bg-gradient-base: linear-gradient(180deg, #09080a 0%, #110f10 50%, #08070a 100%);
 
   /* Primary button - warm amber */
-  --btn-primary-text: #05070a;
+  --btn-primary-text: #100c09;
   --btn-primary-bg: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
   --btn-primary-shadow: rgba(245, 158, 11, 0.35);
   --btn-primary-shadow-hover: rgba(245, 158, 11, 0.5);
@@ -71,13 +75,13 @@
 
   /* Quick-icon button */
   --quick-icon-bg: rgba(5, 9, 20, 0.85);
-  --quick-icon-border: rgba(138, 156, 196, 0.2);
+  --quick-icon-border: rgba(165, 145, 128, 0.2);
 
   /* Album/single badge overlays */
   --badge-available-bg: rgba(16, 185, 129, 0.9);
   --badge-available-text: #ffffff;
-  --badge-tracked-bg: rgba(30, 41, 59, 0.85);
-  --badge-tracked-text: #e2e8f0;
+  --badge-tracked-bg: rgba(50, 35, 30, 0.85);
+  --badge-tracked-text: #d4c4b0;
 
   /* Pill badge — inline "available" indicator next to artist names */
   --badge-available-pill-bg: rgba(16, 185, 129, 0.12);
@@ -89,17 +93,39 @@
   --toast-error-border: rgba(239, 68, 68, 0.52);
   --toast-error-bg: rgba(72, 20, 35, 0.86);
   --toast-info-border: rgba(99, 179, 237, 0.5);
-  --toast-info-bg: rgba(20, 40, 80, 0.88);
+  --toast-info-bg: rgba(15, 25, 50, 0.88);
 
   /* Brand: Lidarr icon (teal accent) */
   --brand-lidarr-bg: rgba(16, 185, 129, 0.1);
   --brand-lidarr-border: rgba(16, 185, 129, 0.2);
+
+  /* Brand: Jellyfin icon (subtle — matches Lidarr visual weight) */
+  --brand-jellyfin-bg: rgba(255, 255, 255, 0.06);
+  --brand-jellyfin-border: rgba(255, 255, 255, 0.1);
+
+  /* Header surface */
+  --header-bg: rgba(3, 7, 13, 0.7);
+
+  /* Pill background for inline text badges */
+  --pill-bg: rgba(255, 255, 255, 0.06);
+  --pill-border: rgba(255, 255, 255, 0.08);
+
+  /* Hover state background */
+  --hover-bg: rgba(255, 255, 255, 0.04);
+
+  /* Overlay backgrounds for cards and buttons */
+  --overlay-bg: rgba(255, 255, 255, 0.05);
+  --overlay-bg-hover: rgba(255, 255, 255, 0.1);
+  --overlay-bg-subtle: rgba(255, 255, 255, 0.02);
 
   /* Recent search tag */
   --tag-bg: rgba(255, 255, 255, 0.03);
   --tag-border: rgba(138, 156, 196, 0.12);
   --tag-text: var(--muted);
   --tag-hover-text: var(--text);
+
+  /* Dialog scrim */
+  --scrim: rgba(0, 0, 0, 0.6);
 }
 
 /* Light mode support */
@@ -110,12 +136,14 @@
     --panel: #ffffff;
     --panel-2: #faf8f5;
     --text: #1c1917;
-    --muted: #78716c;
+    --muted: #6b6560;
     --accent: #b45309;
     --accent-active: #d97706;
     --accent-hover: #d97706;
     --danger: #dc2626;
     --danger-hover: #f87171;
+    /* Danger button text — uses danger (darker red) for contrast on light bg */
+    --danger-text: #ffffff;
     --success: #059669;
     --edge: rgba(120, 113, 108, 0.15);
     --edge-bright: rgba(120, 113, 108, 0.3);
@@ -139,9 +167,10 @@
     --status-failed-bg: rgba(220, 38, 38, 0.08);
     --status-failed-border: rgba(220, 38, 38, 0.2);
     --status-failed-text: #b91c1c;
-    --status-exists-bg: rgba(120, 113, 108, 0.08);
-    --status-exists-border: rgba(120, 113, 108, 0.15);
-    --status-exists-text: #57534e;
+    /* Already exists = already in library — muted teal (success family) */
+    --status-exists-bg: rgba(5, 150, 105, 0.08);
+    --status-exists-border: rgba(5, 150, 105, 0.18);
+    --status-exists-text: #047857;
 
     /* Light mode gradients - warm amber, peach, cream */
     --bg-gradient-1: rgba(245, 158, 11, 0.06);
@@ -182,6 +211,25 @@
     --brand-lidarr-bg: rgba(16, 185, 129, 0.1);
     --brand-lidarr-border: rgba(16, 185, 129, 0.25);
 
+    /* Light mode brand: Jellyfin icon */
+    --brand-jellyfin-bg: rgba(0, 0, 0, 0.08);
+    --brand-jellyfin-border: rgba(0, 0, 0, 0.12);
+
+    /* Light mode header surface */
+    --header-bg: rgba(250, 249, 247, 0.8);
+
+    /* Light mode pill background */
+    --pill-bg: rgba(0, 0, 0, 0.06);
+    --pill-border: rgba(0, 0, 0, 0.08);
+
+    /* Light mode hover state background */
+    --hover-bg: rgba(0, 0, 0, 0.04);
+
+    /* Light mode overlay backgrounds */
+    --overlay-bg: rgba(0, 0, 0, 0.05);
+    --overlay-bg-hover: rgba(0, 0, 0, 0.1);
+    --overlay-bg-subtle: rgba(0, 0, 0, 0.02);
+
     /* Light mode recent search tag */
     --tag-bg: rgba(0, 0, 0, 0.06);
     --tag-border: rgba(0, 0, 0, 0.1);
@@ -195,6 +243,9 @@
     /* Quick-icon button */
     --quick-icon-bg: rgba(250, 249, 247, 0.9);
     --quick-icon-border: rgba(120, 113, 108, 0.2);
+
+    /* Dialog scrim */
+    --scrim: rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -257,17 +308,15 @@ select {
   color: var(--text);
 }
 
-/* Panel with enhanced depth */
+/* Panel — solid warm dark surface with subtle depth */
 .panel {
   @apply rounded-3xl;
   border: 1px solid var(--edge);
-  background:
-    linear-gradient(135deg, rgba(30, 50, 90, 0.45) 0%, rgba(14, 29, 56, 0.72) 50%, rgba(19, 37, 67, 0.58) 100%);
-  backdrop-filter: blur(12px);
+  background: var(--panel);
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.25),
+    0 4px 24px rgba(0, 0, 0, 0.3),
     0 1px 2px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 /* Page enter animation */
@@ -295,6 +344,11 @@ select {
   background-color: var(--bg-soft);
 }
 
+.field:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* Select element styled consistently with field */
 .field-select {
   @apply w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all appearance-none;
@@ -314,6 +368,11 @@ select {
     0 0 0 3px rgba(245, 158, 11, 0.15),
     0 0 20px rgba(245, 158, 11, 0.1);
   background-color: var(--bg-soft);
+}
+
+.field-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* Primary button with glow */
@@ -336,6 +395,13 @@ select {
 
 .btn-primary:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.btn-primary:focus-visible:not(:disabled) {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 5px var(--accent);
 }
 
 /* Primary approve button — dominant action with persistent amber glow */
@@ -362,17 +428,30 @@ select {
   transform: translateY(0);
 }
 
+.btn-approve:focus-visible:not(:disabled) {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 5px var(--accent),
+    0 0 20px var(--btn-approve-glow);
+}
+
 /* Ghost button with border glow */
 .btn-ghost {
   @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm leading-none transition-all disabled:opacity-60;
-  border-color: rgba(138, 156, 196, 0.2);
+  border-color: var(--edge);
   color: var(--muted);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  border-color: rgba(138, 156, 196, 0.4);
+  border-color: var(--edge-bright);
   color: var(--text);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--hover-bg);
+}
+
+.btn-ghost:focus-visible:not(:disabled) {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--accent);
 }
 
 /* Active ghost state */
@@ -384,25 +463,33 @@ select {
   box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
 }
 
+.btn-ghost-active:focus-visible:not(:disabled) {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 5px var(--accent),
+    0 0 12px rgba(245, 158, 11, 0.15);
+}
+
 /* Icon button */
 .icon-btn {
   @apply inline-flex items-center justify-center rounded-xl border transition-all disabled:cursor-not-allowed disabled:opacity-60;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-color: rgba(138, 156, 196, 0.2);
-  background: rgba(10, 19, 37, 0.6);
+  width: 2.75rem;
+  height: 2.75rem;
+  border-color: var(--edge);
+  background: var(--bg-soft);
   color: var(--muted);
 }
 
 .icon-btn:hover:not(:disabled) {
-  border-color: rgba(138, 156, 196, 0.4);
+  border-color: var(--edge-bright);
   color: var(--text);
-  background: rgba(20, 35, 60, 0.6);
+  background: var(--hover-bg);
 }
 
 .icon-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--accent);
 }
 
 .icon-btn-danger {
@@ -417,12 +504,18 @@ select {
   color: var(--danger-hover);
 }
 
+.icon-btn-danger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--danger);
+}
+
 /* Quick action button on cards */
 .quick-icon {
-  @apply absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full p-1.5 text-sm transition-all;
+  @apply absolute right-2 top-2 inline-flex items-center justify-center rounded-full p-1.5 text-sm transition-all;
+  width: 2.75rem;
+  height: 2.75rem;
   background: var(--quick-icon-bg);
   border: 1px solid var(--quick-icon-border);
-  backdrop-filter: blur(4px);
 }
 
 .quick-icon:hover {
@@ -462,6 +555,17 @@ select {
 .brand-lidarr-icon {
   background: var(--brand-lidarr-bg);
   border-color: var(--brand-lidarr-border);
+}
+
+/* Brand: Jellyfin icon container */
+.brand-jellyfin-icon {
+  background: var(--brand-jellyfin-bg);
+  border-color: var(--brand-jellyfin-border);
+}
+
+/* Pill badge — inline text indicator (e.g. track count, singular notice) */
+.pill {
+  background: var(--pill-bg);
 }
 
 /* Recent search tag */
@@ -540,7 +644,7 @@ select {
 .dropdown {
   @apply absolute left-0 right-0 top-[3.75rem] z-[var(--z-dropdown)] rounded-2xl border p-1 shadow-panel backdrop-blur-xl;
   background: var(--dropdown-bg);
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--edge);
 }
 
 /* Empty state */
