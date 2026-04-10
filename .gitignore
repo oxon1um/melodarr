@@ -12,3 +12,5 @@ docker-compose.local.yml
 .claude/
 plans/
 AGENTS.md
+
+public/prototypes/
