@@ -1,6 +1,6 @@
 # Melodarr
 
-Dockerized music request app for [Lidarr](https://lidarr.audio/) with a [Jellyfin](https://jellyfin.org/)-powered discover UI, inspired by [Jellyseerr](https://github.com/Fallenbagel/jellyseerr).
+Dockerized music request app for [Lidarr](https://lidarr.audio/) with a [Jellyfin](https://jellyfin.org/)-powered discover UI, inspired by [Seerr](https://github.com/seerr-team/seerr).
 
 ## Features
 
