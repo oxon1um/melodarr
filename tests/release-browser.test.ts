@@ -32,7 +32,7 @@ describe("release-browser utilities", () => {
     ]);
   });
 
-  it("filters noisy singles only when the toggle is enabled", () => {
+  it("filters noisy singles by default", () => {
     const singles = [
       { title: "One", releaseStatuses: ["Official"] },
       { title: "One (Remix)", releaseStatuses: ["Official"] },
@@ -40,6 +40,7 @@ describe("release-browser utilities", () => {
     ];
 
     expect(isNoisySingle(singles[1])).toBe(true);
+    expect(filterNoisySingles(singles, undefined as never).map((release) => release.title)).toEqual(["One"]);
     expect(filterNoisySingles(singles, false)).toHaveLength(3);
     expect(filterNoisySingles(singles, true).map((release) => release.title)).toEqual(["One"]);
   });

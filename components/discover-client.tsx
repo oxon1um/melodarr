@@ -8,14 +8,13 @@ import { Card } from "@/components/ui/card";
 import { CoverImage } from "@/components/ui/cover-image";
 import { IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
-import { EmptyDiscoverState } from "@/components/onboarding/empty-discover-state";
 import {
   filterNoisySingles,
   RELEASE_SORT_OPTIONS,
   type ReleaseSort,
   sortReleases
 } from "@/lib/discover/release-browser";
-import type { ImageAsset } from "@/lib/images";
+import { pickPreferredImageUrl, type ImageAsset } from "@/lib/image-selection";
 import { useProgressiveCount } from "@/lib/use-progressive-count";
 
 type Artist = {
@@ -77,7 +76,6 @@ type SavedSearch = {
   query: string;
   filter: FilterType;
   sort: ReleaseSort;
-  hideNoisySingles: boolean;
 };
 
 const emptyResults: DiscoveryResults = {
@@ -89,27 +87,11 @@ const emptyResults: DiscoveryResults = {
 const RECENT_SEARCHES_KEY = "melodarr:discover-recent-searches";
 const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
 
-const pickImage = (
-  images: ImageAsset[] | undefined,
-  preferredTypes: string[]
-) => {
-  if (!images || images.length === 0) return undefined;
-
-  return (
-    preferredTypes.map((type) => images.find((item) => item.coverType === type)?.optimizedUrl).find(Boolean) ??
-    preferredTypes.map((type) => images.find((item) => item.coverType === type)?.remoteUrl).find(Boolean) ??
-    preferredTypes.map((type) => images.find((item) => item.coverType === type)?.url).find(Boolean) ??
-    images[0]?.optimizedUrl ??
-    images[0]?.remoteUrl ??
-    images[0]?.url
-  );
-};
-
 const chooseArtistImage = (images?: ImageAsset[]) =>
-  pickImage(images, ["poster", "cover", "fanart", "banner"]);
+  pickPreferredImageUrl(images, ["poster", "cover", "fanart", "banner"]);
 
 const chooseAlbumImage = (images?: ImageAsset[]) =>
-  pickImage(images, ["cover", "poster", "fanart", "banner"]);
+  pickPreferredImageUrl(images, ["cover", "poster", "fanart", "banner"]);
 
 const albumKey = (album: { foreignAlbumId?: string; artistName: string; title: string }) =>
   album.foreignAlbumId ?? `${album.artistName}:${album.title}`;
@@ -152,7 +134,6 @@ export function DiscoverClient() {
       ? (value as ReleaseSort)
       : DEFAULT_RELEASE_SORT;
   });
-  const [hideNoisySingles, setHideNoisySingles] = useState(searchParams.get("hideNoisySingles") === "1");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -181,7 +162,6 @@ export function DiscoverClient() {
           && typeof entry.query === "string"
           && typeof entry.filter === "string"
           && typeof entry.sort === "string"
-          && typeof entry.hideNoisySingles === "boolean"
         )
       );
     } catch {
@@ -204,19 +184,14 @@ export function DiscoverClient() {
     if (sort !== DEFAULT_RELEASE_SORT) {
       params.set("sort", sort);
     }
-    if (hideNoisySingles) {
-      params.set("hideNoisySingles", "1");
-    }
-
     const search = params.toString();
     return search ? `${pathname}?${search}` : pathname;
-  }, [filter, hideNoisySingles, pathname, query, sort]);
+  }, [filter, pathname, query, sort]);
 
   const buildDiscoverStateHref = useCallback((
     nextQuery: string,
     nextFilter: FilterType,
-    nextSort: ReleaseSort,
-    nextHideNoisySingles: boolean
+    nextSort: ReleaseSort
   ) => {
     const params = new URLSearchParams();
     if (nextQuery.trim().length >= 2) {
@@ -228,10 +203,6 @@ export function DiscoverClient() {
     if (nextSort !== DEFAULT_RELEASE_SORT) {
       params.set("sort", nextSort);
     }
-    if (nextHideNoisySingles) {
-      params.set("hideNoisySingles", "1");
-    }
-
     const search = params.toString();
     return search ? `${pathname}?${search}` : pathname;
   }, [pathname]);
@@ -242,12 +213,10 @@ export function DiscoverClient() {
     stateOverride?: {
       filter?: FilterType;
       sort?: ReleaseSort;
-      hideNoisySingles?: boolean;
     }
   ) => {
     const nextFilter = stateOverride?.filter ?? filter;
     const nextSort = stateOverride?.sort ?? sort;
-    const nextHideNoisySingles = stateOverride?.hideNoisySingles ?? hideNoisySingles;
 
     if (!term.trim() || term.trim().length < 2) {
       setResults(emptyResults);
@@ -262,11 +231,6 @@ export function DiscoverClient() {
         params.delete("sort");
       } else {
         params.set("sort", nextSort);
-      }
-      if (nextHideNoisySingles) {
-        params.set("hideNoisySingles", "1");
-      } else {
-        params.delete("hideNoisySingles");
       }
       window.history.replaceState(null, "", params.toString() ? `${pathname}?${params.toString()}` : pathname);
       return;
@@ -299,15 +263,15 @@ export function DiscoverClient() {
 
     const trimmedTerm = term.trim();
     const nextRecent = [
-      { query: trimmedTerm, filter: nextFilter, sort: nextSort, hideNoisySingles: nextHideNoisySingles },
+      { query: trimmedTerm, filter: nextFilter, sort: nextSort },
       ...recentSearches.filter((entry) => entry.query !== trimmedTerm)
     ].slice(0, 8);
     setRecentSearches(nextRecent);
     window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(nextRecent));
-    window.history.replaceState(null, "", buildDiscoverStateHref(term, nextFilter, nextSort, nextHideNoisySingles));
+    window.history.replaceState(null, "", buildDiscoverStateHref(term, nextFilter, nextSort));
 
     if (showLoader) setLoading(false);
-  }, [buildDiscoverStateHref, filter, hideNoisySingles, pathname, recentSearches, searchParams, sort, toast]);
+  }, [buildDiscoverStateHref, filter, pathname, recentSearches, searchParams, sort, toast]);
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -382,7 +346,7 @@ export function DiscoverClient() {
   const releasesByArtist = useMemo(() => {
     const map = new Map<string, Album[]>();
 
-    for (const album of [...sortReleases(results.albums, sort), ...filterNoisySingles(sortReleases(results.singles, sort), hideNoisySingles)]) {
+    for (const album of [...sortReleases(results.albums, sort), ...filterNoisySingles(sortReleases(results.singles, sort))]) {
       const key = album.foreignArtistId ?? album.artistName.toLowerCase();
       const current = map.get(key) ?? [];
       current.push(album);
@@ -390,12 +354,12 @@ export function DiscoverClient() {
     }
 
     return map;
-  }, [hideNoisySingles, results.albums, results.singles, sort]);
+  }, [results.albums, results.singles, sort]);
 
   const displayedAlbums = useMemo(() => sortReleases(results.albums, sort), [results.albums, sort]);
   const displayedSingles = useMemo(
-    () => filterNoisySingles(sortReleases(results.singles, sort), hideNoisySingles),
-    [hideNoisySingles, results.singles, sort]
+    () => filterNoisySingles(sortReleases(results.singles, sort)),
+    [results.singles, sort]
   );
 
   const counts = useMemo(
@@ -412,12 +376,12 @@ export function DiscoverClient() {
     visibleCount: visibleAlbumCount,
     sentinelRef: albumSentinelRef,
     hasMore: hasMoreAlbums
-  } = useProgressiveCount(displayedAlbums.length, [query, filter, sort, hideNoisySingles, displayedAlbums.length]);
+  } = useProgressiveCount(displayedAlbums.length, [query, filter, sort, displayedAlbums.length]);
   const {
     visibleCount: visibleSingleCount,
     sentinelRef: singleSentinelRef,
     hasMore: hasMoreSingles
-  } = useProgressiveCount(displayedSingles.length, [query, filter, sort, hideNoisySingles, displayedSingles.length]);
+  } = useProgressiveCount(displayedSingles.length, [query, filter, sort, displayedSingles.length]);
   const visibleAlbums = useMemo(
     () => displayedAlbums.slice(0, visibleAlbumCount),
     [displayedAlbums, visibleAlbumCount]
@@ -534,7 +498,7 @@ export function DiscoverClient() {
     if (suggestion.type === "artist") setFilter("artists");
     if (suggestion.type === "album") setFilter("albums");
     if (suggestion.type === "single") setFilter("singles");
-  }, [discoverStateHref, filter, query]);
+  }, [discoverStateHref, router]);
 
   return (
     <div className="page-enter space-y-8">
@@ -682,17 +646,15 @@ export function DiscoverClient() {
           <div className="flex flex-wrap gap-2">
             {recentSearches.map((entry) => (
               <button
-                key={`${entry.query}:${entry.filter}:${entry.sort}:${entry.hideNoisySingles ? "hide" : "show"}`}
+                key={`${entry.query}:${entry.filter}:${entry.sort}`}
                 type="button"
                 onClick={() => {
                   setQuery(entry.query);
                   setFilter(entry.filter);
                   setSort(entry.sort);
-                  setHideNoisySingles(entry.hideNoisySingles);
                   void fetchDiscovery(entry.query, true, {
                     filter: entry.filter,
-                    sort: entry.sort,
-                    hideNoisySingles: entry.hideNoisySingles
+                    sort: entry.sort
                   });
                 }}
                 className="rounded-xl border px-4 py-2 text-sm transition recent-tag"
@@ -722,20 +684,6 @@ export function DiscoverClient() {
                 {item.label}
               </button>
             ))}
-            {filter === "singles" && (
-              <button
-                type="button"
-                onClick={() => setHideNoisySingles((current) => !current)}
-                aria-pressed={hideNoisySingles}
-                className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
-                  hideNoisySingles
-                    ? "bg-accent/15 text-accent-active border border-accent/40"
-                    : "border border-[var(--edge)] bg-[var(--overlay-bg-subtle)] text-muted hover:border-[var(--edge-bright)] hover:text-text"
-                }`}
-              >
-                Hide noise
-              </button>
-            )}
           </div>
 
           <div className="flex items-center gap-3 text-xs text-muted">
@@ -1103,9 +1051,6 @@ export function DiscoverClient() {
         </div>
       ) : null}
 
-      {totalCount === 0 && query.trim().length === 0 && !loading ? (
-        <EmptyDiscoverState />
-      ) : null}
     </div>
   );
 }

@@ -1,11 +1,34 @@
 "use client";
 
 import type { Route } from "next";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 
 const TOUR_KEY = "melodarr:welcome-tour-seen";
+const TOUR_STORAGE_EVENT = "melodarr:welcome-tour-change";
+
+const subscribeToDismissedState = (onStoreChange: () => void) => {
+  const handleStorageChange = (event: Event) => {
+    if (event instanceof StorageEvent && event.key !== null && event.key !== TOUR_KEY) {
+      return;
+    }
+
+    onStoreChange();
+  };
+
+  window.addEventListener("storage", handleStorageChange);
+  window.addEventListener(TOUR_STORAGE_EVENT, handleStorageChange);
+
+  return () => {
+    window.removeEventListener("storage", handleStorageChange);
+    window.removeEventListener(TOUR_STORAGE_EVENT, handleStorageChange);
+  };
+};
+
+const getDismissedSnapshot = () => window.localStorage.getItem(TOUR_KEY) === "true";
+const getDismissedServerSnapshot = () => true;
+
 const TOUR_STEPS: Array<{
   id: string;
   title: string;
@@ -53,32 +76,26 @@ const TOUR_STEPS: Array<{
 ];
 
 export function WelcomeTour() {
-  // Always start with false to avoid hydration mismatch; sync with localStorage in useEffect
-  const [dismissed, setDismissed] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const dismissed = useSyncExternalStore(
+    subscribeToDismissedState,
+    getDismissedSnapshot,
+    getDismissedServerSnapshot
+  );
   const dismissButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Sync with localStorage after mount
-  useEffect(() => {
-    const wasDismissed = window.localStorage.getItem(TOUR_KEY) === "true";
-    setDismissed(wasDismissed);
-    setHydrated(true);
-  }, []);
 
   // Focus the dismiss button when modal opens for keyboard users
   useEffect(() => {
-    if (!dismissed && dismissButtonRef.current && hydrated) {
+    if (!dismissed && dismissButtonRef.current) {
       dismissButtonRef.current.focus();
     }
-  }, [dismissed, hydrated]);
+  }, [dismissed]);
 
   const dismiss = () => {
     window.localStorage.setItem(TOUR_KEY, "true");
-    setDismissed(true);
+    window.dispatchEvent(new Event(TOUR_STORAGE_EVENT));
   };
 
-  // Don't render until hydrated to avoid hydration mismatch
-  if (!hydrated || dismissed) {
+  if (dismissed) {
     return null;
   }
 

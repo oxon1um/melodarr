@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
 import { verifySignedImageParams } from "@/lib/images";
 
 const CACHE_CONTROL = "private, max-age=3600, stale-while-revalidate=86400";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireUser(req);
-
     const src = await verifySignedImageParams(req.nextUrl.searchParams);
     if (!src) {
       return NextResponse.json({ error: "Invalid image signature" }, { status: 400 });

@@ -33,4 +33,5 @@ describe("image signing", () => {
     await expect(verifySignedImageParams(params)).resolves.toBeNull();
     await expect(buildSignedImageUrl("file:///tmp/image.png")).resolves.toBeUndefined();
   });
+
 });

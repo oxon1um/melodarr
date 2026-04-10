@@ -118,6 +118,11 @@
   --overlay-bg-hover: rgba(255, 255, 255, 0.1);
   --overlay-bg-subtle: rgba(255, 255, 255, 0.02);
 
+  /* Empty-state variants */
+  --empty-state-warm-bg:
+    linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(251, 146, 60, 0.04) 100%),
+    var(--panel-2);
+
   /* Recent search tag */
   --tag-bg: rgba(255, 255, 255, 0.03);
   --tag-border: rgba(138, 156, 196, 0.12);
@@ -217,6 +222,11 @@
 
     /* Light mode header surface */
     --header-bg: rgba(250, 249, 247, 0.8);
+
+    /* Light mode empty-state variants */
+    --empty-state-warm-bg:
+      linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(251, 146, 60, 0.05) 100%),
+      var(--panel-2);
 
     /* Light mode pill background */
     --pill-bg: rgba(0, 0, 0, 0.06);
@@ -652,6 +662,10 @@ select {
   @apply rounded-2xl border p-8 text-center;
   border-color: rgba(138, 156, 196, 0.12);
   background: rgba(19, 37, 67, 0.25);
+}
+
+.empty-state-warm {
+  background: var(--empty-state-warm-bg);
 }
 
 /* Glow effects */

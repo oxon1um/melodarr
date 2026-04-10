@@ -7,7 +7,7 @@ import Link from "next/link";
 import { CoverImage } from "@/components/ui/cover-image";
 import { IconAlbum, IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
-import type { ImageAsset } from "@/lib/images";
+import { pickPreferredImageUrl, type ImageAsset } from "@/lib/image-selection";
 
 type AlbumDetails = {
   title: string;
@@ -39,24 +39,7 @@ type AlbumData = {
 };
 
 const chooseImage = (images?: ImageAsset[]) => {
-  if (!images || images.length === 0) return undefined;
-
-  return (
-    images.find((item) => item.coverType === "cover")?.optimizedUrl ??
-    images.find((item) => item.coverType === "poster")?.optimizedUrl ??
-    images.find((item) => item.coverType === "fanart")?.optimizedUrl ??
-    images.find((item) => item.coverType === "banner")?.optimizedUrl ??
-    images.find((item) => item.coverType === "cover")?.remoteUrl ??
-    images.find((item) => item.coverType === "poster")?.remoteUrl ??
-    images.find((item) => item.coverType === "fanart")?.remoteUrl ??
-    images.find((item) => item.coverType === "banner")?.remoteUrl ??
-    images.find((item) => item.coverType === "cover")?.url ??
-    images.find((item) => item.coverType === "poster")?.url ??
-    images.find((item) => item.coverType === "fanart")?.url ??
-    images.find((item) => item.coverType === "banner")?.url ??
-    images[0]?.remoteUrl ??
-    images[0]?.url
-  );
+  return pickPreferredImageUrl(images, ["cover", "poster", "fanart", "banner"]);
 };
 
 const formatDuration = (ms?: number) => {
@@ -152,7 +135,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
     };
   }, [albumId, artistNameParam, toast]);
 
-  const requestAlbum = useCallback(async () => {
+  const requestAlbum = async () => {
     if (!data?.album) return;
 
     setSubmitting(true);
@@ -190,7 +173,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
     }
 
     setSubmitting(false);
-  }, []);
+  };
 
   const goBack = useCallback(() => {
     if (from) {

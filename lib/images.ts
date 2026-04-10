@@ -1,12 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { getRuntimeSecret } from "@/lib/runtime/secret";
-
-export type ImageAsset = {
-  coverType?: string;
-  remoteUrl?: string;
-  url?: string;
-  optimizedUrl?: string;
-};
+import type { ImageAsset } from "@/lib/image-selection";
 
 const IMAGE_ROUTE_PATH = "/api/image";
 const IMAGE_URL_TTL_SEC = 24 * 60 * 60;

@@ -73,5 +73,5 @@ export const isNoisySingle = (release: ReleaseLike): boolean => {
   return noisySinglePattern.test(normalizedTitle);
 };
 
-export const filterNoisySingles = <T extends ReleaseLike>(releases: T[], hideNoisySingles: boolean): T[] =>
+export const filterNoisySingles = <T extends ReleaseLike>(releases: T[], hideNoisySingles = true): T[] =>
   hideNoisySingles ? releases.filter((release) => !isNoisySingle(release)) : releases;

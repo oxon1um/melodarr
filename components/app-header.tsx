@@ -1,7 +1,7 @@
 "use client";
 
 import type { Route } from "next";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/logout-button";
@@ -18,34 +18,10 @@ type Props = {
 export function AppHeader({ user }: Props) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
-  const [hidden, setHidden] = useState(false);
-  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-
-      // Show header when at top
-      if (currentScrollY < 80) {
-        setScrolled(false);
-        setHidden(false);
-        lastScrollY.current = 0;
-        return;
-      }
-
-      setScrolled(true);
-
-      // Hide nav row when scrolling down past threshold
-      if (currentScrollY > lastScrollY.current && currentScrollY > 160) {
-        setHidden(true);
-      }
-
-      // Show nav row when scrolling up
-      if (currentScrollY < lastScrollY.current - 8) {
-        setHidden(false);
-      }
-
-      lastScrollY.current = currentScrollY;
+      setScrolled(window.scrollY >= 80);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -67,21 +43,17 @@ export function AppHeader({ user }: Props) {
         scrolled ? "py-2" : "py-4"
       }`}
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 sm:px-6 md:gap-3">
-        {/* Row 1: Logo + Nav */}
-        <div
-          className={`flex flex-wrap items-center gap-3 transition-all duration-300 ${
-            hidden ? "opacity-0 translate-y-[-8px] pointer-events-none" : "opacity-100 translate-y-0"
-          }`}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 sm:px-6">
+        <Link
+          className="font-display text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-lg"
+          href="/discover"
         >
-          <Link
-            className="font-display text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-lg"
-            href="/discover"
-          >
-            Melodarr
-          </Link>
-          {user ? (
-            <nav className="flex flex-wrap items-center gap-1.5 text-sm" aria-label="Main navigation">
+          Melodarr
+        </Link>
+
+        {user ? (
+          <>
+            <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-sm" aria-label="Main navigation">
               {[
                 { href: "/discover", label: "Discover" },
                 { href: "/requests", label: "Requests" }
@@ -99,9 +71,8 @@ export function AppHeader({ user }: Props) {
                   {label}
                 </Link>
               ))}
-              {user.role === "ADMIN" ? (
-                <>
-                  {[
+              {user.role === "ADMIN"
+                ? [
                     { href: "/admin/requests", label: "Manage Requests" },
                     { href: "/admin/settings", label: "Settings" }
                   ].map(({ href, label }) => (
@@ -117,28 +88,18 @@ export function AppHeader({ user }: Props) {
                     >
                       {label}
                     </Link>
-                  ))}
-                </>
-              ) : null}
+                  ))
+                : null}
             </nav>
-          ) : null}
-        </div>
 
-        {/* Row 2: User info — hides with Row 1 */}
-        <div
-          className={`flex items-center gap-3 text-sm transition-all duration-300 ${
-            hidden ? "opacity-0 translate-y-[-8px] pointer-events-none" : "opacity-100 translate-y-0"
-          } ${user ? "text-muted" : ""}`}
-        >
-          {user ? (
-            <>
+            <div className="ml-auto flex items-center gap-3 text-sm text-muted">
               <span className="rounded-xl border border-[var(--edge)] bg-panel/50 px-3 py-1.5 text-muted">
                 {user.username}
               </span>
               <LogoutButton />
-            </>
-          ) : null}
-        </div>
+            </div>
+          </>
+        ) : null}
       </div>
     </header>
   );

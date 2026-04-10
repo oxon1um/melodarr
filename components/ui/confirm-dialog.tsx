@@ -36,7 +36,10 @@ export function ConfirmDialog({
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const onCancelRef = useRef(onCancel);
-  onCancelRef.current = onCancel;
+
+  useEffect(() => {
+    onCancelRef.current = onCancel;
+  }, [onCancel]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") {

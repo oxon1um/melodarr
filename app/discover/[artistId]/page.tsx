@@ -14,7 +14,7 @@ import {
   type ReleaseSort,
   sortReleases
 } from "@/lib/discover/release-browser";
-import type { ImageAsset } from "@/lib/images";
+import { pickPreferredImageUrl, type ImageAsset } from "@/lib/image-selection";
 import { useProgressiveCount } from "@/lib/use-progressive-count";
 
 type ArtistDetails = {
@@ -46,24 +46,7 @@ type ArtistData = {
 };
 
 const chooseImage = (images?: ImageAsset[]) => {
-  if (!images || images.length === 0) return undefined;
-
-  return (
-    images.find((item) => item.coverType === "poster")?.optimizedUrl ??
-    images.find((item) => item.coverType === "cover")?.optimizedUrl ??
-    images.find((item) => item.coverType === "fanart")?.optimizedUrl ??
-    images.find((item) => item.coverType === "banner")?.optimizedUrl ??
-    images.find((item) => item.coverType === "poster")?.remoteUrl ??
-    images.find((item) => item.coverType === "cover")?.remoteUrl ??
-    images.find((item) => item.coverType === "fanart")?.remoteUrl ??
-    images.find((item) => item.coverType === "banner")?.remoteUrl ??
-    images.find((item) => item.coverType === "poster")?.url ??
-    images.find((item) => item.coverType === "cover")?.url ??
-    images.find((item) => item.coverType === "fanart")?.url ??
-    images.find((item) => item.coverType === "banner")?.url ??
-    images[0]?.remoteUrl ??
-    images[0]?.url
-  );
+  return pickPreferredImageUrl(images, ["poster", "cover", "fanart", "banner"]);
 };
 
 const albumKey = (album: { foreignAlbumId?: string; title: string }) =>
@@ -81,7 +64,6 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
   const artistName = searchParams.get("artistName") || undefined;
   const from = searchParams.get("from") || "/discover";
   const sortParam = searchParams.get("sort");
-  const hideNoisySinglesParam = searchParams.get("hideNoisySingles") === "1";
 
   const toast = useToast();
   const [data, setData] = useState<ArtistData | null>(null);
@@ -92,12 +74,11 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
       ? (sortParam as ReleaseSort)
       : DEFAULT_RELEASE_SORT
   );
-  const [hideNoisySingles, setHideNoisySingles] = useState(hideNoisySinglesParam);
   const artist = data?.artist ?? null;
   const albums = data?.albums ?? [];
   const singles = data?.singles ?? [];
   const displayedAlbums = sortReleases(albums, sort);
-  const displayedSingles = filterNoisySingles(sortReleases(singles, sort), hideNoisySingles);
+  const displayedSingles = filterNoisySingles(sortReleases(singles, sort));
   const displayedReleases = [...displayedAlbums, ...displayedSingles];
   const trackedCount = displayedReleases.filter((album) => album.isTracked).length;
   const availableCount = displayedReleases.filter((album) => album.hasFiles).length;
@@ -105,12 +86,12 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
     visibleCount: visibleAlbumCount,
     sentinelRef: albumSentinelRef,
     hasMore: hasMoreAlbums
-  } = useProgressiveCount(displayedAlbums.length, [artistId, sort, hideNoisySingles, displayedAlbums.length]);
+  } = useProgressiveCount(displayedAlbums.length, [artistId, sort, displayedAlbums.length]);
   const {
     visibleCount: visibleSingleCount,
     sentinelRef: singleSentinelRef,
     hasMore: hasMoreSingles
-  } = useProgressiveCount(displayedSingles.length, [artistId, sort, hideNoisySingles, displayedSingles.length]);
+  } = useProgressiveCount(displayedSingles.length, [artistId, sort, displayedSingles.length]);
   const visibleAlbums = useMemo(
     () => displayedAlbums.slice(0, visibleAlbumCount),
     [displayedAlbums, visibleAlbumCount]
@@ -202,15 +183,10 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
     } else {
       params.set("sort", sort);
     }
-    if (hideNoisySingles) {
-      params.set("hideNoisySingles", "1");
-    } else {
-      params.delete("hideNoisySingles");
-    }
 
     const nextHref = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     window.history.replaceState(null, "", nextHref);
-  }, [artistName, from, hideNoisySingles, pathname, searchParams, sort]);
+  }, [artistName, from, pathname, searchParams, sort]);
 
   const requestAlbum = async (
     album: { title: string; artistName?: string; foreignArtistId?: string; foreignAlbumId?: string },
@@ -298,9 +274,6 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
   if (sort !== DEFAULT_RELEASE_SORT) {
     artistParams.set("sort", sort);
   }
-  if (hideNoisySingles) {
-    artistParams.set("hideNoisySingles", "1");
-  }
   const artistHref = (`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}?${artistParams.toString()}`) as Route;
 
   return (
@@ -360,18 +333,6 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
           </select>
         </label>
 
-        <button
-          type="button"
-          onClick={() => setHideNoisySingles((current) => !current)}
-          aria-pressed={hideNoisySingles}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-            hideNoisySingles
-              ? "bg-accent/15 text-accent-active border border-accent/40"
-              : "border border-[var(--edge)] bg-[var(--overlay-bg-subtle)] text-muted hover:border-[var(--edge-bright)] hover:bg-[var(--hover-bg)] hover:text-text"
-          }`}
-        >
-          Hide Noisy Singles
-        </button>
       </section>
 
       <section className="space-y-4">
