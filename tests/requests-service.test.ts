@@ -3,6 +3,7 @@ import { RequestStatus, RequestType } from "@prisma/client";
 
 const prismaRequest = {
   findFirst: vi.fn(),
+  findMany: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   findUnique: vi.fn()
@@ -18,6 +19,7 @@ const clientInstance = {
   getAlbumsByArtistId: vi.fn(),
   getAlbumsByArtistForeignId: vi.fn(),
   getAlbumById: vi.fn(),
+  isAlbumFullyAvailable: vi.fn(),
   setAlbumsMonitored: vi.fn(),
   triggerAlbumSearch: vi.fn(),
   addAlbum: vi.fn()
@@ -198,5 +200,86 @@ describe("request service", () => {
       lidarrArtistId: 41,
       lidarrAlbumId: 99
     });
+  });
+
+  it("marks submitted album requests as COMPLETED when Lidarr reports full availability", async () => {
+    prismaRequest.findMany.mockResolvedValue([
+      {
+        id: "request-3",
+        requestType: RequestType.ALBUM,
+        status: RequestStatus.SUBMITTED,
+        lidarrAlbumId: 99
+      }
+    ]);
+    prismaRequest.update.mockImplementation(async ({ where, data }: {
+      where: { id: string };
+      data: Record<string, unknown>;
+    }) => ({
+      id: where.id,
+      ...data
+    }));
+
+    getRuntimeConfig.mockResolvedValue({
+      lidarrUrl: "http://lidarr",
+      lidarrApiKey: "test-key"
+    });
+
+    clientInstance.getAlbumById.mockResolvedValue({
+      id: 99,
+      title: "1984",
+      statistics: {
+        trackFileCount: 10,
+        trackCount: 10
+      }
+    });
+    clientInstance.isAlbumFullyAvailable.mockReturnValue(true);
+
+    const { syncSubmittedAlbumRequests } = await import("../lib/requests/service");
+    const result = await syncSubmittedAlbumRequests();
+
+    expect(clientInstance.getAlbumById).toHaveBeenCalledWith(99);
+    expect(clientInstance.isAlbumFullyAvailable).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 99 })
+    );
+    expect(prismaRequest.update).toHaveBeenCalledWith({
+      where: { id: "request-3" },
+      data: {
+        status: RequestStatus.COMPLETED,
+        failureReason: null
+      }
+    });
+    expect(result).toEqual(["request-3"]);
+  });
+
+  it("leaves submitted album requests as SUBMITTED when Lidarr does not report full availability", async () => {
+    prismaRequest.findMany.mockResolvedValue([
+      {
+        id: "request-4",
+        requestType: RequestType.ALBUM,
+        status: RequestStatus.SUBMITTED,
+        lidarrAlbumId: 44
+      }
+    ]);
+
+    getRuntimeConfig.mockResolvedValue({
+      lidarrUrl: "http://lidarr",
+      lidarrApiKey: "test-key"
+    });
+
+    clientInstance.getAlbumById.mockResolvedValue({
+      id: 44,
+      title: "1984",
+      statistics: {
+        trackFileCount: 1,
+        trackCount: 10
+      }
+    });
+    clientInstance.isAlbumFullyAvailable.mockReturnValue(false);
+
+    const { syncSubmittedAlbumRequests } = await import("../lib/requests/service");
+    const result = await syncSubmittedAlbumRequests();
+
+    expect(prismaRequest.update).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
   });
 });

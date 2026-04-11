@@ -6,6 +6,12 @@ export type LidarrImage = {
   url?: string;
 };
 
+export type LidarrImportedAlbum = {
+  albumId: number;
+  importedAt: string;
+  album?: LidarrAlbum;
+};
+
 type LidarrAlbumStatistics = {
   trackFileCount?: number;
   trackCount?: number;
@@ -92,12 +98,22 @@ type LidarrAlbum = {
   foreignAlbumId?: string;
   artistId?: number;
   monitored?: boolean;
+   albumType?: string;
+   releaseDate?: string;
+   added?: string;
   images?: LidarrImage[];
   statistics?: LidarrAlbumStatistics;
   artist?: {
     artistName?: string;
     foreignArtistId?: string;
   };
+};
+
+type LidarrHistoryRecord = {
+  albumId?: number;
+  date?: string;
+  eventType?: string;
+  album?: LidarrAlbum;
 };
 
 type LidarrArtistMatch = LidarrArtist & {
@@ -287,6 +303,61 @@ const normalizeStatistics = (value: unknown): LidarrAlbumStatistics | undefined 
   return Object.values(statistics).some((entry) => typeof entry === "number")
     ? statistics
     : undefined;
+};
+
+const normalizeLibraryAlbum = (raw: unknown): LidarrAlbum | null => {
+  const item = asRecord(raw);
+  if (!item) return null;
+
+  const id = pickNumber(item, "id");
+  const title = pickString(item, "title", "albumTitle");
+  if (!id || !title) return null;
+
+  const artist = asRecord(item.artist);
+
+  return {
+    id,
+    title,
+    foreignAlbumId: pickString(item, "foreignAlbumId", "foreignReleaseId"),
+    artistId: pickNumber(item, "artistId"),
+    monitored: typeof item.monitored === "boolean" ? item.monitored : undefined,
+    albumType: pickString(item, "albumType", "type", "Type"),
+    releaseDate: pickString(item, "releaseDate", "ReleaseDate"),
+    added: pickString(item, "added", "dateAdded"),
+    images: normalizeImages(item.images ?? item.Images ?? artist?.images ?? artist?.Images),
+    statistics: normalizeStatistics(item.statistics),
+    artist: artist
+      ? {
+          artistName: pickString(artist, "artistName", "name"),
+          foreignArtistId: pickString(artist, "foreignArtistId")
+        }
+      : undefined
+  };
+};
+
+const normalizeHistoryRecord = (raw: unknown): LidarrHistoryRecord | null => {
+  const item = asRecord(raw);
+  if (!item) return null;
+
+  return {
+    albumId: pickNumber(item, "albumId"),
+    date: pickString(item, "date"),
+    eventType: pickString(item, "eventType"),
+    album: normalizeLibraryAlbum(item.album) ?? undefined
+  };
+};
+
+const normalizeImportedAlbum = (raw: unknown): LidarrImportedAlbum | null => {
+  const record = normalizeHistoryRecord(raw);
+  if (!record?.albumId || !record.date) {
+    return null;
+  }
+
+  return {
+    albumId: record.albumId,
+    importedAt: record.date,
+    album: record.album
+  };
 };
 
 const normalizeAlbum = (raw: unknown): LidarrAlbumSearchResult | null => {
@@ -2085,9 +2156,37 @@ export class LidarrClient {
     const result = await this.fromCache(
       "albums",
       LidarrClient.libraryCacheTtlMs,
-      async () => this.tryRequest<LidarrAlbum[]>("/api/v1/album")
+      async () => this.tryRequest<unknown[]>("/api/v1/album")
     );
-    return result ?? [];
+
+    return (result ?? [])
+      .map(normalizeLibraryAlbum)
+      .filter((album): album is LidarrAlbum => Boolean(album))
+      .map((album) => this.withTransformedImages(album));
+  }
+
+  async getRecentImportedAlbums(windowMs: number): Promise<LidarrImportedAlbum[]> {
+    const normalizedWindowMs = Math.max(windowMs, 0);
+    const cacheWindowMs = LidarrClient.libraryCacheTtlMs;
+    const now = Date.now();
+    const cacheBucketStart = now - (now % cacheWindowMs);
+    const since = new Date(cacheBucketStart - normalizedWindowMs).toISOString();
+    const scope = `history:imported:${since}`;
+    const result = await this.fromCache(
+      scope,
+      LidarrClient.libraryCacheTtlMs,
+      async () => this.tryRequest<unknown[]>(
+        `/api/v1/history/since?date=${encodeURIComponent(since)}&includeAlbum=true&eventType=downloadImported`
+      )
+    );
+
+    return (result ?? [])
+      .map(normalizeImportedAlbum)
+      .filter((event): event is LidarrImportedAlbum => Boolean(event))
+      .map((event) => ({
+        ...event,
+        album: event.album ? this.withTransformedImages(event.album) : undefined
+      }));
   }
 
   async isAvailable(): Promise<boolean> {

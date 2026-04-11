@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { withOptimizedImageUrlsForMany } from "@/lib/images";
 import type { ImageAsset } from "@/lib/image-selection";
 import { LidarrClient } from "@/lib/lidarr/client";
+import { syncSubmittedAlbumRequests } from "@/lib/requests/service";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
 const QUEUED_REQUEST_STATUSES: RequestStatus[] = [
@@ -38,6 +39,11 @@ type DiscoverLibrarySummary = Pick<
   DiscoverHomeData,
   "freshPickCount" | "readyToPlayCount" | "freshThisWeek" | "libraryStatus"
 >;
+
+type FreshPickEntry = {
+  album: LibraryAlbum;
+  importedAt: string;
+};
 
 type LibraryAlbum = {
   id: number;
@@ -98,7 +104,7 @@ const toReleaseGroup = (albumType?: string): "album" | "single" | undefined => {
   return undefined;
 };
 
-const toHomeRelease = (album: LibraryAlbum): DiscoverHomeRelease => ({
+const toHomeRelease = (album: LibraryAlbum, addedAt = album.added): DiscoverHomeRelease => ({
   id: album.id,
   title: album.title,
   artistName: album.artist?.artistName ?? "Unknown artist",
@@ -106,15 +112,64 @@ const toHomeRelease = (album: LibraryAlbum): DiscoverHomeRelease => ({
   foreignAlbumId: album.foreignAlbumId,
   releaseGroup: toReleaseGroup(album.albumType),
   releaseDate: album.releaseDate,
-  addedAt: album.added,
+  addedAt,
   images: album.images
 });
 
-const compareByAddedDesc = (left: LibraryAlbum, right: LibraryAlbum): number => {
-  const leftTimestamp = parseTimestamp(left.added) ?? 0;
-  const rightTimestamp = parseTimestamp(right.added) ?? 0;
+const compareByImportedDesc = (left: FreshPickEntry, right: FreshPickEntry): number => {
+  const leftTimestamp = parseTimestamp(left.importedAt) ?? 0;
+  const rightTimestamp = parseTimestamp(right.importedAt) ?? 0;
   return rightTimestamp - leftTimestamp;
 };
+
+const getFreshPickEntries = (
+  lidarr: LidarrClient,
+  availableAlbums: LibraryAlbum[],
+  recentImportedAlbums: Array<{ albumId: number; importedAt: string; album?: LibraryAlbum }>
+): FreshPickEntry[] => {
+  const availableAlbumsById = new Map(availableAlbums.map((album) => [album.id, album]));
+  const latestImportsByAlbumId = new Map<number, FreshPickEntry>();
+
+  for (const importedAlbum of recentImportedAlbums) {
+    if (!isFreshPick(importedAlbum.importedAt)) {
+      continue;
+    }
+
+    const availableAlbum = availableAlbumsById.get(importedAlbum.albumId)
+      ?? (
+        importedAlbum.album && lidarr.isAlbumFullyAvailable(importedAlbum.album)
+          ? importedAlbum.album
+          : undefined
+      );
+
+    if (!availableAlbum) {
+      continue;
+    }
+
+    const existingEntry = latestImportsByAlbumId.get(availableAlbum.id);
+    const existingTimestamp = parseTimestamp(existingEntry?.importedAt) ?? 0;
+    const importedTimestamp = parseTimestamp(importedAlbum.importedAt) ?? 0;
+
+    if (existingEntry && existingTimestamp >= importedTimestamp) {
+      continue;
+    }
+
+    latestImportsByAlbumId.set(availableAlbum.id, {
+      album: availableAlbum,
+      importedAt: importedAlbum.importedAt
+    });
+  }
+
+  return Array.from(latestImportsByAlbumId.values()).sort(compareByImportedDesc);
+};
+
+const getQueuedRequestCount = async (): Promise<number> => prisma.request.count({
+  where: {
+    status: {
+      in: QUEUED_REQUEST_STATUSES
+    }
+  }
+});
 
 const getUnavailableDiscoverHomeData = (queuedRequestCount: number): DiscoverHomeData => ({
   ...emptyDiscoverHomeData,
@@ -142,34 +197,30 @@ const getLibrarySummary = async (lidarr: LidarrClient): Promise<DiscoverLibraryS
   const availableAlbums = libraryAlbums.filter((album) =>
     lidarr.isAlbumFullyAvailable(album, fallbackFileCounts[album.id] ?? 0)
   );
-  const freshPicks = availableAlbums.filter((album) => isFreshPick(album.added));
+  const freshPicks = getFreshPickEntries(
+    lidarr,
+    availableAlbums,
+    await lidarr.getRecentImportedAlbums(FRESH_PICKS_WINDOW_MS)
+  );
 
-  const freshThisWeek = freshPicks
-    .sort(compareByAddedDesc)
-    .slice(0, FRESH_THIS_WEEK_LIMIT);
+  const freshThisWeek = freshPicks.slice(0, FRESH_THIS_WEEK_LIMIT);
 
   return {
     freshPickCount: freshPicks.length,
     readyToPlayCount: availableAlbums.length,
-    freshThisWeek: await withOptimizedImageUrlsForMany(freshThisWeek.map(toHomeRelease)),
+    freshThisWeek: await withOptimizedImageUrlsForMany(
+      freshThisWeek.map(({ album, importedAt }) => toHomeRelease(album, importedAt))
+    ),
     libraryStatus: "connected"
   };
 };
 
 export const getDiscoverHomeData = async (): Promise<DiscoverHomeData> => {
-  const queuedRequestCount = await prisma.request.count({
-    where: {
-      status: {
-        in: QUEUED_REQUEST_STATUSES
-      }
-    }
-  });
-
   const config = await getRuntimeConfig();
   if (!config.lidarrUrl || !config.lidarrApiKey) {
     return {
       ...emptyDiscoverHomeData,
-      queuedRequestCount
+      queuedRequestCount: await getQueuedRequestCount()
     };
   }
 
@@ -178,8 +229,11 @@ export const getDiscoverHomeData = async (): Promise<DiscoverHomeData> => {
     const isAvailable = await lidarr.isAvailable();
 
     if (!isAvailable) {
-      return getUnavailableDiscoverHomeData(queuedRequestCount);
+      return getUnavailableDiscoverHomeData(await getQueuedRequestCount());
     }
+
+    await syncSubmittedAlbumRequests();
+    const queuedRequestCount = await getQueuedRequestCount();
 
     const librarySummary = await getLibrarySummary(lidarr);
 
@@ -188,6 +242,6 @@ export const getDiscoverHomeData = async (): Promise<DiscoverHomeData> => {
       queuedRequestCount
     };
   } catch {
-    return getUnavailableDiscoverHomeData(queuedRequestCount);
+    return getUnavailableDiscoverHomeData(await getQueuedRequestCount());
   }
 };

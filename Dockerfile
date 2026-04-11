@@ -11,11 +11,13 @@ FROM deps AS builder
 COPY . .
 RUN npx prisma generate
 RUN npm run build
+RUN npm prune --omit=dev
 
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN apk upgrade --no-cache openssl musl zlib
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public

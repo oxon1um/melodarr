@@ -18,6 +18,10 @@ const statusConfig: Record<RequestStatus, { className: string; icon: React.React
     className: "status-submitted",
     icon: <IconCloudDown className="h-3 w-3" aria-hidden="true" />
   },
+  COMPLETED: {
+    className: "status-approved",
+    icon: <IconCircleCheck className="h-3 w-3" aria-hidden="true" />
+  },
   FAILED: {
     className: "status-failed",
     icon: <IconAlertTriangle className="h-3 w-3" aria-hidden="true" />

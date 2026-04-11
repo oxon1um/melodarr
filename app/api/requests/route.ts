@@ -4,7 +4,11 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { jsonError, jsonOk } from "@/lib/http";
-import { createAlbumRequest, createArtistRequest } from "@/lib/requests/service";
+import {
+  createAlbumRequest,
+  createArtistRequest,
+  syncSubmittedAlbumRequestsIfStale,
+} from "@/lib/requests/service";
 
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
@@ -21,6 +25,13 @@ const createRequestSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
+
+    try {
+      await syncSubmittedAlbumRequestsIfStale();
+    } catch {
+      // Keep request listings available even when sync cannot run.
+    }
+
     const statusFilterRaw = req.nextUrl.searchParams.get("status");
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
     const limitRaw = Number.parseInt(req.nextUrl.searchParams.get("limit") ?? "", 10);

@@ -25,6 +25,18 @@ const ACTIVE_STATUSES: RequestStatus[] = [
   RequestStatus.ALREADY_EXISTS
 ];
 
+type SubmittedAlbumRequest = {
+  id: string;
+  status: RequestStatus;
+  requestType: RequestType;
+  lidarrAlbumId?: number | null;
+};
+
+const REQUEST_SYNC_COOLDOWN_MS = 15_000;
+
+let lastSubmittedAlbumRequestSyncAt = 0;
+let submittedAlbumRequestSyncPromise: Promise<string[]> | null = null;
+
 const getLidarrClientOrThrow = async () => {
   const config = await getRuntimeConfig();
   if (!config.lidarrUrl || !config.lidarrApiKey) {
@@ -217,6 +229,90 @@ const resolveRequestedAlbumWithRetries = async (
   }
 
   return null;
+};
+
+const canSyncSubmittedAlbumRequest = (
+  request: SubmittedAlbumRequest
+): request is SubmittedAlbumRequest & { lidarrAlbumId: number } => (
+  request.requestType === RequestType.ALBUM
+  && request.status === RequestStatus.SUBMITTED
+  && typeof request.lidarrAlbumId === "number"
+  && request.lidarrAlbumId > 0
+);
+
+const isRequestAlbumCompleted = async (
+  client: LidarrClient,
+  request: SubmittedAlbumRequest & { lidarrAlbumId: number }
+) => {
+  const album = await client.getAlbumById(request.lidarrAlbumId);
+  if (!album) {
+    return false;
+  }
+
+  return client.isAlbumFullyAvailable(album);
+};
+
+export const syncSubmittedAlbumRequests = async () => {
+  const submittedRequests = await prisma.request.findMany({
+    where: {
+      requestType: RequestType.ALBUM,
+      status: RequestStatus.SUBMITTED
+    },
+    select: {
+      id: true,
+      status: true,
+      requestType: true,
+      lidarrAlbumId: true
+    }
+  });
+
+  const requestsToCheck = submittedRequests.filter(canSyncSubmittedAlbumRequest);
+  if (requestsToCheck.length === 0) {
+    return [];
+  }
+
+  const { client } = await getLidarrClientOrThrow();
+  const completedRequestIds: string[] = [];
+
+  for (const request of requestsToCheck) {
+    const isCompleted = await isRequestAlbumCompleted(client, request);
+    if (!isCompleted) {
+      continue;
+    }
+
+    await prisma.request.update({
+      where: { id: request.id },
+      data: {
+        status: RequestStatus.COMPLETED,
+        failureReason: null
+      }
+    });
+    completedRequestIds.push(request.id);
+  }
+
+  return completedRequestIds;
+};
+
+export const syncSubmittedAlbumRequestsIfStale = async () => {
+  const now = Date.now();
+  if (submittedAlbumRequestSyncPromise) {
+    return submittedAlbumRequestSyncPromise;
+  }
+
+  if (now - lastSubmittedAlbumRequestSyncAt < REQUEST_SYNC_COOLDOWN_MS) {
+    return [];
+  }
+
+  submittedAlbumRequestSyncPromise = syncSubmittedAlbumRequests()
+    .then((result) => {
+      lastSubmittedAlbumRequestSyncAt = Date.now();
+      return result;
+    })
+    .finally(() => {
+      submittedAlbumRequestSyncPromise = null;
+    });
+
+  return submittedAlbumRequestSyncPromise;
 };
 
 const submitArtistToLidarr = async (input: {

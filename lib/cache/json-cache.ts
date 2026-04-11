@@ -8,6 +8,7 @@ type CacheEntry = {
 const memoryStore = new Map<string, CacheEntry>();
 const inFlightStore = new Map<string, Promise<unknown>>();
 const fallbackGenerationStore = new Map<string, number>();
+let localCacheEpoch = 0;
 
 const getGenerationKey = (namespace: string) => `cachegen:${namespace}`;
 
@@ -110,6 +111,7 @@ export const clearJsonCache = (): void => {
   memoryStore.clear();
   inFlightStore.clear();
   fallbackGenerationStore.clear();
+  localCacheEpoch += 1;
 };
 
 export const invalidateJsonCacheNamespace = async (namespace: string): Promise<void> => {
@@ -136,8 +138,8 @@ export const fromJsonCache = async <T>(
   loader: () => Promise<T>
 ): Promise<T> => {
   const generation = await getGeneration(namespace);
-  const cacheKey = `${namespace}:g${generation}:${scope}`;
-  const inFlightKey = `${namespace}:pending:${scope}`;
+  const cacheKey = `${namespace}:e${localCacheEpoch}:g${generation}:${scope}`;
+  const inFlightKey = `${namespace}:e${localCacheEpoch}:pending:${scope}`;
 
   const cachedMemory = getCachedMemoryValue<T>(cacheKey);
   if (cachedMemory !== undefined) {

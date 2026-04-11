@@ -7,6 +7,7 @@ Dockerized music request app for [Lidarr](https://lidarr.audio/) with a [Jellyfi
 - First-run setup wizard with admin account creation
 - Browse and discover artists, albums, and tracks via Jellyfin
 - Request albums or full artist discographies — automatically submitted to Lidarr
+- Request status tracking from review to Lidarr submission through completed imports
 - Optional admin approval flow or auto-approve mode
 - Jellyfin SSO login alongside local accounts
 - Admin settings panel for Lidarr, Jellyfin, and request configuration
@@ -49,6 +50,14 @@ Open `http://localhost:30000` and complete the setup wizard.
 
 Additional settings (Jellyfin, Lidarr, auto-approve, etc.) can be configured via the admin panel or environment variables — see `.env.example` for all options.
 
+## Request Statuses
+
+- `PENDING` — waiting for admin review when approval is required
+- `APPROVED` — approved and ready to submit to Lidarr
+- `SUBMITTED` — sent to Lidarr and still waiting for the album to become fully available
+- `COMPLETED` — Lidarr reports the requested album is fully available in the library
+- `FAILED` / `REJECTED` / `ALREADY_EXISTS` — terminal states for unsuccessful, declined, or duplicate requests
+
 ## Ports
 
 - **30000** (host) → **3000** (container)
@@ -67,8 +76,24 @@ Additional settings (Jellyfin, Lidarr, auto-approve, etc.) can be configured via
 ```bash
 nvm use            # Node.js 20
 npm install
+npm run prisma:generate
 npm run dev        # starts Next.js dev server
 ```
+
+The app uses PostgreSQL in all environments. For local host-run development, start the local services first:
+
+```bash
+docker compose -f docker-compose.local.yml up -d db redis
+```
+
+Then use a `.env.local` with:
+
+```bash
+DATABASE_URL=postgresql://melodarr:melodarr@localhost:5432/melodarr?schema=public
+REDIS_URL=redis://localhost:6379
+```
+
+For request status sync and discover-home freshness, make sure your local app can reach the same Lidarr instance configured in Melodarr settings.
 
 Other useful commands:
 

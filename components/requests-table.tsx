@@ -16,7 +16,7 @@ type RequestItem = {
   foreignArtistId?: string | null;
   lidarrArtistId?: number | null;
   lidarrAlbumId?: number | null;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "SUBMITTED" | "FAILED" | "ALREADY_EXISTS";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "SUBMITTED" | "COMPLETED" | "FAILED" | "ALREADY_EXISTS";
   failureReason?: string | null;
   createdAt: string;
   requestedBy?: {
