@@ -707,19 +707,24 @@ export class LidarrClient {
     return (await response.json()) as T;
   }
 
-  private async tryRequest<T>(path: string): Promise<T | null> {
+  private async tryRequest<T>(path: string, init?: RequestInit): Promise<T | null> {
     try {
-      return await this.request<T>(path);
+      return await this.request<T>(path, init);
     } catch {
       return null;
     }
   }
 
+  private getTimeoutInit(timeoutMs = 2_500): RequestInit | undefined {
+    if (typeof AbortSignal === "undefined" || !("timeout" in AbortSignal)) {
+      return undefined;
+    }
+
+    return { signal: AbortSignal.timeout(timeoutMs) };
+  }
+
   private async requestJson<T>(url: string): Promise<T> {
-    const timeoutSignal = typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
-      ? AbortSignal.timeout(2_500)
-      : undefined;
-    const response = await fetch(url, timeoutSignal ? { signal: timeoutSignal } : undefined);
+    const response = await fetch(url, this.getTimeoutInit());
 
     if (!response.ok) {
       const text = await response.text();
@@ -2083,6 +2088,14 @@ export class LidarrClient {
       async () => this.tryRequest<LidarrAlbum[]>("/api/v1/album")
     );
     return result ?? [];
+  }
+
+  async isAvailable(): Promise<boolean> {
+    const result = await this.tryRequest<unknown[]>(
+      "/api/v1/system/status",
+      this.getTimeoutInit()
+    );
+    return result !== null;
   }
 
   async getArtistById(artistId: number): Promise<LidarrArtist | null> {

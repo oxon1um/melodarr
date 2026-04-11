@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { CoverImage } from "@/components/ui/cover-image";
 import { IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
+import type { DiscoverHomeData, DiscoverHomeRelease } from "@/lib/discover/home";
 import {
   filterNoisySingles,
   RELEASE_SORT_OPTIONS,
@@ -72,11 +73,10 @@ type AlbumRouteInput = {
   from?: string;
 };
 
-type SavedSearch = {
-  query: string;
-  filter: FilterType;
-  sort: ReleaseSort;
-};
+type ReleaseRequestTarget = Pick<
+  Album,
+  "title" | "artistName" | "foreignArtistId" | "foreignAlbumId" | "isTracked" | "hasFiles"
+>;
 
 const emptyResults: DiscoveryResults = {
   artists: [],
@@ -84,7 +84,6 @@ const emptyResults: DiscoveryResults = {
   singles: []
 };
 
-const RECENT_SEARCHES_KEY = "melodarr:discover-recent-searches";
 const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
 
 const chooseArtistImage = (images?: ImageAsset[]) =>
@@ -115,7 +114,202 @@ const albumActionLabel = (album: Pick<Album, "isTracked" | "hasFiles">, label = 
   return `Request ${label}`;
 };
 
-export function DiscoverClient() {
+const getReleaseRequestInput = (release: ReleaseRequestTarget) => ({
+  artistName: release.artistName,
+  albumTitle: release.title,
+  foreignArtistId: release.foreignArtistId,
+  foreignAlbumId: release.foreignAlbumId
+});
+
+const getQuickRequestTitle = (
+  release: Pick<Album, "isTracked" | "hasFiles">,
+  label: "album" | "single"
+): string => {
+  if (release.hasFiles) {
+    return "Already available";
+  }
+
+  if (release.isTracked) {
+    return "Already monitored";
+  }
+
+  return `Request ${label}`;
+};
+
+const getRequestButtonClassName = (release: Pick<Album, "hasFiles">): string =>
+  `mt-3 py-2 text-sm ${release.hasFiles ? "btn-ghost" : "btn-primary"}`;
+
+const formatHomeCount = (value: number): string => value.toLocaleString();
+
+const formatAddedLabel = (value?: string): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric"
+  }).format(new Date(timestamp));
+};
+
+type DiscoverHomeStatCardProps = {
+  label: string;
+  value: number;
+  description: string;
+};
+
+function DiscoverHomeStatCard({ label, value, description }: DiscoverHomeStatCardProps) {
+  return (
+    <Card className="space-y-4 p-6 sm:p-7">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">{label}</p>
+      <div className="space-y-2">
+        <p className="font-display text-3xl font-bold tracking-tight text-text sm:text-[2.1rem]">
+          {formatHomeCount(value)}
+        </p>
+        <p className="text-sm leading-relaxed text-muted">{description}</p>
+      </div>
+    </Card>
+  );
+}
+
+type DiscoverFreshReleaseCardProps = {
+  release: DiscoverHomeRelease;
+  discoverStateHref: string;
+};
+
+function DiscoverFreshReleaseCard({ release, discoverStateHref }: DiscoverFreshReleaseCardProps) {
+  const href = buildAlbumHref({
+    artistName: release.artistName,
+    foreignArtistId: release.foreignArtistId,
+    foreignAlbumId: release.foreignAlbumId,
+    from: discoverStateHref
+  });
+  const addedLabel = formatAddedLabel(release.addedAt);
+  const image = chooseAlbumImage(release.images);
+  const typeLabel = release.releaseGroup === "single" ? "Single" : "Album";
+
+  return (
+    <Card className="group h-full p-5 sm:p-6">
+      <div className="flex gap-4 sm:gap-5">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[var(--edge)] bg-panel-2 sm:h-28 sm:w-28">
+          {href ? (
+            <Link href={href} className="block h-full w-full">
+              <CoverImage
+                alt={release.title}
+                src={image}
+                sizes="(min-width: 640px) 112px, 96px"
+                className="relative h-full w-full"
+                imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+            </Link>
+          ) : (
+            <CoverImage
+              alt={release.title}
+              src={image}
+              sizes="(min-width: 640px) 112px, 96px"
+              className="relative h-full w-full"
+              imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 text-xs text-muted">
+            <span className="chip">{typeLabel}</span>
+            {addedLabel ? <span>Added {addedLabel}</span> : null}
+          </div>
+
+          {href ? (
+            <Link href={href} className="block truncate text-base font-medium tracking-tight hover:text-accent-hover">
+              {release.title}
+            </Link>
+          ) : (
+            <h3 className="truncate text-base font-medium tracking-tight">{release.title}</h3>
+          )}
+
+          <p className="truncate text-sm text-muted">{release.artistName}</p>
+          <p className="text-xs leading-relaxed text-muted">
+            Recently added to your library and ready to play.
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+type DiscoverHomeSectionProps = {
+  homeData: DiscoverHomeData;
+  discoverStateHref: string;
+};
+
+function DiscoverHomeSection({ homeData, discoverStateHref }: DiscoverHomeSectionProps) {
+  return (
+    <div className="space-y-10 sm:space-y-12">
+      <section className="grid gap-4 sm:gap-5 md:grid-cols-3">
+        <DiscoverHomeStatCard
+          label="Fresh picks"
+          value={homeData.freshPickCount}
+          description="Newly downloaded albums and singles added in the last 7 days."
+        />
+        <DiscoverHomeStatCard
+          label="Queued requests"
+          value={homeData.queuedRequestCount}
+          description="Requests still moving through approval or Lidarr submission."
+        />
+        <DiscoverHomeStatCard
+          label="Ready to play"
+          value={homeData.readyToPlayCount}
+          description="Albums and singles already available in your library."
+        />
+      </section>
+
+      <section className="space-y-5 sm:space-y-6">
+        <div className="space-y-2">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-[2rem]">
+            Fresh this week
+          </h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-[0.95rem]">
+            The latest downloaded albums and singles that just landed in your library.
+          </p>
+        </div>
+
+        {homeData.freshThisWeek.length > 0 ? (
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
+            {homeData.freshThisWeek.map((release) => (
+              <DiscoverFreshReleaseCard
+                key={release.id}
+                release={release}
+                discoverStateHref={discoverStateHref}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state empty-state-warm px-6 py-8 sm:px-8 sm:py-10">
+            <p className="text-base font-medium text-muted">No recent library additions yet.</p>
+            <p className="mt-1.5 text-sm text-muted">
+              {homeData.libraryStatus === "connected"
+                ? "Once new albums or singles finish downloading, they will show up here."
+                : homeData.libraryStatus === "unavailable"
+                  ? "Lidarr is currently unavailable, so recent additions and library totals cannot be loaded right now."
+                  : "Connect Lidarr to show recent additions and library totals here."}
+            </p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+type DiscoverClientProps = {
+  homeData: DiscoverHomeData;
+};
+
+export function DiscoverClient({ homeData }: DiscoverClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -140,35 +334,6 @@ export function DiscoverClient() {
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSuggestionsHovered, setIsSuggestionsHovered] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<SavedSearch[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    const saved = window.localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (!saved) {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(saved) as SavedSearch[];
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-
-      return parsed.filter((entry): entry is SavedSearch =>
-        Boolean(
-          entry
-          && typeof entry.query === "string"
-          && typeof entry.filter === "string"
-          && typeof entry.sort === "string"
-        )
-      );
-    } catch {
-      window.localStorage.removeItem(RECENT_SEARCHES_KEY);
-      return [];
-    }
-  });
 
   const requestSequence = useRef(0);
   const searchRegionRef = useRef<HTMLFormElement | null>(null);
@@ -261,17 +426,10 @@ export function DiscoverClient() {
       singles: payload.singles ?? []
     });
 
-    const trimmedTerm = term.trim();
-    const nextRecent = [
-      { query: trimmedTerm, filter: nextFilter, sort: nextSort },
-      ...recentSearches.filter((entry) => entry.query !== trimmedTerm)
-    ].slice(0, 8);
-    setRecentSearches(nextRecent);
-    window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(nextRecent));
     window.history.replaceState(null, "", buildDiscoverStateHref(term, nextFilter, nextSort));
 
     if (showLoader) setLoading(false);
-  }, [buildDiscoverStateHref, filter, pathname, recentSearches, searchParams, sort, toast]);
+  }, [buildDiscoverStateHref, filter, pathname, searchParams, sort, toast]);
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -397,6 +555,7 @@ export function DiscoverClient() {
     { id: "albums", label: `Albums (${counts.albums})` },
     { id: "singles", label: `Singles (${counts.singles})` }
   ];
+  const isSearchActive = query.trim().length >= 2;
 
   const suggestions = useMemo(() => {
     const artistSuggestions: Suggestion[] = results.artists.map((artist) => ({
@@ -501,16 +660,25 @@ export function DiscoverClient() {
   }, [discoverStateHref, router]);
 
   return (
-    <div className="page-enter space-y-8">
-      <section className="space-y-1">
-        <h1 className="font-display text-4xl font-bold tracking-wide">Discover Music</h1>
-        <p className="text-sm text-muted">Search artists, albums, and singles.</p>
+    <div className="page-enter space-y-8 sm:space-y-10">
+      <section className="space-y-4 sm:space-y-5">
+        {!isSearchActive ? <span className="chip">Home</span> : null}
+        <div className="space-y-2 sm:space-y-3">
+          <h1 className="max-w-3xl font-display text-4xl font-bold tracking-tight sm:text-[2.8rem]">
+            {isSearchActive ? "Discover Music" : "Find something new tonight"}
+          </h1>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+            {isSearchActive
+              ? "Search artists, albums, and singles."
+              : "Search artists, albums, and singles, then keep an eye on what is new in your library."}
+          </p>
+        </div>
       </section>
 
       <form
         ref={searchRegionRef}
         onSubmit={runSearch}
-        className="panel relative z-30 flex flex-col gap-3 p-4 sm:p-5 md:flex-row"
+        className="panel relative z-30 flex flex-col gap-3 p-4 sm:gap-4 sm:p-5 md:flex-row md:items-center md:p-6"
         onMouseLeave={() => {
           setIsSuggestionsHovered(false);
           if (!isSearchFocused) {
@@ -565,7 +733,7 @@ export function DiscoverClient() {
               }
             }}
             placeholder="Search for music..."
-            className="field w-full pl-4 pr-4"
+            className="field h-12 w-full pl-4 pr-4"
             aria-activedescendant={
               showSuggestions && suggestions.length > 0 && suggestions[activeSuggestionIndex]
                 ? `suggestion-${suggestions[activeSuggestionIndex].id}`
@@ -626,7 +794,7 @@ export function DiscoverClient() {
           ) : null}
         </div>
 
-        <button type="submit" disabled={loading} className="btn-primary min-w-[9rem] py-3">
+        <button type="submit" disabled={loading} className="btn-primary h-12 min-w-[9rem] px-5 py-3">
           {loading ? (
             <span className="flex items-center gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -638,74 +806,52 @@ export function DiscoverClient() {
         </button>
       </form>
 
-      {recentSearches.length > 0 ? (
+      {!isSearchActive ? (
+        <DiscoverHomeSection homeData={homeData} discoverStateHref={discoverStateHref} />
+      ) : null}
+
+      {isSearchActive ? (
         <section className="space-y-3">
-          <div className="flex items-center gap-3">
-            <span className="chip">Recently searched</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {recentSearches.map((entry) => (
-              <button
-                key={`${entry.query}:${entry.filter}:${entry.sort}`}
-                type="button"
-                onClick={() => {
-                  setQuery(entry.query);
-                  setFilter(entry.filter);
-                  setSort(entry.sort);
-                  void fetchDiscovery(entry.query, true, {
-                    filter: entry.filter,
-                    sort: entry.sort
-                  });
-                }}
-                className="rounded-xl border px-4 py-2 text-sm transition recent-tag"
-              >
-                {entry.query}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {filters.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setFilter(item.id)}
+                  aria-pressed={filter === item.id}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                    filter === item.id
+                      ? "bg-accent/15 text-accent-active border border-accent/40"
+                      : "border border-[var(--edge)] bg-[var(--overlay-bg-subtle)] text-muted hover:border-[var(--edge-bright)] hover:bg-[var(--hover-bg)] hover:text-text"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3 text-xs text-muted">
+              <span>{totalCount} result{totalCount !== 1 ? "s" : ""}</span>
+              <label htmlFor="sort-select" className="flex items-center gap-1.5 cursor-pointer">
+                <span className="sr-only">Sort by</span>
+                <select
+                  id="sort-select"
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as ReleaseSort)}
+                  className="field-select rounded-lg px-1.5 py-0.5 text-xs"
+                >
+                  {RELEASE_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value} style={{ background: "var(--panel)", color: "var(--text)" }}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
         </section>
       ) : null}
-
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {filters.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setFilter(item.id)}
-                aria-pressed={filter === item.id}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                  filter === item.id
-                    ? "bg-accent/15 text-accent-active border border-accent/40"
-                    : "border border-[var(--edge)] bg-[var(--overlay-bg-subtle)] text-muted hover:border-[var(--edge-bright)] hover:bg-[var(--hover-bg)] hover:text-text"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-muted">
-            <span>{totalCount} result{totalCount !== 1 ? "s" : ""}</span>
-            <label htmlFor="sort-select" className="flex items-center gap-1.5 cursor-pointer">
-              <span className="sr-only">Sort by</span>
-              <select
-                id="sort-select"
-                value={sort}
-                onChange={(event) => setSort(event.target.value as ReleaseSort)}
-                className="field-select rounded-lg px-1.5 py-0.5 text-xs"
-              >
-                {RELEASE_SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value} style={{ background: "var(--panel)", color: "var(--text)" }}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
-      </section>
 
       {(filter === "all" || filter === "artists") && results.artists.length > 0 ? (
         <section className="space-y-4">
@@ -782,6 +928,9 @@ export function DiscoverClient() {
                 artistName: album.artistName,
                 title: album.title
               });
+              const albumRequestKey = `album:${key}`;
+              const albumRequestInput = getReleaseRequestInput(album);
+              const isAlbumSubmitting = submitting === albumRequestKey;
               const image = chooseAlbumImage(album.images);
               const albumHref = buildAlbumHref({
                 artistName: album.artistName,
@@ -831,23 +980,13 @@ export function DiscoverClient() {
                       )}
                       <button
                         type="button"
-                        onClick={() =>
-                          void requestAlbum(
-                            {
-                              artistName: album.artistName,
-                              albumTitle: album.title,
-                              foreignArtistId: album.foreignArtistId,
-                              foreignAlbumId: album.foreignAlbumId
-                            },
-                            `album:${key}`
-                          )
-                        }
-                        disabled={submitting === `album:${key}` || album.hasFiles || album.isTracked}
+                        onClick={() => void requestAlbum(albumRequestInput, albumRequestKey)}
+                        disabled={isAlbumSubmitting || album.hasFiles || album.isTracked}
                         className="quick-icon"
                         aria-label={`Request ${album.title}`}
-                        title={album.hasFiles ? "Already available" : album.isTracked ? "Already monitored" : "Request album"}
+                        title={getQuickRequestTitle(album, "album")}
                       >
-                        {submitting === `album:${key}` ? (
+                        {isAlbumSubmitting ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                         ) : (
                           <IconDownload className="h-4 w-4" />
@@ -869,23 +1008,11 @@ export function DiscoverClient() {
                       </p>
                       <button
                         type="button"
-                        onClick={() =>
-                          void requestAlbum(
-                            {
-                              artistName: album.artistName,
-                              albumTitle: album.title,
-                              foreignArtistId: album.foreignArtistId,
-                              foreignAlbumId: album.foreignAlbumId
-                            },
-                            `album:${key}`
-                          )
-                        }
-                        disabled={submitting === `album:${key}` || album.isTracked}
-                        className={`mt-3 py-2 text-sm ${album.hasFiles ? "btn-ghost" : "btn-primary"}`}
+                        onClick={() => void requestAlbum(albumRequestInput, albumRequestKey)}
+                        disabled={isAlbumSubmitting || album.isTracked}
+                        className={getRequestButtonClassName(album)}
                       >
-                        {submitting === `album:${key}`
-                            ? "Requesting..."
-                            : albumActionLabel(album)}
+                        {isAlbumSubmitting ? "Requesting..." : albumActionLabel(album)}
                       </button>
                     </div>
                   </div>
@@ -912,6 +1039,9 @@ export function DiscoverClient() {
                 artistName: single.artistName,
                 title: single.title
               });
+              const singleRequestKey = `single:${key}`;
+              const singleRequestInput = getReleaseRequestInput(single);
+              const isSingleSubmitting = submitting === singleRequestKey;
               const image = chooseAlbumImage(single.images);
               const singleHref = buildAlbumHref({
                 artistName: single.artistName,
@@ -961,23 +1091,13 @@ export function DiscoverClient() {
                       )}
                       <button
                         type="button"
-                        onClick={() =>
-                          void requestAlbum(
-                            {
-                              artistName: single.artistName,
-                              albumTitle: single.title,
-                              foreignArtistId: single.foreignArtistId,
-                              foreignAlbumId: single.foreignAlbumId
-                            },
-                            `single:${key}`
-                          )
-                        }
-                        disabled={submitting === `single:${key}` || single.hasFiles || single.isTracked}
+                        onClick={() => void requestAlbum(singleRequestInput, singleRequestKey)}
+                        disabled={isSingleSubmitting || single.hasFiles || single.isTracked}
                         className="quick-icon"
                         aria-label={`Request ${single.title}`}
-                        title={single.hasFiles ? "Already available" : single.isTracked ? "Already monitored" : "Request single"}
+                        title={getQuickRequestTitle(single, "single")}
                       >
-                        {submitting === `single:${key}` ? (
+                        {isSingleSubmitting ? (
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                         ) : (
                           <IconDownload className="h-4 w-4" />
@@ -999,23 +1119,11 @@ export function DiscoverClient() {
                       </p>
                       <button
                         type="button"
-                        onClick={() =>
-                          void requestAlbum(
-                            {
-                              artistName: single.artistName,
-                              albumTitle: single.title,
-                              foreignArtistId: single.foreignArtistId,
-                              foreignAlbumId: single.foreignAlbumId
-                            },
-                            `single:${key}`
-                          )
-                        }
-                        disabled={submitting === `single:${key}` || single.isTracked}
-                        className={`mt-3 py-2 text-sm ${single.hasFiles ? "btn-ghost" : "btn-primary"}`}
+                        onClick={() => void requestAlbum(singleRequestInput, singleRequestKey)}
+                        disabled={isSingleSubmitting || single.isTracked}
+                        className={getRequestButtonClassName(single)}
                       >
-                        {submitting === `single:${key}`
-                          ? "Requesting..."
-                          : albumActionLabel(single, "Single")}
+                        {isSingleSubmitting ? "Requesting..." : albumActionLabel(single, "Single")}
                       </button>
                     </div>
                   </div>
@@ -1032,7 +1140,7 @@ export function DiscoverClient() {
         </section>
       ) : null}
 
-      {totalCount === 0 && query.trim().length > 0 && !loading ? (
+      {totalCount === 0 && isSearchActive && !loading ? (
         <div className="empty-state">
           <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-[var(--edge)] bg-panel-2/30">
             <svg className="h-10 w-10 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">

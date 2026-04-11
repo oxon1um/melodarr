@@ -16,7 +16,7 @@ const isFallbackLookupUrl = (url: string) =>
   || url.startsWith("https://api.lidarr.audio/api/v0.4/album/");
 
 describe("LidarrClient", () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: ReturnType<typeof vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response> | undefined>>;
 
   beforeEach(() => {
     fetchMock = vi.fn();
