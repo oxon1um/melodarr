@@ -281,7 +281,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
               type="button"
               onClick={() => void requestAlbum()}
               disabled={submitting}
-              className="btn-primary mt-2 py-2.5"
+              className="btn-request mt-2"
             >
               {submitting ? (
                 <>

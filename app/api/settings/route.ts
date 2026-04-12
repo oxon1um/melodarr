@@ -105,29 +105,44 @@ export async function PUT(req: NextRequest) {
       updateInput.lidarrApiKey = payload.lidarrApiKey;
     }
 
-    const updated = await updateConfig(updateInput);
+    const isConnectionTest = Boolean(payload.testJellyfin || payload.testLidarr);
+    const currentConfig = isConnectionTest ? await getRuntimeConfig() : null;
+    const resolvedConfig = isConnectionTest
+      ? {
+          ...currentConfig,
+          ...updateInput,
+          jellyfinApiKey:
+            updateInput.jellyfinApiKey === undefined
+              ? currentConfig?.jellyfinApiKey ?? null
+              : updateInput.jellyfinApiKey,
+          lidarrApiKey:
+            updateInput.lidarrApiKey === undefined
+              ? currentConfig?.lidarrApiKey ?? null
+              : updateInput.lidarrApiKey
+        }
+      : await updateConfig(updateInput);
 
     if (payload.testJellyfin) {
-      if (!updated.jellyfinUrl) {
+      if (!resolvedConfig.jellyfinUrl) {
         return jsonError("Set Jellyfin server URL before testing connection", 400);
       }
-      if (!updated.jellyfinApiKey) {
+      if (!resolvedConfig.jellyfinApiKey) {
         return jsonError("Set Jellyfin API key before testing connection", 400);
       }
 
-      const jellyfin = new JellyfinClient(updated.jellyfinUrl, updated.jellyfinApiKey);
+      const jellyfin = new JellyfinClient(resolvedConfig.jellyfinUrl, resolvedConfig.jellyfinApiKey);
       await jellyfin.healthCheck();
     }
 
     if (payload.testLidarr) {
-      if (!updated.lidarrUrl) {
+      if (!resolvedConfig.lidarrUrl) {
         return jsonError("Set Lidarr server URL before testing connection", 400);
       }
-      if (!updated.lidarrApiKey) {
+      if (!resolvedConfig.lidarrApiKey) {
         return jsonError("Set Lidarr API key before testing connection", 400);
       }
 
-      const lidarr = new LidarrClient(updated.lidarrUrl, updated.lidarrApiKey);
+      const lidarr = new LidarrClient(resolvedConfig.lidarrUrl, resolvedConfig.lidarrApiKey);
       await lidarr.healthCheck();
     }
 

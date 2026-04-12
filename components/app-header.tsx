@@ -43,7 +43,7 @@ export function AppHeader({ user }: Props) {
         scrolled ? "py-2" : "py-4"
       }`}
     >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 sm:px-6">
+      <div className="mx-auto flex w-full max-w-[min(1600px,calc(100vw-1.5rem))] flex-wrap items-center gap-3 px-4 sm:max-w-[min(1720px,calc(100vw-3rem))] sm:px-6">
         <Link
           className="font-display text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-lg"
           href="/discover"
@@ -93,7 +93,7 @@ export function AppHeader({ user }: Props) {
             </nav>
 
             <div className="ml-auto flex items-center gap-3 text-sm text-muted">
-              <span className="rounded-xl border border-[var(--edge)] bg-panel/50 px-3 py-1.5 text-muted">
+              <span className="inline-flex min-h-8 items-center rounded-lg border border-[var(--edge)] bg-panel/50 px-2.5 py-1 text-sm text-muted">
                 {user.username}
               </span>
               <LogoutButton />

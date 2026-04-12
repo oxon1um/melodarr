@@ -284,7 +284,7 @@ export function RequestsTable({ admin = false }: Props) {
                           type="button"
                           disabled={acting === item.id}
                           onClick={() => setDeleteId(item.id)}
-                          className="icon-btn-danger"
+                          className="icon-btn icon-btn-pill icon-btn-danger"
                           title="Delete request"
                           aria-label="Delete request"
                         >

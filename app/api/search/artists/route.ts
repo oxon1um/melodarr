@@ -13,6 +13,7 @@ type AlbumWithStatus = {
   foreignAlbumId?: string;
   foreignArtistId?: string;
   releaseGroup?: "album" | "single";
+  releaseDate?: string;
   overview?: string;
   images?: Array<{ coverType?: string; remoteUrl?: string; url?: string }>;
   isTracked?: boolean;

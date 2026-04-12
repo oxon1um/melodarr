@@ -52,6 +52,7 @@ export function AdminSettingsForm() {
   const [canManagePassword, setCanManagePassword] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testingService, setTestingService] = useState<"jellyfin" | "lidarr" | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -186,14 +187,18 @@ export function AdminSettingsForm() {
   };
 
   const testConnection = async (service: "jellyfin" | "lidarr") => {
-    setSaving(true);
+    setTestingService(service);
 
-    const ok =
-      service === "jellyfin"
-        ? await sendUpdate({ testJellyfin: true })
-        : await sendUpdate({ testLidarr: true });
+    let ok = false;
 
-    setSaving(false);
+    try {
+      ok =
+        service === "jellyfin"
+          ? await sendUpdate({ testJellyfin: true })
+          : await sendUpdate({ testLidarr: true });
+    } finally {
+      setTestingService(null);
+    }
 
     if (ok) {
       toast.success(
@@ -258,12 +263,12 @@ export function AdminSettingsForm() {
             </div>
             <button
               type="button"
-              disabled={saving}
+              disabled={saving || testingService !== null}
               onClick={() => void testConnection("jellyfin")}
               className="btn-ghost w-fit rounded-lg text-xs"
             >
               <IconLink className="h-4 w-4" />
-              Test Connection
+              {testingService === "jellyfin" ? "Testing..." : "Test Connection"}
             </button>
           </div>
 
@@ -307,12 +312,12 @@ export function AdminSettingsForm() {
             </div>
             <button
               type="button"
-              disabled={saving}
+              disabled={saving || testingService !== null}
               onClick={() => void testConnection("lidarr")}
               className="btn-ghost w-fit rounded-lg text-xs"
             >
               <IconLink className="h-4 w-4" />
-              Test Connection
+              {testingService === "lidarr" ? "Testing..." : "Test Connection"}
             </button>
           </div>
 
@@ -406,7 +411,7 @@ export function AdminSettingsForm() {
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
               state.requestAutoApprove
                 ? "border-accent/60 bg-accent/20 text-accent"
-                : "border-[var(--edge)] bg-[var(--bg-soft)] text-[var(--muted)]"
+                : "border-[var(--edge)] bg-[var(--bg-soft)] text-transparent"
             }`}
             aria-hidden
           >
@@ -432,7 +437,7 @@ export function AdminSettingsForm() {
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
               state.debugMode
                 ? "border-accent/60 bg-accent/20 text-accent"
-                : "border-[var(--edge)] bg-[var(--bg-soft)] text-[var(--muted)]"
+                : "border-[var(--edge)] bg-[var(--bg-soft)] text-transparent"
             }`}
             aria-hidden
           >

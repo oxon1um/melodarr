@@ -51,7 +51,12 @@ export default async function RootLayout({
             <AppHeader user={user} />
 
             {/* Main content */}
-            <main id="main-content" className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+            <main
+              id="main-content"
+              className="relative mx-auto w-full max-w-[min(1600px,calc(100vw-1.5rem))] px-4 py-8 sm:max-w-[min(1720px,calc(100vw-3rem))] sm:px-6"
+            >
+              {children}
+            </main>
           </div>
         </ToastProvider>
       </body>

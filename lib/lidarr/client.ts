@@ -35,6 +35,7 @@ export type LidarrAlbumSearchResult = {
   foreignArtistId?: string;
   type?: string;
   releaseGroup?: "album" | "single";
+  releaseDate?: string;
   secondaryTypes?: string[];
   releaseStatuses?: string[];
   overview?: string;
@@ -166,6 +167,7 @@ type LidarrPublicAlbumProfile = {
   artistName?: string;
   foreignArtistId?: string;
   type?: string;
+  releaseDate?: string;
   secondaryTypes?: string[];
   releaseStatuses?: string[];
   images?: LidarrImage[];
@@ -628,6 +630,7 @@ const mergeAlbumSearchResults = (
   foreignArtistId: firstNonEmptyText(primary.foreignArtistId, secondary.foreignArtistId),
   type: firstNonEmptyText(primary.type, secondary.type),
   releaseGroup: primary.releaseGroup ?? secondary.releaseGroup,
+  releaseDate: firstNonEmptyText(primary.releaseDate, secondary.releaseDate),
   secondaryTypes: firstNonEmptyArray(primary.secondaryTypes, secondary.secondaryTypes),
   releaseStatuses: firstNonEmptyArray(primary.releaseStatuses, secondary.releaseStatuses),
   overview: firstNonEmptyText(primary.overview, secondary.overview),
@@ -662,6 +665,7 @@ const artistAlbumToSearchResult = (album: LidarrArtistAlbum): LidarrAlbumSearchR
   foreignArtistId: album.foreignArtistId ?? album.artist?.foreignArtistId,
   type: album.type,
   releaseGroup: album.releaseGroup,
+  releaseDate: album.releaseDate,
   secondaryTypes: album.secondaryTypes,
   releaseStatuses: album.releaseStatuses,
   overview: undefined,
@@ -1277,6 +1281,7 @@ export class LidarrClient {
               artistName: firstNonEmptyText(hydratedAlbum.artistName, publicAlbum.artistName) ?? hydratedAlbum.artistName,
               foreignArtistId: firstNonEmptyText(hydratedAlbum.foreignArtistId, publicAlbum.foreignArtistId),
               type: firstNonEmptyText(hydratedAlbum.type, publicAlbum.type),
+              releaseDate: firstNonEmptyText(hydratedAlbum.releaseDate, publicAlbum.releaseDate),
               secondaryTypes: firstNonEmptyArray(hydratedAlbum.secondaryTypes, publicAlbum.secondaryTypes),
               releaseStatuses: firstNonEmptyArray(hydratedAlbum.releaseStatuses, publicAlbum.releaseStatuses),
               images: firstImageSet(hydratedAlbum.images, publicAlbum.images)
@@ -1295,6 +1300,7 @@ export class LidarrClient {
               foreignArtistId: detailedAlbum.foreignArtistId,
               type: detailedAlbum.type,
               releaseGroup: detailedAlbum.releaseGroup,
+              releaseDate: detailedAlbum.releaseDate,
               secondaryTypes: detailedAlbum.secondaryTypes,
               releaseStatuses: detailedAlbum.releaseStatuses,
               images: detailedAlbum.images
@@ -1347,6 +1353,7 @@ export class LidarrClient {
       artistName,
       foreignArtistId: resolvedForeignArtistId,
       type: pickString(item, "Type", "type"),
+      releaseDate: pickString(item, "ReleaseDate", "releaseDate"),
       secondaryTypes: pickStringArray(item, "SecondaryTypes", "secondaryTypes"),
       releaseStatuses: pickStringArray(item, "ReleaseStatuses", "releaseStatuses"),
       images: normalizeImages(item.Images ?? item.images),

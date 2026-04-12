@@ -13,7 +13,7 @@ const QUEUED_REQUEST_STATUSES: RequestStatus[] = [
 ];
 
 const FRESH_PICKS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-const FRESH_THIS_WEEK_LIMIT = 4;
+const FRESH_THIS_WEEK_LIMIT = 10;
 
 export type DiscoverHomeRelease = {
   id: number;
