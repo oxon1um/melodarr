@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth/session";
 import { jsonError, jsonOk } from "@/lib/http";
 import { withOptimizedImageUrls } from "@/lib/images";
@@ -22,22 +22,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ albu
     const lidarr = new LidarrClient(config.lidarrUrl, config.lidarrApiKey, config.debugMode);
     const artistName = req.nextUrl.searchParams.get("artistName") || undefined;
 
-    // Debug: log what we're looking up
-    if (config.debugMode) console.log("[album-detail] Looking up albumId:", albumId, "artistName:", artistName);
-
-    // Get album details from lookup
     const album = await lidarr.getAlbumByForeignId(albumId, artistName);
-    if (config.debugMode) console.log("[album-detail] Album result:", album);
 
     if (!album) {
       return jsonError("Album not found", 404);
     }
 
-    // Get tracks for the album
     const tracks = await lidarr.getAlbumTracks(albumId, artistName);
-    if (config.debugMode) console.log("[album-detail] Tracks result:", JSON.stringify(tracks, null, 2));
 
-    // Check if album is already tracked and whether it has files
     const existingAlbum = await lidarr.getExistingAlbumByForeignId(albumId);
     const fileCounts = existingAlbum && lidarr.albumNeedsFileCountFallback(existingAlbum)
       ? await lidarr.getAlbumFileCounts([existingAlbum.id])

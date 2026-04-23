@@ -106,12 +106,9 @@ export function WelcomeTour() {
       aria-modal="true"
       aria-labelledby="welcome-tour-title"
     >
-      {/* Backdrop */}
       <div className="absolute inset-0" onClick={dismiss} aria-hidden="true" />
 
-      {/* Modal */}
       <div className="panel relative w-full max-w-lg space-y-6 p-6 motion-safe:animate-fade-in-up">
-        {/* Header */}
         <div className="space-y-1.5">
           <h2 id="welcome-tour-title" className="font-display text-2xl font-semibold tracking-tight text-accent">
             Welcome to Melodarr
@@ -121,7 +118,6 @@ export function WelcomeTour() {
           </p>
         </div>
 
-        {/* Steps */}
         <div className="space-y-3">
           {TOUR_STEPS.map((step, index) => (
             <Link
@@ -151,7 +147,6 @@ export function WelcomeTour() {
           ))}
         </div>
 
-        {/* Dismiss */}
         <div className="flex justify-end">
           <button
             type="button"

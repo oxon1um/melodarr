@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth/session";
 import { jsonError, jsonOk } from "@/lib/http";
 import { withOptimizedImageUrls, withOptimizedImageUrlsForMany } from "@/lib/images";
@@ -23,30 +23,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ arti
 
     const lidarr = new LidarrClient(config.lidarrUrl, config.lidarrApiKey, config.debugMode);
 
-    // Extract artistName from query params (used for searching when not in library)
     const url = new URL(req.url);
     const artistName = url.searchParams.get("artistName") || undefined;
 
-    // Add log for incoming artistId
-    if (config.debugMode) console.log("[artist-detail] Received artistId:", artistId, "artistName:", artistName);
-
-    // Get artist details from lookup
     const artist = await lidarr.getArtistByForeignId(artistId, artistName);
     if (!artist) {
       return jsonError("Artist not found", 404);
     }
-    if (config.debugMode) console.log("[artist-detail] Artist result:", artist);
 
-    // Get albums (from lookup or from existing library)
     const releases = await lidarr.getGroupedReleasesByArtistForeignId(
       artistId,
       artistName,
       artist,
       config.lidarrMetadataProfileId
     );
-    if (config.debugMode) console.log("[artist-detail] Releases result:", JSON.stringify(releases, null, 2));
 
-    // Get existing albums using internal artist ID (not foreignArtistId)
     const artistInternalId = artist.id;
     const allAlbumsInLibrary = await lidarr.getAllAlbums();
     const trackedAlbums = allAlbumsInLibrary.filter((album) => {
@@ -60,8 +51,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ arti
 
       return normalizeText(album.artist?.artistName) === normalizeText(artist.artistName);
     });
-    if (config.debugMode) console.log("[artist-detail] Tracked albums:", JSON.stringify(trackedAlbums, null, 2));
-
     const fallbackTrackedAlbums = trackedAlbums.filter((album) =>
       lidarr.albumNeedsFileCountFallback(album)
     );

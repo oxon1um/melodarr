@@ -218,7 +218,6 @@ export function RequestsTable({ admin = false }: Props) {
                 className="group relative overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2/40 p-4 transition-all hover:border-[var(--edge-bright)] motion-safe:animate-fade-in-up"
                 style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
               >
-                {/* Subtle shine */}
                 <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent" />
                 </div>

@@ -228,9 +228,7 @@ export function AdminSettingsForm() {
       </div>
 
       <form className="grid gap-8 lg:grid-cols-2" onSubmit={save}>
-        {/* Left column — integrations */}
         <div className="space-y-6">
-          {/* Application Section */}
           <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
             <h2 className="section-heading flex items-center gap-2">
               <svg className="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -252,278 +250,272 @@ export function AdminSettingsForm() {
             </label>
           </section>
 
-          {/* Jellyfin Section */}
           <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-jellyfin-icon" aria-label="Jellyfin">
-                <Image src="/brands/jellyfin.svg" alt="" aria-hidden width={22} height={22} />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-jellyfin-icon" aria-label="Jellyfin">
+                  <Image src="/brands/jellyfin.svg" alt="" aria-hidden width={22} height={22} />
+                </div>
+                <h2 className="section-heading leading-none">Jellyfin</h2>
               </div>
-              <h2 className="section-heading leading-none">Jellyfin</h2>
+              <button
+                type="button"
+                disabled={saving || testingService !== null}
+                onClick={() => void testConnection("jellyfin")}
+                className="btn-ghost w-fit rounded-lg text-xs"
+              >
+                <IconLink className="h-4 w-4" />
+                {testingService === "jellyfin" ? "Testing..." : "Test Connection"}
+              </button>
             </div>
-            <button
-              type="button"
-              disabled={saving || testingService !== null}
-              onClick={() => void testConnection("jellyfin")}
-              className="btn-ghost w-fit rounded-lg text-xs"
-            >
-              <IconLink className="h-4 w-4" />
-              {testingService === "jellyfin" ? "Testing..." : "Test Connection"}
-            </button>
-          </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm" htmlFor="jellyfin-url">
-              <span className="mb-2 block text-muted">Server URL</span>
-              <input
-                id="jellyfin-url"
-                type="url"
-                value={state.jellyfinUrl ?? ""}
-                onChange={(event) =>
-                  setState((prev) => ({ ...prev, jellyfinUrl: event.target.value }))
-                }
-                className="field"
-                placeholder="http://jellyfin:8096"
-              />
-            </label>
-            <label className="block text-sm" htmlFor="jellyfin-api-key">
-              <span className="mb-2 block text-muted">API Key</span>
-              <input
-                id="jellyfin-api-key"
-                value={state.jellyfinApiKey ?? ""}
-                onChange={(event) =>
-                  setState((prev) => ({ ...prev, jellyfinApiKey: event.target.value }))
-                }
-                className="field"
-                placeholder="Paste API key"
-              />
-            </label>
-          </div>
-        </section>
-
-        {/* Lidarr Section */}
-        <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-lidarr-icon" aria-label="Lidarr">
-                <Image src="/brands/lidarr.svg" alt="" aria-hidden width={22} height={22} className="h-5 w-5" />
-              </div>
-              <h2 className="section-heading leading-none">Lidarr</h2>
-            </div>
-            <button
-              type="button"
-              disabled={saving || testingService !== null}
-              onClick={() => void testConnection("lidarr")}
-              className="btn-ghost w-fit rounded-lg text-xs"
-            >
-              <IconLink className="h-4 w-4" />
-              {testingService === "lidarr" ? "Testing..." : "Test Connection"}
-            </button>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm" htmlFor="lidarr-url">
-              <span className="mb-2 block text-muted">Server URL</span>
-              <input
-                id="lidarr-url"
-                type="url"
-                value={state.lidarrUrl ?? ""}
-                onChange={(event) => setState((prev) => ({ ...prev, lidarrUrl: event.target.value }))}
-                className="field"
-                placeholder="http://lidarr:8686"
-              />
-            </label>
-            <label className="block text-sm" htmlFor="lidarr-api-key">
-              <span className="mb-2 block text-muted">API Key</span>
-              <input
-                id="lidarr-api-key"
-                value={state.lidarrApiKey ?? ""}
-                onChange={(event) =>
-                  setState((prev) => ({ ...prev, lidarrApiKey: event.target.value }))
-                }
-                className="field"
-                placeholder="Paste API key"
-              />
-            </label>
-
-            <label className="block text-sm" htmlFor="lidarr-root-folder">
-              <span className="mb-2 block text-muted">Root Folder</span>
-              <input
-                id="lidarr-root-folder"
-                value={state.lidarrRootFolder ?? ""}
-                onChange={(event) =>
-                  setState((prev) => ({ ...prev, lidarrRootFolder: event.target.value }))
-                }
-                className="field"
-                placeholder="/music"
-              />
-            </label>
-            <label className="block text-sm" htmlFor="lidarr-quality-profile">
-              <span className="mb-2 block text-muted">Quality Profile ID</span>
-              <input
-                id="lidarr-quality-profile"
-                type="number"
-                value={state.lidarrQualityProfileId ?? ""}
-                onChange={(event) =>
-                  setState((prev) => ({
-                    ...prev,
-                    lidarrQualityProfileId: event.target.value ? Number(event.target.value) : null
-                  }))
-                }
-                className="field"
-                placeholder="1"
-              />
-            </label>
-
-            <label className="block text-sm md:col-span-2" htmlFor="lidarr-metadata-profile">
-              <span className="mb-2 block text-muted">Metadata Profile ID (optional)</span>
-              <input
-                id="lidarr-metadata-profile"
-                type="number"
-                value={state.lidarrMetadataProfileId ?? ""}
-                onChange={(event) =>
-                  setState((prev) => ({
-                    ...prev,
-                    lidarrMetadataProfileId: event.target.value ? Number(event.target.value) : null
-                  }))
-                }
-                className="field"
-                placeholder="Optional"
-              />
-            </label>
-          </div>
-        </section>
-        </div>
-
-        {/* Right column — behavior & security */}
-        <div className="space-y-6">
-        {/* Auto Approve Toggle */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.requestAutoApprove}
-          onClick={() =>
-            setState((prev) => ({ ...prev, requestAutoApprove: !prev.requestAutoApprove }))
-          }
-          className="flex w-full items-center gap-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-[var(--edge-bright)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
-        >
-          <span
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
-              state.requestAutoApprove
-                ? "border-accent/60 bg-accent/20 text-accent"
-                : "border-[var(--edge)] bg-[var(--bg-soft)] text-transparent"
-            }`}
-            aria-hidden
-          >
-            <IconCheck className="h-4 w-4" />
-          </span>
-          <span className="leading-none">
-            <span className={`font-medium transition-colors ${state.requestAutoApprove ? "text-accent-active" : "text-text"}`}>Automatically approve requests</span>
-            <span className="ml-2 text-xs text-muted">(Skip moderation queue)</span>
-          </span>
-        </button>
-
-        {/* Debug Mode Toggle */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.debugMode}
-          onClick={() =>
-            setState((prev) => ({ ...prev, debugMode: !prev.debugMode }))
-          }
-          className="flex w-full items-center gap-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-[var(--edge-bright)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
-        >
-          <span
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
-              state.debugMode
-                ? "border-accent/60 bg-accent/20 text-accent"
-                : "border-[var(--edge)] bg-[var(--bg-soft)] text-transparent"
-            }`}
-            aria-hidden
-          >
-            <IconCheck className="h-4 w-4" />
-          </span>
-          <span className="leading-none">
-            <span className={`font-medium transition-colors ${state.debugMode ? "text-accent-active" : "text-text"}`}>Debug mode</span>
-            <span className="ml-2 text-xs text-muted">(Enable verbose logging)</span>
-          </span>
-        </button>
-
-        {/* Password Section */}
-        {canManagePassword ? (
-          <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
-            <div>
-              <h2 className="section-heading flex items-center gap-2">
-                <svg className="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-                Change Password
-              </h2>
-            </div>
-            <div className="space-y-4">
-              <label className="block text-sm" htmlFor="password-current">
-                <span className="mb-2 block text-muted">Current Password</span>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm" htmlFor="jellyfin-url">
+                <span className="mb-2 block text-muted">Server URL</span>
                 <input
-                  id="password-current"
-                  type="password"
-                  autoComplete="current-password"
-                  maxLength={128}
-                  value={passwordState.currentPassword}
+                  id="jellyfin-url"
+                  type="url"
+                  value={state.jellyfinUrl ?? ""}
                   onChange={(event) =>
-                    setPasswordState((prev) => ({ ...prev, currentPassword: event.target.value }))
+                    setState((prev) => ({ ...prev, jellyfinUrl: event.target.value }))
                   }
                   className="field"
+                  placeholder="http://jellyfin:8096"
                 />
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm" htmlFor="password-new">
-                  <span className="mb-2 block text-muted">New Password</span>
-                  <input
-                    id="password-new"
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={8}
-                    maxLength={128}
-                    value={passwordState.newPassword}
-                    onChange={(event) =>
-                      setPasswordState((prev) => ({ ...prev, newPassword: event.target.value }))
-                    }
-                    className="field"
-                  />
-                </label>
-                <label className="block text-sm" htmlFor="password-confirm">
-                  <span className="mb-2 block text-muted">Confirm New Password</span>
-                  <input
-                    id="password-confirm"
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={8}
-                    maxLength={128}
-                    value={passwordState.confirmPassword}
-                    onChange={(event) =>
-                      setPasswordState((prev) => ({ ...prev, confirmPassword: event.target.value }))
-                    }
-                    className="field"
-                  />
-                </label>
-              </div>
+              <label className="block text-sm" htmlFor="jellyfin-api-key">
+                <span className="mb-2 block text-muted">API Key</span>
+                <input
+                  id="jellyfin-api-key"
+                  value={state.jellyfinApiKey ?? ""}
+                  onChange={(event) =>
+                    setState((prev) => ({ ...prev, jellyfinApiKey: event.target.value }))
+                  }
+                  className="field"
+                  placeholder="Paste API key"
+                />
+              </label>
             </div>
           </section>
-        ) : null}
 
-        <button type="submit" disabled={saving} className="btn-primary w-full py-3">
-          {saving ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Saving...
+          <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl brand-lidarr-icon" aria-label="Lidarr">
+                  <Image src="/brands/lidarr.svg" alt="" aria-hidden width={22} height={22} className="h-5 w-5" />
+                </div>
+                <h2 className="section-heading leading-none">Lidarr</h2>
+              </div>
+              <button
+                type="button"
+                disabled={saving || testingService !== null}
+                onClick={() => void testConnection("lidarr")}
+                className="btn-ghost w-fit rounded-lg text-xs"
+              >
+                <IconLink className="h-4 w-4" />
+                {testingService === "lidarr" ? "Testing..." : "Test Connection"}
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm" htmlFor="lidarr-url">
+                <span className="mb-2 block text-muted">Server URL</span>
+                <input
+                  id="lidarr-url"
+                  type="url"
+                  value={state.lidarrUrl ?? ""}
+                  onChange={(event) => setState((prev) => ({ ...prev, lidarrUrl: event.target.value }))}
+                  className="field"
+                  placeholder="http://lidarr:8686"
+                />
+              </label>
+              <label className="block text-sm" htmlFor="lidarr-api-key">
+                <span className="mb-2 block text-muted">API Key</span>
+                <input
+                  id="lidarr-api-key"
+                  value={state.lidarrApiKey ?? ""}
+                  onChange={(event) =>
+                    setState((prev) => ({ ...prev, lidarrApiKey: event.target.value }))
+                  }
+                  className="field"
+                  placeholder="Paste API key"
+                />
+              </label>
+
+              <label className="block text-sm" htmlFor="lidarr-root-folder">
+                <span className="mb-2 block text-muted">Root Folder</span>
+                <input
+                  id="lidarr-root-folder"
+                  value={state.lidarrRootFolder ?? ""}
+                  onChange={(event) =>
+                    setState((prev) => ({ ...prev, lidarrRootFolder: event.target.value }))
+                  }
+                  className="field"
+                  placeholder="/music"
+                />
+              </label>
+              <label className="block text-sm" htmlFor="lidarr-quality-profile">
+                <span className="mb-2 block text-muted">Quality Profile ID</span>
+                <input
+                  id="lidarr-quality-profile"
+                  type="number"
+                  value={state.lidarrQualityProfileId ?? ""}
+                  onChange={(event) =>
+                    setState((prev) => ({
+                      ...prev,
+                      lidarrQualityProfileId: event.target.value ? Number(event.target.value) : null
+                    }))
+                  }
+                  className="field"
+                  placeholder="1"
+                />
+              </label>
+
+              <label className="block text-sm md:col-span-2" htmlFor="lidarr-metadata-profile">
+                <span className="mb-2 block text-muted">Metadata Profile ID (optional)</span>
+                <input
+                  id="lidarr-metadata-profile"
+                  type="number"
+                  value={state.lidarrMetadataProfileId ?? ""}
+                  onChange={(event) =>
+                    setState((prev) => ({
+                      ...prev,
+                      lidarrMetadataProfileId: event.target.value ? Number(event.target.value) : null
+                    }))
+                  }
+                  className="field"
+                  placeholder="Optional"
+                />
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-6">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.requestAutoApprove}
+            onClick={() =>
+              setState((prev) => ({ ...prev, requestAutoApprove: !prev.requestAutoApprove }))
+            }
+            className="flex w-full items-center gap-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-[var(--edge-bright)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
+          >
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
+                state.requestAutoApprove
+                  ? "border-accent/60 bg-accent/20 text-accent"
+                  : "border-[var(--edge)] bg-[var(--bg-soft)] text-transparent"
+              }`}
+              aria-hidden
+            >
+              <IconCheck className="h-4 w-4" />
             </span>
-          ) : (
-            <>
-              <IconSave className="h-4 w-4" />
-              Save Changes
-            </>
-          )}
-        </button>
+            <span className="leading-none">
+              <span className={`font-medium transition-colors ${state.requestAutoApprove ? "text-accent-active" : "text-text"}`}>Automatically approve requests</span>
+              <span className="ml-2 text-xs text-muted">(Skip moderation queue)</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.debugMode}
+            onClick={() =>
+              setState((prev) => ({ ...prev, debugMode: !prev.debugMode }))
+            }
+            className="flex w-full items-center gap-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5 text-left text-sm text-muted transition hover:border-[var(--edge-bright)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
+          >
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
+                state.debugMode
+                  ? "border-accent/60 bg-accent/20 text-accent"
+                  : "border-[var(--edge)] bg-[var(--bg-soft)] text-transparent"
+              }`}
+              aria-hidden
+            >
+              <IconCheck className="h-4 w-4" />
+            </span>
+            <span className="leading-none">
+              <span className={`font-medium transition-colors ${state.debugMode ? "text-accent-active" : "text-text"}`}>Debug mode</span>
+              <span className="ml-2 text-xs text-muted">(Enable verbose logging)</span>
+            </span>
+          </button>
+
+          {canManagePassword ? (
+            <section className="space-y-4 rounded-2xl border border-[var(--edge)] bg-panel-2/30 p-5">
+              <div>
+                <h2 className="section-heading flex items-center gap-2">
+                  <svg className="h-5 w-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  Change Password
+                </h2>
+              </div>
+              <div className="space-y-4">
+                <label className="block text-sm" htmlFor="password-current">
+                  <span className="mb-2 block text-muted">Current Password</span>
+                  <input
+                    id="password-current"
+                    type="password"
+                    autoComplete="current-password"
+                    maxLength={128}
+                    value={passwordState.currentPassword}
+                    onChange={(event) =>
+                      setPasswordState((prev) => ({ ...prev, currentPassword: event.target.value }))
+                    }
+                    className="field"
+                  />
+                </label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm" htmlFor="password-new">
+                    <span className="mb-2 block text-muted">New Password</span>
+                    <input
+                      id="password-new"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      maxLength={128}
+                      value={passwordState.newPassword}
+                      onChange={(event) =>
+                        setPasswordState((prev) => ({ ...prev, newPassword: event.target.value }))
+                      }
+                      className="field"
+                    />
+                  </label>
+                  <label className="block text-sm" htmlFor="password-confirm">
+                    <span className="mb-2 block text-muted">Confirm New Password</span>
+                    <input
+                      id="password-confirm"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      maxLength={128}
+                      value={passwordState.confirmPassword}
+                      onChange={(event) =>
+                        setPasswordState((prev) => ({ ...prev, confirmPassword: event.target.value }))
+                      }
+                      className="field"
+                    />
+                  </label>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <button type="submit" disabled={saving} className="btn-primary w-full py-3">
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Saving...
+              </span>
+            ) : (
+              <>
+                <IconSave className="h-4 w-4" />
+                Save Changes
+              </>
+            )}
+          </button>
         </div>
       </form>
     </Card>

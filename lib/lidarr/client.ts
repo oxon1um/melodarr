@@ -1606,7 +1606,6 @@ export class LidarrClient {
 
     const encoded = encodeURIComponent(searchTerm);
     const searchResults = await this.tryRequest<LidarrArtist[]>(`/api/v1/artist/lookup?term=${encoded}`);
-    if (this.debug) console.log("[lidarr] getLookupArtistMatch - search results for:", searchTerm, "count:", searchResults?.length ?? 0);
 
     if (!searchResults || searchResults.length === 0) {
       return null;
@@ -1746,9 +1745,6 @@ export class LidarrClient {
   async getExistingArtistByForeignId(foreignArtistId: string): Promise<LidarrArtist | null> {
     const all = await this.getAllArtists();
     const match = all.find((artist) => artist.foreignArtistId === foreignArtistId);
-    if (this.debug && match) {
-      console.log("[lidarr] getExistingArtistByForeignId - found:", match.artistName);
-    }
     return match ?? null;
   }
 
@@ -1759,7 +1755,6 @@ export class LidarrClient {
 
   async getArtistByForeignId(foreignArtistId: string, artistName?: string): Promise<LidarrArtist | null> {
     const existingArtist = await this.getExistingArtistByForeignId(foreignArtistId);
-    if (this.debug) console.log("[lidarr] getArtistByForeignId - existing artist:", existingArtist ? { id: existingArtist.id, name: existingArtist.artistName, hasOverview: !!existingArtist.overview, imagesCount: existingArtist.images?.length } : null);
 
     const [mbidLookupRaw, lookupByExistingName, lookupByRequestedName] = await Promise.all([
       this.tryRequest<LidarrArtist>(`/api/v1/artist/mbid/${foreignArtistId}`),
@@ -1797,7 +1792,6 @@ export class LidarrClient {
       images: this.transformImages(firstImageSet(publicArtistProfile?.images, localArtist?.images))
     };
 
-    if (this.debug) console.log("[lidarr] getArtistByForeignId - merged artist:", { name: mergedArtist.artistName, hasOverview: !!mergedArtist.overview, imagesCount: mergedArtist.images?.length });
     return mergedArtist;
   }
 
@@ -1811,7 +1805,6 @@ export class LidarrClient {
     const artistInternalId = artist?.id;
     const rules = await this.getReleaseFilterRules(metadataProfileId);
 
-    if (this.debug) console.log("[lidarr] getAlbumsByArtistForeignId - artistName:", artistName, "artistInternalId:", artistInternalId);
 
     const [allAlbumsRaw, searchAlbumsRaw] = await Promise.all([
       this.tryRequest<unknown[]>("/api/v1/album"),
@@ -1859,7 +1852,6 @@ export class LidarrClient {
       }, rules)
     );
 
-    if (this.debug) console.log("[lidarr] getAlbumsByArtistForeignId - merged results:", merged.length);
 
     return merged.map((album) => this.withTransformedImages(album));
   }
@@ -1892,7 +1884,6 @@ export class LidarrClient {
 
     // First check if album exists in library
     const existingAlbum = await this.getExistingAlbumByForeignId(foreignAlbumId);
-    if (this.debug) console.log("[lidarr] getAlbumByForeignId - existing album:", existingAlbum ? { id: existingAlbum.id, title: existingAlbum.title } : null);
 
     // Try search endpoint using album title for fresh metadata
     const searchTerms = [
@@ -1915,9 +1906,6 @@ export class LidarrClient {
           ? [searchPayload]
           : [];
 
-      if (this.debug) {
-        console.log("[lidarr] getAlbumByForeignId - search results:", searchResults.length, "albums for", searchTerm);
-      }
 
       const match = searchResults
         .map(normalizeArtistAlbum)
@@ -1931,16 +1919,12 @@ export class LidarrClient {
           existingAlbum?.artist?.foreignArtistId
         )
       );
-      if (this.debug) {
-        console.log("[lidarr] getAlbumByForeignId - matched album:", match ? { title: match.title, imagesCount: match.images?.length } : null);
-      }
       if (match) {
         return this.withTransformedImages(exactLookup ? mergeArtistAlbums(match, exactLookup) : match);
       }
     }
 
     // Fallback: return existing album
-    if (this.debug) console.log("[lidarr] getAlbumByForeignId - using existing album fallback:", existingAlbum ? { id: existingAlbum.id, title: existingAlbum.title } : null);
     return existingAlbum
       ? {
           ...existingAlbum,
@@ -1953,7 +1937,6 @@ export class LidarrClient {
 
   async getAlbumTracks(foreignAlbumId: string, artistNameHint?: string): Promise<LidarrSongSearchResult[]> {
     const existingAlbum = await this.getExistingAlbumByForeignId(foreignAlbumId);
-    if (this.debug) console.log("[lidarr] getAlbumTracks - existing album:", existingAlbum ? { id: existingAlbum.id, title: existingAlbum.title } : null);
 
     let artistName: string | undefined;
     let albumTitle: string | undefined;
@@ -1987,7 +1970,6 @@ export class LidarrClient {
         artistName = albumInfo.artistName ?? albumInfo.artist?.artistName;
         albumTitle = albumInfo.title;
         albumId = albumInfo.id;
-        if (this.debug) console.log("[lidarr] getAlbumTracks - album info:", { artistName, albumTitle, albumId });
       }
     }
 
@@ -2005,9 +1987,7 @@ export class LidarrClient {
 
     // Try /api/v1/tracks endpoint with albumId
     if (albumId) {
-      if (this.debug) console.log("[lidarr] getAlbumTracks - trying tracks endpoint with albumId:", albumId);
       const tracksResponse = await this.tryRequest<unknown[]>(`/api/v1/track?albumId=${albumId}`);
-      if (this.debug) console.log("[lidarr] getAlbumTracks - tracks endpoint response:", tracksResponse?.length ?? 0);
 
       if (tracksResponse && tracksResponse.length > 0) {
         const tracks = tracksResponse
@@ -2029,7 +2009,6 @@ export class LidarrClient {
           .map((track) => this.withTransformedImages(track));
 
         if (tracks.length > 0) {
-          if (this.debug) console.log("[lidarr] getAlbumTracks - found tracks from tracks endpoint:", tracks.length);
           return tracks;
         }
       }
@@ -2055,7 +2034,6 @@ export class LidarrClient {
 
       // Try song/lookup endpoint
       const songs = await this.tryRequest<LidarrSongSearchResult[]>(`/api/v1/song/lookup?term=${encoded}`);
-      if (this.debug) console.log(`[lidarr] getAlbumTracks - song lookup with "${term}":`, songs?.length ?? 0);
 
       if (songs && songs.length > 0) {
         const matchingTracks = songs.filter((song) =>
@@ -2063,7 +2041,6 @@ export class LidarrClient {
         );
 
         if (matchingTracks.length > 0) {
-          if (this.debug) console.log("[lidarr] getAlbumTracks - filtered tracks:", matchingTracks.length);
           return matchingTracks;
         }
       }
@@ -2075,7 +2052,6 @@ export class LidarrClient {
         : albumLookupPayload
           ? [albumLookupPayload]
           : [];
-      if (this.debug) console.log(`[lidarr] getAlbumTracks - album lookup with "${term}":`, { albumCount: albumCandidates.length });
 
       for (const candidate of albumCandidates) {
         const item = asRecord(candidate);
@@ -2234,10 +2210,8 @@ export class LidarrClient {
   async getExistingArtistAlbums(foreignArtistId: string): Promise<LidarrArtistAlbum[]> {
     // Check all albums in library regardless of whether artist was added
     const allAlbums = await this.request<LidarrArtistAlbum[]>("/api/v1/album");
-    if (this.debug) console.log("[lidarr] getExistingArtistAlbums - all albums in library:", allAlbums?.length ?? 0, "checking for foreignArtistId:", foreignArtistId);
 
     const filtered = allAlbums.filter((album) => album.foreignArtistId === foreignArtistId);
-    if (this.debug) console.log("[lidarr] getExistingArtistAlbums - matched albums:", filtered.length);
 
     return filtered;
   }

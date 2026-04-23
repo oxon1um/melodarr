@@ -52,7 +52,6 @@ export function LoginForm({ isHttps }: LoginFormProps) {
   if (!isHttps) {
     return (
       <div className="panel page-enter mx-auto w-full max-w-md space-y-8 p-6 sm:p-8">
-        {/* Branding */}
         <div className="text-center space-y-3">
           <div className="flex justify-center">
             <div className="relative">
@@ -74,47 +73,47 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             <p className="text-sm text-muted">Sign in to your account.</p>
           </div>
 
-        <div className="space-y-4">
-          <label className="block text-sm" htmlFor="local-username">
-            <span className="mb-2 block text-muted">Username</span>
-            <input
-              id="local-username"
-              required
-              autoComplete="username"
-              maxLength={100}
-              value={localUsername}
-              onChange={(event) => setLocalUsername(event.target.value)}
-              className="field"
-              placeholder="Enter username"
-            />
-          </label>
+          <div className="space-y-4">
+            <label className="block text-sm" htmlFor="local-username">
+              <span className="mb-2 block text-muted">Username</span>
+              <input
+                id="local-username"
+                required
+                autoComplete="username"
+                maxLength={100}
+                value={localUsername}
+                onChange={(event) => setLocalUsername(event.target.value)}
+                className="field"
+                placeholder="Enter username"
+              />
+            </label>
 
-          <label className="block text-sm" htmlFor="local-password">
-            <span className="mb-2 block text-muted">Password</span>
-            <input
-              id="local-password"
-              required
-              autoComplete="current-password"
-              type="password"
-              maxLength={128}
-              value={localPassword}
-              onChange={(event) => setLocalPassword(event.target.value)}
-              className="field"
-              placeholder="Enter password"
-            />
-          </label>
-        </div>
+            <label className="block text-sm" htmlFor="local-password">
+              <span className="mb-2 block text-muted">Password</span>
+              <input
+                id="local-password"
+                required
+                autoComplete="current-password"
+                type="password"
+                maxLength={128}
+                value={localPassword}
+                onChange={(event) => setLocalPassword(event.target.value)}
+                className="field"
+                placeholder="Enter password"
+              />
+            </label>
+          </div>
 
-        <button type="submit" disabled={loadingProvider !== null} className="btn-primary w-full py-3">
-          {loadingProvider === "local" ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Signing in...
-            </span>
-          ) : (
-            "Sign In"
-          )}
-        </button>
+          <button type="submit" disabled={loadingProvider !== null} className="btn-primary w-full py-3">
+            {loadingProvider === "local" ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Signing in...
+              </span>
+            ) : (
+              "Sign In"
+            )}
+          </button>
         </form>
       </div>
     );
@@ -122,7 +121,6 @@ export function LoginForm({ isHttps }: LoginFormProps) {
 
   return (
     <div className="panel page-enter mx-auto w-full max-w-5xl space-y-8 p-6 sm:p-8">
-      {/* Branding */}
       <div className="text-center space-y-3">
         <div className="flex justify-center">
           <div className="relative">

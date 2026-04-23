@@ -57,7 +57,6 @@ export function SetupWizardForm() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      {/* Hero */}
       <div className="text-center space-y-3">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10">
           <svg className="h-8 w-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -72,9 +71,7 @@ export function SetupWizardForm() {
         </p>
       </div>
 
-      {/* Form card */}
       <form className="panel space-y-8 p-6 sm:p-8" onSubmit={onSubmit}>
-        {/* Account section */}
         <section className="space-y-5">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent text-sm font-semibold">
@@ -135,7 +132,6 @@ export function SetupWizardForm() {
           </div>
         </section>
 
-        {/* Next steps hint */}
         <div className="rounded-xl border border-accent/10 bg-accent/5 p-4 space-y-2">
           <p className="text-sm font-medium text-accent/90">What happens next</p>
           <ul className="text-sm text-muted space-y-1.5">
@@ -176,7 +172,6 @@ export function SetupWizardForm() {
         </button>
       </form>
 
-      {/* Integrations note */}
       <p className="text-center text-sm text-muted">
         You can connect Jellyfin and Lidarr from Settings after setup.
       </p>

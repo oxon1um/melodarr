@@ -5,6 +5,8 @@ import { LoginForm } from "@/components/login-form";
 import { getCurrentUser } from "@/lib/auth/server";
 import { isHttpsRequest } from "@/lib/http/protocol";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   const initialized = await isAppInitialized();
   if (!initialized) {
