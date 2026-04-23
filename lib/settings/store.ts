@@ -18,6 +18,20 @@ export type RuntimeConfig = {
   debugMode: boolean;
 };
 
+const defaultRuntimeConfig: RuntimeConfig = {
+  appUrl: env.appUrl?.trim() || "http://localhost:3000",
+  jellyfinUrl: env.jellyfinUrl ?? null,
+  jellyfinApiKey: env.jellyfinApiKey ?? null,
+  lidarrUrl: env.lidarrUrl ?? null,
+  lidarrApiKey: env.lidarrApiKey ?? null,
+  lidarrRootFolder: env.lidarrRootFolder ?? null,
+  lidarrQualityProfileId: env.lidarrQualityProfileId ?? null,
+  lidarrMetadataProfileId: env.lidarrMetadataProfileId ?? null,
+  lidarrMonitorMode: env.lidarrMonitorMode ?? "all",
+  requestAutoApprove: env.requestAutoApprove ?? true,
+  debugMode: false
+};
+
 const fromAppConfig = async (config: AppConfig): Promise<RuntimeConfig> => {
   const [jellyfinApiKey, lidarrApiKey] = await Promise.all([
     config.jellyfinApiKeyEncrypted
@@ -44,8 +58,8 @@ const fromAppConfig = async (config: AppConfig): Promise<RuntimeConfig> => {
 };
 
 export const getRuntimeConfig = async (): Promise<RuntimeConfig> => {
-  const persisted = await ensureAppConfig();
-  const base = await fromAppConfig(persisted);
+  const persisted = await prisma.appConfig.findUnique({ where: { id: 1 } });
+  const base = persisted ? await fromAppConfig(persisted) : defaultRuntimeConfig;
 
   return {
     appUrl: base.appUrl,

@@ -3,6 +3,13 @@ import { env } from "@/lib/env";
 
 const DEFAULT_APP_URL = "http://localhost:3000";
 
+type StoredRuntimeFields = {
+  appUrl: string | null;
+  runtimeSecret: string | null;
+  jellyfinApiKeyEncrypted: string | null;
+  lidarrApiKeyEncrypted: string | null;
+};
+
 export const ensureAppConfig = async () => {
   return prisma.appConfig.upsert({
     where: { id: 1 },
@@ -12,9 +19,7 @@ export const ensureAppConfig = async () => {
 };
 
 export const getStoredRuntimeFields = async () => {
-  await ensureAppConfig();
-
-  return prisma.appConfig.findUniqueOrThrow({
+  const stored = await prisma.appConfig.findUnique({
     where: { id: 1 },
     select: {
       appUrl: true,
@@ -23,6 +28,13 @@ export const getStoredRuntimeFields = async () => {
       lidarrApiKeyEncrypted: true
     }
   });
+
+  return stored ?? {
+    appUrl: null,
+    runtimeSecret: null,
+    jellyfinApiKeyEncrypted: null,
+    lidarrApiKeyEncrypted: null
+  } satisfies StoredRuntimeFields;
 };
 
 export const getEffectiveAppUrl = async (): Promise<string> => {

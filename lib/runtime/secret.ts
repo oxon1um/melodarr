@@ -6,9 +6,10 @@ import { getStoredRuntimeFields } from "@/lib/runtime/app-config";
 let cachedSecret: string | null = null;
 
 const saveRuntimeSecret = async (secret: string) => {
-  await prisma.appConfig.update({
+  await prisma.appConfig.upsert({
     where: { id: 1 },
-    data: { runtimeSecret: secret }
+    update: { runtimeSecret: secret },
+    create: { id: 1, runtimeSecret: secret }
   });
 };
 

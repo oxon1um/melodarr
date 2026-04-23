@@ -593,6 +593,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
   const [submitting, setSubmitting] = useState<string | null>(null);
 
   const requestSequence = useRef(0);
+  const searchAbortRef = useRef<AbortController | null>(null);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const [isHistoryReady, setIsHistoryReady] = useState(false);
 
@@ -654,6 +655,8 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
     const nextSort = stateOverride?.sort ?? sort;
 
     if (!trimmedTerm || trimmedTerm.length < 2) {
+      searchAbortRef.current?.abort();
+      searchAbortRef.current = null;
       setResults(emptyResults);
       setSubmittedQuery("");
       setLoading(false);
@@ -667,9 +670,14 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
     }
 
     const currentSeq = ++requestSequence.current;
+    searchAbortRef.current?.abort();
+    const abortController = new AbortController();
+    searchAbortRef.current = abortController;
 
     try {
-      const response = await fetch(`/api/search/artists?q=${encodeURIComponent(trimmedTerm)}`);
+      const response = await fetch(`/api/search/artists?q=${encodeURIComponent(trimmedTerm)}`, {
+        signal: abortController.signal
+      });
       const payload = (await response.json()) as DiscoveryResults & { error?: string };
 
       if (currentSeq !== requestSequence.current) {
@@ -702,8 +710,16 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
         return;
       }
 
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+
       toast.error(error instanceof Error ? error.message : "Search failed", "Discover");
     } finally {
+      if (searchAbortRef.current === abortController) {
+        searchAbortRef.current = null;
+      }
+
       if (showLoader && currentSeq === requestSequence.current) {
         setLoading(false);
       }
@@ -772,6 +788,10 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
 
     writeDiscoverHistory("replace", discoverStateHref, snapshot);
   }, [discoverStateHref, filter, isHistoryReady, results, sort, submittedQuery, writeDiscoverHistory]);
+
+  useEffect(() => () => {
+    searchAbortRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -856,39 +876,42 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
   ) => {
     setSubmitting(key);
 
-    const response = await fetch("/api/requests", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        requestType: "album",
-        artistName: input.artistName,
-        albumTitle: input.albumTitle,
-        foreignArtistId: input.foreignArtistId,
-        foreignAlbumId: input.foreignAlbumId
-      })
-    });
+    try {
+      const response = await fetch("/api/requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          requestType: "album",
+          artistName: input.artistName,
+          albumTitle: input.albumTitle,
+          foreignArtistId: input.foreignArtistId,
+          foreignAlbumId: input.foreignAlbumId
+        })
+      });
 
-    const payload = (await response.json()) as {
-      error?: string;
-      duplicate?: boolean;
-      request?: { status?: string };
-    };
+      const payload = (await response.json()) as {
+        error?: string;
+        duplicate?: boolean;
+        request?: { status?: string };
+      };
 
-    if (!response.ok) {
-      toast.error(payload.error ?? "Request failed", "Requests");
+      if (!response.ok) {
+        toast.error(payload.error ?? "Request failed", "Requests");
+        return;
+      }
+
+      if (payload.duplicate) {
+        toast.info("This album has already been requested.", "Requests");
+      } else {
+        toast.success("Request submitted — it's now in the queue.", "Requests");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Request failed", "Requests");
+    } finally {
       setSubmitting(null);
-      return;
     }
-
-    if (payload.duplicate) {
-      toast.info("This album has already been requested.", "Requests");
-    } else {
-      toast.success("Request submitted — it's now in the queue.", "Requests");
-    }
-
-    setSubmitting(null);
   };
 
   const releasesByArtist = useMemo(() => {
