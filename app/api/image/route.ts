@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 import { requestPinnedUrl, type ResolvedAddress } from "@/lib/http/pinned-request";
 import { verifySignedImageParams } from "@/lib/images";
+import { getRuntimeConfig } from "@/lib/settings/store";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,8 @@ const CACHE_CONTROL = "private, max-age=3600, stale-while-revalidate=86400";
 const MAX_REDIRECTS = 3;
 const INVALID_IMAGE_SOURCE_ERROR = "Invalid image source";
 const IMAGE_TIMEOUT_ERROR = "Image request timed out";
+
+type ImageOriginSet = Set<string>;
 
 const createTimeoutError = (): Error & { status: number } =>
   Object.assign(new Error(IMAGE_TIMEOUT_ERROR), { status: 504 });
@@ -191,6 +194,35 @@ const isUnsafeHostname = (hostname: string): boolean => {
   return isUnsafeIpAddress(normalized);
 };
 
+const getOrigin = (value: string | null | undefined): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return undefined;
+    }
+
+    return url.origin;
+  } catch {
+    return undefined;
+  }
+};
+
+const getAllowedPrivateImageOrigins = async (): Promise<ImageOriginSet> => {
+  const config = await getRuntimeConfig();
+
+  return new Set(
+    [getOrigin(config.lidarrUrl), getOrigin(config.jellyfinUrl)]
+      .filter((origin): origin is string => Boolean(origin))
+  );
+};
+
+const isAllowedPrivateImageOrigin = (url: URL, allowedOrigins: ImageOriginSet): boolean =>
+  allowedOrigins.has(url.origin);
+
 const resolveHostnameAddresses = async (
   hostname: string,
   signal?: AbortSignal,
@@ -218,29 +250,38 @@ const resolveHostnameAddresses = async (
 };
 
 const resolveSafeAddress = async (
-  hostname: string,
+  url: URL,
+  allowedPrivateOrigins: ImageOriginSet,
   signal?: AbortSignal,
 ): Promise<ResolvedAddress | null> => {
-  const addresses = await resolveHostnameAddresses(hostname, signal);
-  if (addresses.some((address) => isUnsafeIpAddress(address.address))) {
+  const addresses = await resolveHostnameAddresses(url.hostname, signal);
+  if (addresses.length === 0) {
     return null;
   }
 
-  return addresses[0] ?? null;
+  if (
+    !isAllowedPrivateImageOrigin(url, allowedPrivateOrigins)
+    && addresses.some((address) => isUnsafeIpAddress(address.address))
+  ) {
+    return null;
+  }
+
+  return addresses[0];
 };
 
 const fetchSafeImageResponse = async (
   initialUrl: URL,
+  allowedPrivateOrigins: ImageOriginSet,
   signal?: AbortSignal,
 ): Promise<{ body: ReadableStream<Uint8Array> | null; headers: Headers; status: number }> => {
   let currentUrl = initialUrl;
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
-    if (isUnsafeHostname(currentUrl.hostname)) {
+    if (isUnsafeHostname(currentUrl.hostname) && !isAllowedPrivateImageOrigin(currentUrl, allowedPrivateOrigins)) {
       throw Object.assign(new Error(INVALID_IMAGE_SOURCE_ERROR), { status: 400 });
     }
 
-    const resolvedAddress = await resolveSafeAddress(currentUrl.hostname, signal);
+    const resolvedAddress = await resolveSafeAddress(currentUrl, allowedPrivateOrigins, signal);
     if (!resolvedAddress) {
       throw Object.assign(new Error(INVALID_IMAGE_SOURCE_ERROR), { status: 400 });
     }
@@ -265,10 +306,11 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(src);
+    const allowedPrivateOrigins = await getAllowedPrivateImageOrigins();
     const timeoutSignal = typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
       ? AbortSignal.timeout(5_000)
       : undefined;
-    const response = await fetchSafeImageResponse(url, timeoutSignal);
+    const response = await fetchSafeImageResponse(url, allowedPrivateOrigins, timeoutSignal);
 
     if (response.status < 200 || response.status >= 300) {
       return NextResponse.json({ error: "Failed to fetch image" }, { status: response.status });

@@ -6,6 +6,7 @@ const verifySignedImageParams = vi.fn();
 const lookupMock = vi.fn();
 const httpRequestMock = vi.fn();
 const httpsRequestMock = vi.fn();
+const getRuntimeConfigMock = vi.fn();
 
 vi.mock("node:dns/promises", () => ({
   lookup: lookupMock
@@ -21,6 +22,10 @@ vi.mock("node:https", () => ({
 
 vi.mock("@/lib/images", () => ({
   verifySignedImageParams
+}));
+
+vi.mock("@/lib/settings/store", () => ({
+  getRuntimeConfig: getRuntimeConfigMock
 }));
 
 const createUpstreamResponse = (
@@ -115,6 +120,10 @@ describe("GET /api/image", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
+    getRuntimeConfigMock.mockResolvedValue({
+      lidarrUrl: null,
+      jellyfinUrl: null
+    });
     lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
     httpRequestMock.mockImplementation(
       createRequestMock({
@@ -182,6 +191,44 @@ describe("GET /api/image", () => {
     expect(response.status).toBe(400);
     expect(httpsRequestMock).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toEqual({ error: "Invalid image source" });
+  });
+
+  it("allows private image sources from the configured Lidarr origin", async () => {
+    getRuntimeConfigMock.mockResolvedValue({
+      lidarrUrl: "http://lidarr:8686",
+      jellyfinUrl: null
+    });
+    verifySignedImageParams.mockResolvedValue("http://lidarr:8686/MediaCover/1/poster.jpg");
+    lookupMock.mockResolvedValue([{ address: "172.18.0.2", family: 4 }]);
+    httpRequestMock.mockImplementation(
+      createRequestMock({
+        assertLookup: {
+          hostname: "lidarr",
+          address: "172.18.0.2",
+          family: 4
+        },
+        response: createUpstreamResponse("image-bytes", {
+          status: 200,
+          headers: { "content-type": "image/jpeg" }
+        })
+      })
+    );
+
+    const { GET } = await import("../app/api/image/route");
+    const request = new NextRequest("http://localhost:3000/api/image?src=ok&exp=1&sig=ok");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(httpRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hostname: "lidarr",
+        method: "GET",
+        path: "/MediaCover/1/poster.jpg",
+        port: 8686,
+      }),
+      expect.any(Function)
+    );
+    expect(await response.text()).toBe("image-bytes");
   });
 
   it("rejects direct IPv4-mapped IPv6 loopback image sources", async () => {
