@@ -10,6 +10,7 @@ docker-compose.local.yml
 .worktrees
 .playwright-mcp/
 .claude/
+.tmp/
 plans/
 AGENTS.md
 
