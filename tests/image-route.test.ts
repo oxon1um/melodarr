@@ -231,6 +231,31 @@ describe("GET /api/image", () => {
     expect(await response.text()).toBe("image-bytes");
   });
 
+  it("infers configured Lidarr cover content types from safe image extensions", async () => {
+    getRuntimeConfigMock.mockResolvedValue({
+      lidarrUrl: "http://lidarr:8686",
+      jellyfinUrl: null
+    });
+    verifySignedImageParams.mockResolvedValue("http://lidarr:8686/MediaCover/1/poster.jpg");
+    lookupMock.mockResolvedValue([{ address: "172.18.0.2", family: 4 }]);
+    httpRequestMock.mockImplementation(
+      createRequestMock({
+        response: createUpstreamResponse("image-bytes", {
+          status: 200,
+          headers: { "content-type": "application/octet-stream" }
+        })
+      })
+    );
+
+    const { GET } = await import("../app/api/image/route");
+    const request = new NextRequest("http://localhost:3000/api/image?src=ok&exp=1&sig=ok");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/jpeg");
+    expect(await response.text()).toBe("image-bytes");
+  });
+
   it("rejects direct IPv4-mapped IPv6 loopback image sources", async () => {
     verifySignedImageParams.mockResolvedValue("http://[::ffff:7f00:1]/private.jpg");
 

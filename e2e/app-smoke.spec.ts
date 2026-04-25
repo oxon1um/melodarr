@@ -36,11 +36,21 @@ const createSignedImagePath = (src: string): string => {
   return `/api/image?${params.toString()}`;
 };
 
+const createOptimizedImagePath = (src: string): string => {
+  const params = new URLSearchParams({
+    url: src,
+    w: "64",
+    q: "75",
+  });
+
+  return `/_next/image?${params.toString()}`;
+};
+
 test.beforeAll(async () => {
   imageServer = createServer((req, res) => {
     if (req.url === "/cover.png") {
       res.writeHead(200, {
-        "Content-Type": "image/png",
+        "Content-Type": "application/octet-stream",
         "Cache-Control": "no-store",
       });
       res.end(PNG_1X1);
@@ -95,9 +105,9 @@ test("keeps the sticky app header outside the centered content container", async
 test("loads configured private cover images through the signed image proxy", async ({ page }) => {
   await page.goto("/setup");
 
-  const imagePath = createSignedImagePath(`${IMAGE_ORIGIN}/cover.png`);
+  const imagePath = createOptimizedImagePath(createSignedImagePath(`${IMAGE_ORIGIN}/cover.png`));
   const responsePromise = page.waitForResponse((response) =>
-    response.url().includes("/api/image") && response.status() === 200,
+    response.url().includes("/_next/image") && response.status() === 200,
   );
 
   await page.evaluate((src) => {
@@ -110,5 +120,5 @@ test("loads configured private cover images through the signed image proxy", asy
 
   const response = await responsePromise;
   await expect(page.locator("img[data-testid='smoke-cover']")).toHaveJSProperty("naturalWidth", 1);
-  expect(response.headers()["content-type"]).toContain("image/png");
+  expect(response.headers()["content-type"]).toContain("image/");
 });
