@@ -4,6 +4,8 @@ node_modules/
 .env.local
 .DS_Store
 coverage
+playwright-report/
+test-results/
 tsconfig.tsbuildinfo
 docs/plans
 docker-compose.local.yml

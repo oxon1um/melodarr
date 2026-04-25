@@ -1,7 +1,9 @@
-name: Build and Push Docker Image
+name: Verify and Publish
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -10,8 +12,61 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: melodarr
+          POSTGRES_USER: melodarr
+          POSTGRES_PASSWORD: melodarr
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://melodarr:melodarr@localhost:5432/melodarr?schema=public
+      REDIS_URL: redis://localhost:6379
+      SESSION_SECRET: ci-session-secret-with-enough-entropy-for-image-signing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run verification gate
+        run: npm run verify
+
   build-and-push:
     runs-on: ubuntu-latest
+    needs: verify
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
