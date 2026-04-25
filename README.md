@@ -277,9 +277,11 @@ Contributions are welcome.
 Before opening a pull request, run:
 
 ```sh
-npm run lint
-npm run test
+npm run verify
 ```
+
+See [Development Workflow](docs/development-workflow.md) for the required branch, pull request,
+and verification-gate process.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
