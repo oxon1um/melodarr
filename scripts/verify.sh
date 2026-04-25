@@ -38,6 +38,7 @@ fi
 export SESSION_SECRET="${SESSION_SECRET:-verify-session-secret-with-enough-entropy-for-image-signing}"
 
 npm run lint
+npm run prisma:generate
 npm run test
 npm run prisma:push
 npm run build
