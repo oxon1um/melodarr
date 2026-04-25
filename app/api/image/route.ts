@@ -289,24 +289,46 @@ const resolveHostnameAddresses = async (
     }));
 };
 
-const resolveSafeAddress = async (
+const resolveSafeAddresses = async (
   url: URL,
   allowedPrivateOrigins: ImageOriginSet,
   signal?: AbortSignal,
-): Promise<ResolvedAddress | null> => {
+): Promise<ResolvedAddress[]> => {
   const addresses = await resolveHostnameAddresses(url.hostname, signal);
   if (addresses.length === 0) {
-    return null;
+    return [];
   }
 
   if (
     !isAllowedPrivateImageOrigin(url, allowedPrivateOrigins)
     && addresses.some((address) => isUnsafeIpAddress(address.address))
   ) {
-    return null;
+    return [];
   }
 
-  return addresses[0];
+  return addresses;
+};
+
+const requestSafePinnedResponse = async (
+  url: URL,
+  resolvedAddresses: ResolvedAddress[],
+  signal?: AbortSignal,
+): Promise<{ body: ReadableStream<Uint8Array> | null; headers: Headers; status: number }> => {
+  let lastError: unknown;
+
+  for (const resolvedAddress of resolvedAddresses) {
+    try {
+      return await requestPinnedUrl(url, resolvedAddress, signal);
+    } catch (error) {
+      if (signal?.aborted) {
+        throw error;
+      }
+
+      lastError = error;
+    }
+  }
+
+  throw lastError ?? Object.assign(new Error("Failed to load image"), { status: 502 });
 };
 
 const fetchSafeImageResponse = async (
@@ -321,12 +343,12 @@ const fetchSafeImageResponse = async (
       throw Object.assign(new Error(INVALID_IMAGE_SOURCE_ERROR), { status: 400 });
     }
 
-    const resolvedAddress = await resolveSafeAddress(currentUrl, allowedPrivateOrigins, signal);
-    if (!resolvedAddress) {
+    const resolvedAddresses = await resolveSafeAddresses(currentUrl, allowedPrivateOrigins, signal);
+    if (resolvedAddresses.length === 0) {
       throw Object.assign(new Error(INVALID_IMAGE_SOURCE_ERROR), { status: 400 });
     }
 
-    const response = await requestPinnedUrl(currentUrl, resolvedAddress, signal);
+    const response = await requestSafePinnedResponse(currentUrl, resolvedAddresses, signal);
     const location = response.headers.get("location");
     if (response.status < 300 || response.status >= 400 || !location) {
       return response;
