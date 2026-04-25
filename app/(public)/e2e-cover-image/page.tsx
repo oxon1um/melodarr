@@ -1,6 +1,8 @@
 import { CoverImage } from "@/components/ui/cover-image";
 import { buildSignedImageUrl } from "@/lib/images";
 
+export const dynamic = "force-dynamic";
+
 const DEFAULT_IMAGE_ORIGIN = "http://127.0.0.1:45731";
 const LONG_REMOTE_IMAGE_PATH = "/cache/https://coverartarchive.org/release/fc4ca5a7-ac12-4a30-92db-6c44c971349a/42537485144-1200.jpg";
 

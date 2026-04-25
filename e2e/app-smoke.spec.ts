@@ -104,7 +104,7 @@ test("loads configured private cover images through the signed image proxy", asy
     }
   });
 
-  await page.goto("/__e2e/cover-image");
+  await page.goto("/e2e-cover-image");
 
   const image = page.getByAltText("Smoke test cover");
 
