@@ -36,19 +36,11 @@ const createSignedImagePath = (src: string): string => {
   return `/api/image?${params.toString()}`;
 };
 
-const createOptimizedImagePath = (src: string): string => {
-  const params = new URLSearchParams({
-    url: src,
-    w: "64",
-    q: "75",
-  });
-
-  return `/_next/image?${params.toString()}`;
-};
+const LONG_REMOTE_IMAGE_PATH = "/cache/https://coverartarchive.org/release/fc4ca5a7-ac12-4a30-92db-6c44c971349a/42537485144-1200.jpg";
 
 test.beforeAll(async () => {
   imageServer = createServer((req, res) => {
-    if (req.url === "/cover.png") {
+    if (req.url === "/cover.png" || req.url === LONG_REMOTE_IMAGE_PATH) {
       res.writeHead(200, {
         "Content-Type": "application/octet-stream",
         "Cache-Control": "no-store",
@@ -105,10 +97,17 @@ test("keeps the sticky app header outside the centered content container", async
 test("loads configured private cover images through the signed image proxy", async ({ page }) => {
   await page.goto("/setup");
 
-  const imagePath = createOptimizedImagePath(createSignedImagePath(`${IMAGE_ORIGIN}/cover.png`));
+  const imagePath = createSignedImagePath(`${IMAGE_ORIGIN}${LONG_REMOTE_IMAGE_PATH}`);
   const responsePromise = page.waitForResponse((response) =>
-    response.url().includes("/_next/image") && response.status() === 200,
+    response.url().includes("/api/image") && response.status() === 200,
   );
+  const optimizerResponses: string[] = [];
+
+  page.on("response", (response) => {
+    if (response.url().includes("/_next/image")) {
+      optimizerResponses.push(response.url());
+    }
+  });
 
   await page.evaluate((src) => {
     const image = document.createElement("img");
@@ -121,4 +120,5 @@ test("loads configured private cover images through the signed image proxy", asy
   const response = await responsePromise;
   await expect(page.locator("img[data-testid='smoke-cover']")).toHaveJSProperty("naturalWidth", 1);
   expect(response.headers()["content-type"]).toContain("image/");
+  expect(optimizerResponses).toHaveLength(0);
 });
