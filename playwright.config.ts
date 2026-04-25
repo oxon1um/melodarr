@@ -7,6 +7,7 @@ const imageUpstreamPort = process.env.PLAYWRIGHT_IMAGE_UPSTREAM_PORT ?? "45731";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  workers: 1,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
   webServer: {
