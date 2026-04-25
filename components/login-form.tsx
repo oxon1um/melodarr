@@ -61,7 +61,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
               </h1>
             </div>
           </div>
-          <p className="text-sm text-muted">Music discovery for Lidarr &amp; Jellyfin</p>
+          <p className="text-sm text-muted">Music discovery and requests for Lidarr</p>
         </div>
 
         <form
@@ -130,7 +130,7 @@ export function LoginForm({ isHttps }: LoginFormProps) {
             </h1>
           </div>
         </div>
-        <p className="text-sm text-muted">Music discovery for Lidarr &amp; Jellyfin</p>
+        <p className="text-sm text-muted">Music discovery and requests for Lidarr</p>
       </div>
 
       <div className="space-y-2">
