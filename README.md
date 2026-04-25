@@ -14,7 +14,7 @@
   <h3 align="center">Melodarr</h3>
 
   <p align="center">
-    Dockerized music requests for Lidarr with a Jellyfin-powered discovery UI.
+    Dockerized music discovery and requests for Lidarr with optional Jellyfin login.
     <br />
     <br />
     <a href="https://github.com/oxon1um/melodarr/issues/new?labels=bug">Report Bug</a>
@@ -55,19 +55,20 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-Melodarr is a music discovery and request application for [Lidarr](https://lidarr.audio/)
-and [Jellyfin](https://jellyfin.org/), inspired by [Seerr](https://github.com/seerr-team/seerr).
-It helps users browse artists, albums, and tracks, then submit requests that are tracked and
-automatically added to Lidarr.
+Melodarr is a music discovery and request application for [Lidarr](https://lidarr.audio/),
+inspired by [Seerr](https://github.com/seerr-team/seerr). It helps users browse artists,
+albums, and tracks, then submit requests that are tracked and automatically added to Lidarr.
+[Jellyfin](https://jellyfin.org/) can optionally be used for login, so users can sign in with
+their existing Jellyfin credentials instead of creating separate Melodarr-only accounts.
 
 Key features:
 
 * First-run setup wizard with admin account creation
-* Browse and discover artists, albums, and tracks via Jellyfin
+* Browse and discover artists, albums, and tracks via Lidarr-backed discovery
 * Request albums or full artist discographies, then submit them to Lidarr
 * Request status tracking from review to Lidarr submission through completed imports
 * Optional admin approval flow or auto-approve mode
-* Jellyfin SSO login alongside local accounts
+* Optional Jellyfin login alongside local accounts
 * Admin settings panel for Lidarr, Jellyfin, and request configuration
 * Rate limiting and audit logging
 * Persistent PostgreSQL and Redis storage
@@ -104,7 +105,7 @@ and Redis together.
   openssl rand -hex 64
   ```
 * A running Lidarr instance for submitting music requests
-* A running Jellyfin instance for discovery and optional SSO login
+* Optional, but recommended: a running Jellyfin instance for shared user login
 
 ### Installation
 
@@ -129,7 +130,8 @@ and Redis together.
    http://localhost:30000
    ```
 
-5. Complete the first-run setup wizard, then configure Jellyfin and Lidarr from Settings.
+5. Complete the first-run setup wizard, then configure Lidarr and optional Jellyfin login
+   from Settings.
 
 ### Environment Variables
 
@@ -142,8 +144,8 @@ and Redis together.
 | `POSTGRES_PASSWORD` | `melodarr` | Database password for Docker Compose |
 | `POSTGRES_DB` | `melodarr` | Database name for Docker Compose |
 | `APP_URL` | - | Application URL for OAuth and cookies |
-| `JELLYFIN_URL` | - | Jellyfin server URL |
-| `JELLYFIN_API_KEY` | - | Jellyfin API key |
+| `JELLYFIN_URL` | - | Optional Jellyfin server URL for shared user login |
+| `JELLYFIN_API_KEY` | - | Optional Jellyfin API key for shared user login |
 | `LIDARR_URL` | - | Lidarr server URL |
 | `LIDARR_API_KEY` | - | Lidarr API key |
 | `LIDARR_ROOT_FOLDER` | - | Default Lidarr root folder path |
@@ -152,8 +154,8 @@ and Redis together.
 | `LIDARR_MONITOR_MODE` | `all` | Default Lidarr monitor mode |
 | `REQUEST_AUTO_APPROVE` | `true` | Automatically approve new requests |
 
-Additional Jellyfin, Lidarr, and request settings can be configured in the admin panel or
-through environment variables. See `.env.example` for local development defaults.
+Additional Lidarr, optional Jellyfin login, and request settings can be configured in the admin
+panel or through environment variables. See `.env.example` for local development defaults.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -165,10 +167,11 @@ through environment variables. See `.env.example` for local development defaults
 After the first-run setup wizard:
 
 1. Create the initial admin account.
-2. Go to **Settings** and configure Jellyfin and Lidarr connections.
-3. Browse discovered artists, albums, and tracks.
-4. Request albums or full artist discographies.
-5. Track each request until Lidarr reports the requested album is available.
+2. Go to **Settings** and configure the Lidarr connection.
+3. Optionally configure Jellyfin login so users can sign in with existing Jellyfin credentials.
+4. Browse discovered artists, albums, and tracks.
+5. Request albums or full artist discographies.
+6. Track each request until Lidarr reports the requested album is available.
 
 Request statuses:
 
