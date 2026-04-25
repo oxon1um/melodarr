@@ -98,7 +98,7 @@ export const withOptimizedImageUrls = async <T extends { images?: ImageAsset[] }
   const optimizedImages = await Promise.all(
     value.images.map(async (image) => ({
       ...image,
-      optimizedUrl: await buildSignedImageUrl(image.remoteUrl ?? image.url)
+      optimizedUrl: await buildSignedImageUrl(image.url ?? image.remoteUrl)
     }))
   );
 
