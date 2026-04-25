@@ -7,6 +7,7 @@ const lookupMock = vi.fn();
 const httpRequestMock = vi.fn();
 const httpsRequestMock = vi.fn();
 const getRuntimeConfigMock = vi.fn();
+const fetchMock = vi.fn();
 
 vi.mock("node:dns/promises", () => ({
   lookup: lookupMock
@@ -130,6 +131,7 @@ describe("GET /api/image", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
+    vi.stubGlobal("fetch", fetchMock);
     getRuntimeConfigMock.mockResolvedValue({
       lidarrUrl: null,
       jellyfinUrl: null
@@ -143,22 +145,15 @@ describe("GET /api/image", () => {
         })
       })
     );
-    httpsRequestMock.mockImplementation(
-      createRequestMock({
-        assertLookup: {
-          hostname: "images.example",
-          address: "93.184.216.34",
-          family: 4
-        },
-        response: createUpstreamResponse("image-bytes", {
-          status: 200,
-          headers: { "content-type": "image/jpeg" }
-        })
+    fetchMock.mockResolvedValue(
+      new Response("image-bytes", {
+        status: 200,
+        headers: { "content-type": "image/jpeg" }
       })
     );
   });
 
-  it("proxies a valid signed image through a pinned upstream address", async () => {
+  it("proxies a valid signed public image through a safe fetch path", async () => {
     verifySignedImageParams.mockResolvedValue("https://images.example/stromae.jpg");
 
     const { GET } = await import("../app/api/image/route");
@@ -166,14 +161,12 @@ describe("GET /api/image", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
-    expect(httpsRequestMock).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL("https://images.example/stromae.jpg"),
       expect.objectContaining({
-        agent: false,
-        hostname: "images.example",
-        method: "GET",
-        path: "/stromae.jpg",
-      }),
-      expect.any(Function)
+        redirect: "manual",
+        signal: expect.any(AbortSignal)
+      })
     );
     expect(await response.text()).toBe("image-bytes");
   });
@@ -199,7 +192,7 @@ describe("GET /api/image", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(400);
-    expect(httpsRequestMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toEqual({ error: "Invalid image source" });
   });
 
@@ -375,7 +368,7 @@ describe("GET /api/image", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(400);
-    expect(httpsRequestMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toEqual({ error: "Invalid image source" });
   });
 
@@ -401,7 +394,7 @@ describe("GET /api/image", () => {
     const response = await responsePromise;
 
     expect(response.status).toBe(504);
-    expect(httpsRequestMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toEqual({ error: "Failed to load image" });
 
     timeoutSpy.mockRestore();
@@ -409,12 +402,10 @@ describe("GET /api/image", () => {
 
   it("rejects non-image upstream responses", async () => {
     verifySignedImageParams.mockResolvedValue("https://images.example/not-an-image");
-    httpsRequestMock.mockImplementation(
-      createRequestMock({
-        response: createUpstreamResponse("html", {
-          status: 200,
-          headers: { "content-type": "text/html; charset=utf-8" }
-        })
+    fetchMock.mockResolvedValue(
+      new Response("html", {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" }
       })
     );
 
@@ -428,9 +419,7 @@ describe("GET /api/image", () => {
 
   it("hides upstream fetch errors from clients", async () => {
     verifySignedImageParams.mockResolvedValue("https://images.example/failure.jpg");
-    httpsRequestMock.mockImplementation(
-      createRequestMock({ error: new Error("socket hang up") })
-    );
+    fetchMock.mockRejectedValue(new Error("socket hang up"));
 
     const { GET } = await import("../app/api/image/route");
     const request = new NextRequest("http://localhost:3000/api/image?src=ok&exp=1&sig=ok");
@@ -438,5 +427,27 @@ describe("GET /api/image", () => {
 
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({ error: "Failed to load image" });
+  });
+
+  it("proxies public remote artwork URLs without the pinned request path", async () => {
+    verifySignedImageParams.mockResolvedValue(
+      "https://images.lidarr.audio/cache/https://coverartarchive.org/release/fc4ca5a7-ac12-4a30-92db-6c44c971349a/42537485144-1200.jpg"
+    );
+    lookupMock.mockResolvedValue([{ address: "104.21.48.1", family: 4 }]);
+    fetchMock.mockResolvedValue(
+      new Response("image-bytes", {
+        status: 200,
+        headers: { "content-type": "image/jpeg" }
+      })
+    );
+
+    const { GET } = await import("../app/api/image/route");
+    const request = new NextRequest("http://localhost:3000/api/image?src=ok&exp=1&sig=ok");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(httpsRequestMock).not.toHaveBeenCalled();
+    expect(await response.text()).toBe("image-bytes");
   });
 });

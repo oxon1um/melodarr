@@ -32,6 +32,12 @@ type ImageRequestContext = {
   lidarrApiKey?: string;
 };
 
+type UpstreamImageResponse = {
+  body: ReadableStream<Uint8Array> | null;
+  headers: Headers;
+  status: number;
+};
+
 const createTimeoutError = (): Error & { status: number } =>
   Object.assign(new Error(IMAGE_TIMEOUT_ERROR), { status: 504 });
 
@@ -339,14 +345,38 @@ const getUpstreamImageHeaders = (
   return undefined;
 };
 
+const toUpstreamImageResponse = (response: Response): UpstreamImageResponse => ({
+  body: response.body,
+  headers: response.headers,
+  status: response.status,
+});
+
+const fetchPublicImageResponse = async (
+  url: URL,
+  headers: Record<string, string> | undefined,
+  signal?: AbortSignal,
+): Promise<UpstreamImageResponse> => {
+  const response = await fetch(url, {
+    headers,
+    redirect: "manual",
+    signal,
+  });
+
+  return toUpstreamImageResponse(response);
+};
+
 const requestSafePinnedResponse = async (
   url: URL,
   resolvedAddresses: ResolvedAddress[],
   context: ImageRequestContext,
   signal?: AbortSignal,
-): Promise<{ body: ReadableStream<Uint8Array> | null; headers: Headers; status: number }> => {
+): Promise<UpstreamImageResponse> => {
   let lastError: unknown;
   const headers = getUpstreamImageHeaders(url, context);
+
+  if (!isAllowedPrivateImageOrigin(url, context.allowedPrivateOrigins)) {
+    return fetchPublicImageResponse(url, headers, signal);
+  }
 
   for (const resolvedAddress of resolvedAddresses) {
     try {
@@ -367,7 +397,7 @@ const fetchSafeImageResponse = async (
   initialUrl: URL,
   context: ImageRequestContext,
   signal?: AbortSignal,
-): Promise<{ body: ReadableStream<Uint8Array> | null; headers: Headers; status: number }> => {
+): Promise<UpstreamImageResponse> => {
   let currentUrl = initialUrl;
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
