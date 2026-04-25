@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL=postgresql://melodarr:melodarr@db:5432/melodarr
@@ -13,7 +13,7 @@ RUN npx prisma generate
 RUN npm run build
 RUN npm prune --omit=dev
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
