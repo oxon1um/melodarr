@@ -95,8 +95,6 @@ test("keeps the sticky app header outside the centered content container", async
 });
 
 test("loads configured private cover images through the signed image proxy", async ({ page }) => {
-  await page.goto("/setup");
-
   const imagePath = createSignedImagePath(`${IMAGE_ORIGIN}${LONG_REMOTE_IMAGE_PATH}`);
   const responsePromise = page.waitForResponse((response) =>
     response.url().includes("/api/image") && response.status() === 200,
@@ -109,16 +107,14 @@ test("loads configured private cover images through the signed image proxy", asy
     }
   });
 
-  await page.evaluate((src) => {
-    const image = document.createElement("img");
-    image.alt = "Smoke test cover";
-    image.src = src;
-    image.dataset.testid = "smoke-cover";
-    document.body.append(image);
-  }, imagePath);
+  await page.goto("/__e2e/cover-image");
 
   const response = await responsePromise;
-  await expect(page.locator("img[data-testid='smoke-cover']")).toHaveJSProperty("naturalWidth", 1);
+  const image = page.getByAltText("Smoke test cover");
+
+  await expect(image).toBeVisible();
+  await expect(image).toHaveAttribute("src", imagePath);
+  await expect(image).toHaveJSProperty("naturalWidth", 1);
   expect(response.headers()["content-type"]).toContain("image/");
   expect(optimizerResponses).toHaveLength(0);
 });
