@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 
+export const isSignedProxyImageSrc = (src: string): boolean => src.startsWith("/api/image?");
+
 type Props = {
   alt: string;
   src?: string;
@@ -20,6 +22,8 @@ export function CoverImage({
   fallback,
   priority = false
 }: Props) {
+  const isSignedProxyImage = src ? isSignedProxyImageSrc(src) : false;
+
   return (
     <div className={className}>
       {src ? (
@@ -29,6 +33,7 @@ export function CoverImage({
           fill
           priority={priority}
           sizes={sizes}
+          unoptimized={isSignedProxyImage}
           className={imageClassName ?? "object-cover"}
         />
       ) : (
