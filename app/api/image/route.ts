@@ -24,6 +24,13 @@ const FALLBACK_IMAGE_CONTENT_TYPES = new Map<string, string>([
 ]);
 
 type ImageOriginSet = Set<string>;
+type ImageRequestContext = {
+  allowedPrivateOrigins: ImageOriginSet;
+  jellyfinOrigin?: string;
+  jellyfinApiKey?: string;
+  lidarrOrigin?: string;
+  lidarrApiKey?: string;
+};
 
 const createTimeoutError = (): Error & { status: number } =>
   Object.assign(new Error(IMAGE_TIMEOUT_ERROR), { status: 504 });
@@ -222,13 +229,21 @@ const getOrigin = (value: string | null | undefined): string | undefined => {
   }
 };
 
-const getAllowedPrivateImageOrigins = async (): Promise<ImageOriginSet> => {
+const getImageRequestContext = async (): Promise<ImageRequestContext> => {
   const config = await getRuntimeConfig();
+  const lidarrOrigin = getOrigin(config.lidarrUrl);
+  const jellyfinOrigin = getOrigin(config.jellyfinUrl);
 
-  return new Set(
-    [getOrigin(config.lidarrUrl), getOrigin(config.jellyfinUrl)]
+  return {
+    allowedPrivateOrigins: new Set(
+      [lidarrOrigin, jellyfinOrigin]
       .filter((origin): origin is string => Boolean(origin))
-  );
+    ),
+    jellyfinApiKey: config.jellyfinApiKey ?? undefined,
+    jellyfinOrigin,
+    lidarrApiKey: config.lidarrApiKey ?? undefined,
+    lidarrOrigin,
+  };
 };
 
 const isAllowedPrivateImageOrigin = (url: URL, allowedOrigins: ImageOriginSet): boolean =>
@@ -309,16 +324,33 @@ const resolveSafeAddresses = async (
   return addresses;
 };
 
+const getUpstreamImageHeaders = (
+  url: URL,
+  context: ImageRequestContext,
+): Record<string, string> | undefined => {
+  if (context.lidarrApiKey && context.lidarrOrigin === url.origin) {
+    return { "X-Api-Key": context.lidarrApiKey };
+  }
+
+  if (context.jellyfinApiKey && context.jellyfinOrigin === url.origin) {
+    return { "X-Emby-Token": context.jellyfinApiKey };
+  }
+
+  return undefined;
+};
+
 const requestSafePinnedResponse = async (
   url: URL,
   resolvedAddresses: ResolvedAddress[],
+  context: ImageRequestContext,
   signal?: AbortSignal,
 ): Promise<{ body: ReadableStream<Uint8Array> | null; headers: Headers; status: number }> => {
   let lastError: unknown;
+  const headers = getUpstreamImageHeaders(url, context);
 
   for (const resolvedAddress of resolvedAddresses) {
     try {
-      return await requestPinnedUrl(url, resolvedAddress, signal);
+      return await requestPinnedUrl(url, resolvedAddress, { headers, signal });
     } catch (error) {
       if (signal?.aborted) {
         throw error;
@@ -333,22 +365,22 @@ const requestSafePinnedResponse = async (
 
 const fetchSafeImageResponse = async (
   initialUrl: URL,
-  allowedPrivateOrigins: ImageOriginSet,
+  context: ImageRequestContext,
   signal?: AbortSignal,
 ): Promise<{ body: ReadableStream<Uint8Array> | null; headers: Headers; status: number }> => {
   let currentUrl = initialUrl;
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
-    if (isUnsafeHostname(currentUrl.hostname) && !isAllowedPrivateImageOrigin(currentUrl, allowedPrivateOrigins)) {
+    if (isUnsafeHostname(currentUrl.hostname) && !isAllowedPrivateImageOrigin(currentUrl, context.allowedPrivateOrigins)) {
       throw Object.assign(new Error(INVALID_IMAGE_SOURCE_ERROR), { status: 400 });
     }
 
-    const resolvedAddresses = await resolveSafeAddresses(currentUrl, allowedPrivateOrigins, signal);
+    const resolvedAddresses = await resolveSafeAddresses(currentUrl, context.allowedPrivateOrigins, signal);
     if (resolvedAddresses.length === 0) {
       throw Object.assign(new Error(INVALID_IMAGE_SOURCE_ERROR), { status: 400 });
     }
 
-    const response = await requestSafePinnedResponse(currentUrl, resolvedAddresses, signal);
+    const response = await requestSafePinnedResponse(currentUrl, resolvedAddresses, context, signal);
     const location = response.headers.get("location");
     if (response.status < 300 || response.status >= 400 || !location) {
       return response;
@@ -368,11 +400,11 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(src);
-    const allowedPrivateOrigins = await getAllowedPrivateImageOrigins();
+    const imageRequestContext = await getImageRequestContext();
     const timeoutSignal = typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
       ? AbortSignal.timeout(5_000)
       : undefined;
-    const response = await fetchSafeImageResponse(url, allowedPrivateOrigins, timeoutSignal);
+    const response = await fetchSafeImageResponse(url, imageRequestContext, timeoutSignal);
 
     if (response.status < 200 || response.status >= 300) {
       return NextResponse.json({ error: "Failed to fetch image" }, { status: response.status });

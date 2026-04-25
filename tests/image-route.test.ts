@@ -54,12 +54,18 @@ type LookupAssertion = {
 
 type LookupCallback = (error: Error | null, address: string, family: number) => void;
 type RequestLookup = (hostname: string, options: object, callback: LookupCallback) => void;
-type RequestOptions = { lookup?: RequestLookup };
+type RequestOptions = { headers?: Record<string, string>; lookup?: RequestLookup };
 type ResponseHandler = (response: MockUpstreamResponse) => void;
 type RequestEventHandler = (...args: unknown[]) => void;
 
+type HeaderAssertion = {
+  name: string;
+  value: string;
+};
+
 const createRequestMock = (options: {
   assertLookup?: LookupAssertion;
+  assertHeader?: HeaderAssertion;
   error?: Error;
   response?: MockUpstreamResponse;
 }) => {
@@ -96,6 +102,10 @@ const createRequestMock = (options: {
               expect(family).toBe(options.assertLookup?.family);
             }
           );
+        }
+
+        if (options.assertHeader) {
+          expect(requestOptions.headers?.[options.assertHeader.name]).toBe(options.assertHeader.value);
         }
 
         if (options.response) {
@@ -195,6 +205,7 @@ describe("GET /api/image", () => {
 
   it("allows private image sources from the configured Lidarr origin", async () => {
     getRuntimeConfigMock.mockResolvedValue({
+      lidarrApiKey: null,
       lidarrUrl: "http://lidarr:8686",
       jellyfinUrl: null
     });
@@ -233,6 +244,7 @@ describe("GET /api/image", () => {
 
   it("falls back to the next resolved address for configured Lidarr origins", async () => {
     getRuntimeConfigMock.mockResolvedValue({
+      lidarrApiKey: null,
       lidarrUrl: "http://lidarr:8686",
       jellyfinUrl: null
     });
@@ -277,6 +289,7 @@ describe("GET /api/image", () => {
 
   it("infers configured Lidarr cover content types from safe image extensions", async () => {
     getRuntimeConfigMock.mockResolvedValue({
+      lidarrApiKey: null,
       lidarrUrl: "http://lidarr:8686",
       jellyfinUrl: null
     });
@@ -297,6 +310,35 @@ describe("GET /api/image", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/jpeg");
+    expect(await response.text()).toBe("image-bytes");
+  });
+
+  it("sends the configured Lidarr API key for Lidarr MediaCover requests", async () => {
+    getRuntimeConfigMock.mockResolvedValue({
+      lidarrApiKey: "lidarr-secret",
+      lidarrUrl: "http://lidarr:8686",
+      jellyfinUrl: null
+    });
+    verifySignedImageParams.mockResolvedValue("http://lidarr:8686/MediaCover/Albums/31241/cover.jpg");
+    lookupMock.mockResolvedValue([{ address: "172.18.0.2", family: 4 }]);
+    httpRequestMock.mockImplementation(
+      createRequestMock({
+        assertHeader: {
+          name: "X-Api-Key",
+          value: "lidarr-secret"
+        },
+        response: createUpstreamResponse("image-bytes", {
+          status: 200,
+          headers: { "content-type": "image/jpeg" }
+        })
+      })
+    );
+
+    const { GET } = await import("../app/api/image/route");
+    const request = new NextRequest("http://localhost:3000/api/image?src=ok&exp=1&sig=ok");
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
     expect(await response.text()).toBe("image-bytes");
   });
 

@@ -51,7 +51,7 @@ describe("requestPinnedUrl", () => {
       requestPinnedUrl(
         new URL("https://images.example/cover.jpg"),
         { address: "93.184.216.34", family: 4 },
-        controller.signal,
+        { signal: controller.signal },
       ),
     ).rejects.toMatchObject({ message: "Image request timed out", status: 504 });
 

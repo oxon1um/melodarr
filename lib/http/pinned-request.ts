@@ -15,6 +15,11 @@ type UpstreamResponse = {
   status: number;
 };
 
+type RequestPinnedUrlInit = {
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+};
+
 const createTimeoutError = (): Error & { status: number } =>
   Object.assign(new Error("Image request timed out"), { status: 504 });
 
@@ -26,8 +31,10 @@ const createPinnedLookup = (resolvedAddress: ResolvedAddress) =>
 const createRequestOptions = (
   url: URL,
   resolvedAddress: ResolvedAddress,
+  headers?: Record<string, string>,
 ): RequestOptions => ({
   agent: false,
+  headers,
   hostname: url.hostname,
   lookup: createPinnedLookup(resolvedAddress),
   method: "GET",
@@ -58,12 +65,13 @@ const toHeaders = (source: Record<string, string | string[] | undefined>): Heade
 export const requestPinnedUrl = async (
   url: URL,
   resolvedAddress: ResolvedAddress,
-  signal?: AbortSignal,
+  init: RequestPinnedUrlInit = {},
 ): Promise<UpstreamResponse> => {
   const requestImpl = url.protocol === "https:" ? httpsRequest : httpRequest;
+  const { headers, signal } = init;
 
   return new Promise<UpstreamResponse>((resolve, reject) => {
-    const request = requestImpl(createRequestOptions(url, resolvedAddress), (response) => {
+    const request = requestImpl(createRequestOptions(url, resolvedAddress, headers), (response) => {
       const status = response.statusCode ?? 502;
       const headers = toHeaders(response.headers);
 
