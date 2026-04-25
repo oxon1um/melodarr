@@ -11,6 +11,17 @@ const CACHE_CONTROL = "private, max-age=3600, stale-while-revalidate=86400";
 const MAX_REDIRECTS = 3;
 const INVALID_IMAGE_SOURCE_ERROR = "Invalid image source";
 const IMAGE_TIMEOUT_ERROR = "Image request timed out";
+const FALLBACK_IMAGE_CONTENT_TYPES = new Map<string, string>([
+  [".avif", "image/avif"],
+  [".bmp", "image/bmp"],
+  [".gif", "image/gif"],
+  [".ico", "image/x-icon"],
+  [".jpeg", "image/jpeg"],
+  [".jpg", "image/jpeg"],
+  [".png", "image/png"],
+  [".svg", "image/svg+xml"],
+  [".webp", "image/webp"],
+]);
 
 type ImageOriginSet = Set<string>;
 
@@ -223,6 +234,35 @@ const getAllowedPrivateImageOrigins = async (): Promise<ImageOriginSet> => {
 const isAllowedPrivateImageOrigin = (url: URL, allowedOrigins: ImageOriginSet): boolean =>
   allowedOrigins.has(url.origin);
 
+const getFallbackImageContentType = (url: URL): string | undefined => {
+  const pathname = url.pathname.toLowerCase();
+
+  for (const [extension, contentType] of FALLBACK_IMAGE_CONTENT_TYPES) {
+    if (pathname.endsWith(extension)) {
+      return contentType;
+    }
+  }
+
+  return undefined;
+};
+
+const getSafeImageContentType = (contentType: string | null, url: URL): string | null => {
+  const normalizedContentType = contentType?.split(";", 1)[0]?.trim().toLowerCase();
+  if (normalizedContentType?.startsWith("image/")) {
+    return contentType ?? normalizedContentType;
+  }
+
+  if (
+    !normalizedContentType
+    || normalizedContentType === "application/octet-stream"
+    || normalizedContentType === "binary/octet-stream"
+  ) {
+    return getFallbackImageContentType(url) ?? null;
+  }
+
+  return null;
+};
+
 const resolveHostnameAddresses = async (
   hostname: string,
   signal?: AbortSignal,
@@ -316,8 +356,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch image" }, { status: response.status });
     }
 
-    const contentType = response.headers.get("content-type");
-    if (!contentType?.toLowerCase().startsWith("image/")) {
+    const contentType = getSafeImageContentType(response.headers.get("content-type"), url);
+    if (!contentType) {
       return NextResponse.json({ error: "Invalid upstream image response" }, { status: 415 });
     }
 
