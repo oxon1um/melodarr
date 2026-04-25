@@ -21,7 +21,7 @@ describe("image signing", () => {
     expect(verified).toBe("https://example.com/cover.jpg");
   });
 
-  it("prefers Lidarr-served image URLs over external remote URLs", async () => {
+  it("prefers external remote artwork URLs over Lidarr-served image URLs", async () => {
     const { verifySignedImageParams, withOptimizedImageUrls } = await import("../lib/images");
     const result = await withOptimizedImageUrls({
       images: [
@@ -38,7 +38,7 @@ describe("image signing", () => {
 
     const params = new URLSearchParams(signed?.split("?")[1]);
     await expect(verifySignedImageParams(params)).resolves.toBe(
-      "http://lidarr:8686/MediaCover/1/poster.jpg"
+      "https://external.example/broken-cover.jpg"
     );
   });
 
