@@ -15,6 +15,7 @@ type AlbumDetails = {
   foreignArtistId?: string;
   artistName?: string;
   releaseDate?: string;
+  releaseGroup?: "album" | "single";
   images?: ImageAsset[];
   artist?: {
     artistName?: string;
@@ -49,6 +50,9 @@ const formatDuration = (ms?: number) => {
   const remainingSeconds = seconds % 60;
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
+
+const isSingleRelease = (album: AlbumDetails, tracks: Track[]): boolean =>
+  album.releaseGroup === "single" || tracks.length === 1;
 
 type AlbumDetailContentProps = {
   artistId: string;
@@ -138,6 +142,8 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
   const requestAlbum = async () => {
     if (!data?.album) return;
 
+    const releaseLabel = isSingleRelease(data.album, data.tracks) ? "single" : "album";
+
     setSubmitting(true);
 
     const response = await fetch("/api/requests", {
@@ -167,7 +173,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
     }
 
     if (payload.duplicate) {
-      toast.info("This album has already been requested.", "Requests");
+      toast.info(`This ${releaseLabel} has already been requested.`, "Requests");
     } else {
       toast.success(`Request saved with status: ${payload.request?.status ?? "unknown"}`, "Requests");
     }
@@ -223,6 +229,8 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
   const { album, tracks, isTracked, hasFiles } = data;
   const image = chooseImage(album.images);
   const artistName = album.artistName ?? album.artist?.artistName ?? "Unknown Artist";
+  const isSingle = isSingleRelease(album, tracks);
+  const releaseLabel = isSingle ? "Single" : "Album";
   const currentArtistId = album.foreignArtistId ?? artistId;
   const artistRoutePattern = new RegExp(`^/discover/${encodeURIComponent(currentArtistId)}(?:\\?.*)?$`);
   const artistHref = artistRoutePattern.test(from ?? "")
@@ -291,7 +299,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
               ) : (
                 <>
                   <IconDownload className="mr-2 h-4 w-4" />
-                  Request Album
+                  {`Request ${releaseLabel}`}
                 </>
               )}
             </button>
@@ -303,7 +311,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
         <div className="flex items-center gap-2">
           <IconAlbum className="h-5 w-5 text-accent" />
           <h2 className="text-xl font-semibold tracking-tight">Tracks</h2>
-          <span className="chip">{tracks.length} tracks</span>
+          <span className="chip">{tracks.length} track{tracks.length === 1 ? "" : "s"}</span>
         </div>
 
         {tracks.length > 0 ? (

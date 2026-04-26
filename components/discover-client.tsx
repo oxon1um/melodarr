@@ -1001,7 +1001,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
         {!isSearchActive ? <span className="chip">Home</span> : null}
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-2 sm:space-y-3">
-            <h1 className="max-w-3xl font-display text-4xl font-bold tracking-tight sm:text-[2.8rem]">
+            <h1 className="max-w-3xl text-4xl font-semibold leading-none tracking-tight [font-family:var(--font-cormorant-garamond),Georgia,serif] sm:text-[3.15rem]">
               {isSearchActive ? "Discover Music" : "Find something new"}
             </h1>
             <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">

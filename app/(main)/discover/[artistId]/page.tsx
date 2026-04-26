@@ -357,17 +357,17 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
         </a>
       </div>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] xl:items-start">
+      <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
         <CoverImage
           alt={artist.artistName}
           src={image}
           sizes="(max-width: 639px) 128px, (min-width: 640px) 160px"
           priority
-          className="relative h-32 w-32 sm:h-40 sm:w-40 shrink-0 overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2"
+          className="relative h-32 w-32 self-start shrink-0 overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2 sm:h-40 sm:w-40"
           imageClassName="object-cover object-center"
         />
-        <div className="max-w-3xl space-y-3">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{artist.artistName}</h1>
+        <div className="max-w-3xl self-start space-y-3">
+          <h1 className="font-display text-3xl font-semibold leading-none tracking-tight">{artist.artistName}</h1>
           {availableCount > 0 && (
             <p className="inline-flex items-center gap-1.5 text-sm text-muted">
               <svg className="h-3.5 w-3.5 text-success shrink-0" fill="currentColor" viewBox="0 0 20 20">
