@@ -86,7 +86,7 @@ test("loads configured private cover images through the signed image proxy", asy
   const renderedSrc = await image.getAttribute("src");
 
   expect(renderedSrc).toBeTruthy();
-  expect(renderedSrc).toStartWith("/api/image?");
+  expect(renderedSrc?.startsWith("/api/image?")).toBe(true);
 
   const renderedUrl = new URL(renderedSrc ?? "", page.url());
   expect(renderedUrl.searchParams.get("src")).toBe(expectedUpstreamUrl);
