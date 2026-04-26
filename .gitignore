@@ -15,5 +15,7 @@ docker-compose.local.yml
 .tmp/
 plans/
 AGENTS.md
+PRODUCT.md
+DESIGN.md
 
 public/prototypes/
