@@ -197,17 +197,41 @@ type DiscoverHomeStatCardProps = {
 
 function DiscoverHomeStatCard({ label, value, description }: DiscoverHomeStatCardProps) {
   return (
-    <Card className="min-w-[9rem] space-y-1.5 rounded-2xl p-4 sm:p-[1.125rem]">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted">{label}</p>
+    <div className="min-w-[9rem] space-y-1.5 rounded-2xl border border-[var(--edge)] bg-panel-2/35 p-4 sm:p-[1.125rem]">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted">{label}</p>
       <div className="space-y-1">
         <p className="font-display text-2xl font-bold tracking-tight text-text sm:text-[1.75rem]">
           {formatHomeCount(value)}
         </p>
         <p className="text-xs leading-relaxed text-muted">{description}</p>
       </div>
-    </Card>
+    </div>
   );
 }
+
+const getLibraryStatusLabel = (status: DiscoverHomeData["libraryStatus"]): string => {
+  if (status === "connected") {
+    return "Library connected";
+  }
+
+  if (status === "unavailable") {
+    return "Library unavailable";
+  }
+
+  return "Setup needed";
+};
+
+const getDiscoverHomeEmptyCopy = (status: DiscoverHomeData["libraryStatus"]): string => {
+  if (status === "connected") {
+    return "New albums and singles appear here after Lidarr imports them.";
+  }
+
+  if (status === "unavailable") {
+    return "Lidarr could not be reached, so recent additions and library totals are paused.";
+  }
+
+  return "Connect Lidarr to turn this page into a live view of recent additions and library totals.";
+};
 
 type DiscoverFreshCoverflowProps = {
   releases: DiscoverHomeRelease[];
@@ -414,7 +438,7 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
 
             const card = (
               <>
-                <div className="relative h-full w-full overflow-hidden rounded-[1.6rem] border border-[var(--edge-bright)] bg-panel shadow-[0_24px_55px_rgba(0,0,0,0.24)]">
+                <div className="relative h-full w-full overflow-hidden rounded-[1.6rem] border border-[var(--edge-bright)] bg-panel shadow-[0_24px_55px_rgba(9,8,10,0.28)]">
                   <CoverImage
                     alt={release.title}
                     src={image}
@@ -422,10 +446,15 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
                     className="relative h-full w-full"
                     imageClassName="object-cover"
                   />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[rgba(9,8,10,0.68)] to-transparent" />
                 </div>
-                <div className={`pointer-events-none absolute inset-x-4 bottom-4 rounded-2xl border border-[var(--edge)] bg-[color:var(--panel)]/84 px-3 py-2 text-left backdrop-blur-md transition-opacity ease-in-out ${isActive ? "opacity-100" : "opacity-0"}`}
-                  style={{ transitionDuration: `${DETAIL_FADE_MS}ms` }}>
+                <div
+                  className={`pointer-events-none absolute inset-x-4 bottom-4 rounded-2xl border border-[var(--edge)] px-3 py-2 text-left transition-opacity ease-in-out ${isActive ? "opacity-100" : "opacity-0"}`}
+                  style={{
+                    background: "color-mix(in srgb, var(--panel) 88%, transparent)",
+                    transitionDuration: `${DETAIL_FADE_MS}ms`
+                  }}
+                >
                   <p className="truncate text-sm font-medium text-text">{release.title}</p>
                   <p className="truncate text-xs text-muted">{release.artistName}</p>
                   <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted">
@@ -531,16 +560,21 @@ type DiscoverHomeSectionProps = {
 };
 
 function DiscoverHomeSection({ homeData, discoverStateHref }: DiscoverHomeSectionProps) {
+  const statusLabel = getLibraryStatusLabel(homeData.libraryStatus);
+
   return (
     <div className="space-y-10 sm:space-y-12">
       <section className="space-y-5 sm:space-y-6">
-        <div className="space-y-2">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-[2rem]">
-            Fresh this week
-          </h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-[0.95rem]">
-            The latest downloaded albums and singles that just landed in your library.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-[2rem]">
+              Fresh this week
+            </h2>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-[0.95rem]">
+              Recent imports from Lidarr, ready to open, play, or use as a starting point for the next request.
+            </p>
+          </div>
+          <span className="chip w-fit">{statusLabel}</span>
         </div>
 
         {homeData.freshThisWeek.length > 0 ? (
@@ -550,14 +584,17 @@ function DiscoverHomeSection({ homeData, discoverStateHref }: DiscoverHomeSectio
           />
         ) : (
           <div className="empty-state empty-state-warm px-6 py-8 sm:px-8 sm:py-10">
-            <p className="text-base font-medium text-muted">No recent library additions yet.</p>
-            <p className="mt-1.5 text-sm text-muted">
-              {homeData.libraryStatus === "connected"
-                ? "Once new albums or singles finish downloading, they will show up here."
-                : homeData.libraryStatus === "unavailable"
-                  ? "Lidarr is currently unavailable, so recent additions and library totals cannot be loaded right now."
-                  : "Connect Lidarr to show recent additions and library totals here."}
+            <p className="text-base font-medium text-muted">
+              {homeData.libraryStatus === "connected" ? "No recent library additions yet." : statusLabel}
             </p>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">
+              {getDiscoverHomeEmptyCopy(homeData.libraryStatus)}
+            </p>
+            {homeData.libraryStatus !== "connected" ? (
+              <Link href={"/admin/settings" as Route} className="btn-ghost mt-4 w-fit">
+                Review connection settings
+              </Link>
+            ) : null}
           </div>
         )}
       </section>
@@ -1001,32 +1038,32 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
         {!isSearchActive ? <span className="chip">Home</span> : null}
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-2 sm:space-y-3">
-            <h1 className="max-w-3xl text-4xl font-semibold leading-none tracking-tight [font-family:var(--font-cormorant-garamond),Georgia,serif] sm:text-[3.15rem]">
-              {isSearchActive ? "Discover Music" : "Find something new"}
+            <h1 className="font-display max-w-3xl text-4xl font-semibold leading-none tracking-tight sm:text-[3.15rem]">
+              {isSearchActive ? "Search the catalog" : "Your library, ready for the next request"}
             </h1>
             <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
               {isSearchActive
-                ? "Search artists, albums, and singles."
-                : "Search artists, albums, and singles."}
+                ? "Compare artists, albums, and singles before sending anything to Lidarr."
+                : "Start with what just arrived, what is queued, and what is already available before you ask for more."}
             </p>
           </div>
 
           {!isSearchActive ? (
             <div className="grid w-full gap-3 sm:grid-cols-3 xl:w-auto xl:min-w-[30rem]">
               <DiscoverHomeStatCard
-                label="Fresh picks"
+                label="Recent imports"
                 value={homeData.freshPickCount}
-                description="Added this week."
+                description="Added in the last week."
               />
               <DiscoverHomeStatCard
-                label="Queued requests"
+                label="Request queue"
                 value={homeData.queuedRequestCount}
-                description="Still processing."
+                description="Pending or with Lidarr."
               />
               <DiscoverHomeStatCard
                 label="Ready to play"
                 value={homeData.readyToPlayCount}
-                description="Already in library."
+                description="Available in the library."
               />
             </div>
           ) : null}
@@ -1038,7 +1075,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search for music..."
+            placeholder="Search artists, albums, singles..."
             className="field h-12 w-full pl-4 pr-4"
           />
         </div>
@@ -1046,9 +1083,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
         <button
           type="submit"
           disabled={loading}
-          className={`btn-primary group relative h-12 w-full justify-center overflow-hidden px-4 py-3 transition-[width,padding] duration-300 ease-out md:ml-auto md:justify-center ${
-            loading ? "md:w-[9.5rem] md:px-5" : "md:w-12 md:px-0 md:hover:w-[9.5rem] md:hover:px-5"
-          }`}
+          className="btn-primary group relative h-12 w-full justify-center overflow-hidden px-5 py-3 transition-transform duration-200 ease-out hover:-translate-y-0.5 md:ml-auto md:w-[9.5rem] md:justify-center disabled:hover:translate-y-0"
         >
           {loading ? (
             <span className="flex items-center gap-2">
@@ -1056,16 +1091,10 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
               Searching...
             </span>
           ) : (
-            <>
-              <span className="hidden md:absolute md:inset-0 md:flex md:items-center md:justify-center md:gap-0 md:px-5 md:transition-[gap] md:duration-250 md:ease-out md:group-hover:gap-2">
-                <IconSearch className="h-[1.15rem] w-[1.15rem] shrink-0" strokeWidth="2.2" />
-                <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm opacity-0 transition-[max-width,opacity] duration-250 ease-out group-hover:max-w-[5rem] group-hover:opacity-100">
-                  Search
-                </span>
-              </span>
-              <IconSearch className="h-[1.15rem] w-[1.15rem] shrink-0 md:hidden" strokeWidth="2.2" />
-              <span className="ml-2 md:hidden">Search</span>
-            </>
+            <span className="flex items-center gap-2">
+              <IconSearch className="h-[1.15rem] w-[1.15rem] shrink-0" strokeWidth="2.2" />
+              Search
+            </span>
           )}
         </button>
       </form>
