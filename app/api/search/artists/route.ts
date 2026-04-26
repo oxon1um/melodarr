@@ -6,6 +6,10 @@ import { LidarrClient } from "@/lib/lidarr/client";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
 const normalizeText = (value: string | undefined) => value?.trim().toLowerCase() ?? "";
+const LIDARR_SEARCH_ERROR_MESSAGE = "Lidarr search failed. Check Lidarr logs for details.";
+
+const isLidarrApiError = (error: unknown): boolean =>
+  error instanceof Error && error.message.startsWith("Lidarr API error");
 
 type AlbumWithStatus = {
   title: string;
@@ -86,6 +90,10 @@ export async function GET(req: NextRequest) {
       singles: await withOptimizedImageUrlsForMany(singlesWithStatus)
     });
   } catch (error) {
+    if (isLidarrApiError(error)) {
+      return jsonError(LIDARR_SEARCH_ERROR_MESSAGE, 502);
+    }
+
     const status = (error as { status?: number }).status ?? 500;
     return jsonError(error instanceof Error ? error.message : "Failed to search discovery results", status);
   }

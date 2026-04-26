@@ -974,8 +974,8 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
           </h1>
           <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
             {isSearchActive
-              ? "Compare artists, albums, and singles before sending anything to Lidarr."
-              : "Start with what just arrived, what is queued, and what is already available before you ask for more."}
+              ? "Find music, review availability, and send missing releases to Lidarr."
+              : "See recent imports, queued requests, and music that is ready to play."}
           </p>
         </div>
       </section>
