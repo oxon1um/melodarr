@@ -189,21 +189,30 @@ const getQuickRequestTitle = (
 
 const formatHomeCount = (value: number): string => value.toLocaleString();
 
-type DiscoverHomeStatCardProps = {
+type DiscoverHomeSummaryItem = {
   label: string;
   value: number;
-  description: string;
 };
 
-function DiscoverHomeStatCard({ label, value, description }: DiscoverHomeStatCardProps) {
+type DiscoverHomeSummaryProps = {
+  items: DiscoverHomeSummaryItem[];
+};
+
+function DiscoverHomeSummary({ items }: DiscoverHomeSummaryProps) {
   return (
-    <div className="min-w-[9rem] space-y-1.5 rounded-2xl border border-[var(--edge)] bg-panel-2/35 p-4 sm:p-[1.125rem]">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted">{label}</p>
-      <div className="space-y-1">
-        <p className="font-display text-2xl font-bold tracking-tight text-text sm:text-[1.75rem]">
-          {formatHomeCount(value)}
-        </p>
-        <p className="text-xs leading-relaxed text-muted">{description}</p>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
+      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+        Library summary
+      </span>
+      <span className="hidden h-1 w-1 rounded-full bg-muted/60 sm:inline-flex" aria-hidden="true" />
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {items.map((item, index) => (
+          <span key={item.label} className="inline-flex items-baseline gap-1.5">
+            <span className="font-medium text-text">{formatHomeCount(item.value)}</span>
+            <span>{item.label}</span>
+            {index < items.length - 1 ? <span className="text-muted/60">·</span> : null}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -239,8 +248,7 @@ type DiscoverFreshCoverflowProps = {
 };
 
 function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCoverflowProps) {
-  const HOVER_ADVANCE_DELAY_MS = 120;
-  const DETAIL_FADE_MS = 800;
+  const DETAIL_FADE_MS = 260;
   const [activeIndex, setActiveIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -248,19 +256,8 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
   const clampedActiveIndex = Math.min(activeIndex, Math.max(visibleReleases.length - 1, 0));
   const activeRelease = visibleReleases[clampedActiveIndex] ?? visibleReleases[0] ?? null;
   const wheelDeltaRef = useRef(0);
-  const hoverLockedRef = useRef(false);
-  const hoverPrimedRef = useRef(false);
-  const hoverTimeoutRef = useRef<number | null>(null);
-  const lastHoverPositionRef = useRef<{ x: number; y: number } | null>(null);
   const pointerStartXRef = useRef<number | null>(null);
   const pointerIdRef = useRef<number | null>(null);
-
-  const clearHoverTimeout = useCallback(() => {
-    if (hoverTimeoutRef.current !== null) {
-      window.clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-  }, []);
 
   const goToIndex = useCallback((nextIndex: number) => {
     setDragOffset(0);
@@ -320,56 +317,6 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
     setDragOffset(event.clientX - pointerStartXRef.current);
   }, []);
 
-  const handleCarouselMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    const nextPosition = { x: event.clientX, y: event.clientY };
-    const lastPosition = lastHoverPositionRef.current;
-
-    if (!lastPosition) {
-      lastHoverPositionRef.current = nextPosition;
-      hoverLockedRef.current = false;
-      return;
-    }
-
-    if (Math.abs(nextPosition.x - lastPosition.x) >= 4 || Math.abs(nextPosition.y - lastPosition.y) >= 4) {
-      hoverLockedRef.current = false;
-      lastHoverPositionRef.current = nextPosition;
-    }
-  }, []);
-
-  const handleCarouselMouseLeave = useCallback(() => {
-    clearHoverTimeout();
-    hoverLockedRef.current = false;
-    hoverPrimedRef.current = false;
-    lastHoverPositionRef.current = null;
-  }, [clearHoverTimeout]);
-
-  const handleCoverHover = useCallback((index: number, options: { isHoverNavigable: boolean; isActive: boolean }) => {
-    if (options.isActive) {
-      hoverPrimedRef.current = true;
-      clearHoverTimeout();
-      return;
-    }
-
-    if (!options.isHoverNavigable || hoverLockedRef.current || !hoverPrimedRef.current) {
-      return;
-    }
-
-    clearHoverTimeout();
-    hoverTimeoutRef.current = window.setTimeout(() => {
-      hoverLockedRef.current = true;
-      goToIndex(index);
-      hoverTimeoutRef.current = null;
-    }, HOVER_ADVANCE_DELAY_MS);
-  }, [HOVER_ADVANCE_DELAY_MS, clearHoverTimeout, goToIndex]);
-
-  const handleCoverLeave = useCallback(() => {
-    clearHoverTimeout();
-  }, [clearHoverTimeout]);
-
-  useEffect(() => () => {
-    clearHoverTimeout();
-  }, [clearHoverTimeout]);
-
   const handlePointerEnd = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (pointerIdRef.current !== null && event.currentTarget.hasPointerCapture(pointerIdRef.current)) {
       event.currentTarget.releasePointerCapture(pointerIdRef.current);
@@ -400,9 +347,7 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
   return (
     <div className="space-y-5">
       <div
-        className="relative h-[21rem] overflow-hidden rounded-[2rem] border border-[var(--edge)] bg-panel-2/45 px-4 py-5 sm:h-[24rem] sm:px-8 sm:py-6"
-        onMouseMove={handleCarouselMouseMove}
-        onMouseLeave={handleCarouselMouseLeave}
+        className="relative h-[19rem] overflow-hidden rounded-[2rem] border border-[var(--edge)] bg-panel-2/45 px-4 py-5 sm:h-[22rem] sm:px-8 sm:py-6"
         onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -432,9 +377,8 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
             const rotateY = offset * -24;
             const scale = 1 - distance * 0.12;
             const opacity = Math.max(0, 1 - distance * 0.24);
-            const blur = distance === 0 ? 0 : Math.min(distance * 0.8, 2.2);
+            const blur = distance === 0 ? 0 : Math.min(distance * 0.35, 1);
             const isActive = distance === 0;
-            const isHoverNavigable = distance === 1;
 
             const card = (
               <>
@@ -447,19 +391,6 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
                     imageClassName="object-cover"
                   />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[rgba(9,8,10,0.68)] to-transparent" />
-                </div>
-                <div
-                  className={`pointer-events-none absolute inset-x-4 bottom-4 rounded-2xl border border-[var(--edge)] px-3 py-2 text-left transition-opacity ease-in-out ${isActive ? "opacity-100" : "opacity-0"}`}
-                  style={{
-                    background: "color-mix(in srgb, var(--panel) 88%, transparent)",
-                    transitionDuration: `${DETAIL_FADE_MS}ms`
-                  }}
-                >
-                  <p className="truncate text-sm font-medium text-text">{release.title}</p>
-                  <p className="truncate text-xs text-muted">{release.artistName}</p>
-                  <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted">
-                    {release.releaseGroup === "single" ? "Single" : "Album"}
-                  </p>
                 </div>
               </>
             );
@@ -481,8 +412,6 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
                 {href ? (
                   <Link
                     href={href}
-                    onMouseEnter={() => handleCoverHover(index, { isHoverNavigable, isActive })}
-                    onMouseLeave={handleCoverLeave}
                     onFocus={() => goToIndex(index)}
                     onClick={() => goToIndex(index)}
                     className="group relative block h-full w-full"
@@ -492,8 +421,6 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
                 ) : (
                   <button
                     type="button"
-                    onMouseEnter={() => handleCoverHover(index, { isHoverNavigable, isActive })}
-                    onMouseLeave={handleCoverLeave}
                     onFocus={() => goToIndex(index)}
                     onClick={() => goToIndex(index)}
                     className="group relative block h-full w-full text-left"
@@ -1031,42 +958,25 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
   const isSearchActive = submittedQuery.trim().length >= 2;
   const isSearchPending = loading && query.trim().length >= 2;
   const showDiscoverHome = !isSearchActive && !isSearchPending;
+  const homeSummaryItems: DiscoverHomeSummaryItem[] = [
+    { label: "recent imports this week", value: homeData.freshPickCount },
+    { label: "queued", value: homeData.queuedRequestCount },
+    { label: "ready to play", value: homeData.readyToPlayCount }
+  ];
 
   return (
     <div className="page-enter space-y-8 sm:space-y-10">
       <section className="space-y-4 sm:space-y-5">
         {!isSearchActive ? <span className="chip">Home</span> : null}
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="space-y-2 sm:space-y-3">
-            <h1 className="font-display max-w-3xl text-4xl font-semibold leading-none tracking-tight sm:text-[3.15rem]">
-              {isSearchActive ? "Search the catalog" : "Your library, ready for the next request"}
-            </h1>
-            <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
-              {isSearchActive
-                ? "Compare artists, albums, and singles before sending anything to Lidarr."
-                : "Start with what just arrived, what is queued, and what is already available before you ask for more."}
-            </p>
-          </div>
-
-          {!isSearchActive ? (
-            <div className="grid w-full gap-3 sm:grid-cols-3 xl:w-auto xl:min-w-[30rem]">
-              <DiscoverHomeStatCard
-                label="Recent imports"
-                value={homeData.freshPickCount}
-                description="Added in the last week."
-              />
-              <DiscoverHomeStatCard
-                label="Request queue"
-                value={homeData.queuedRequestCount}
-                description="Pending or with Lidarr."
-              />
-              <DiscoverHomeStatCard
-                label="Ready to play"
-                value={homeData.readyToPlayCount}
-                description="Available in the library."
-              />
-            </div>
-          ) : null}
+        <div className="max-w-3xl space-y-2 sm:space-y-3">
+          <h1 className="font-brand max-w-3xl text-4xl font-semibold leading-[0.96] tracking-tight sm:text-[3.25rem]">
+            {isSearchActive ? "Search the catalog" : "Your library, ready for the next request"}
+          </h1>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+            {isSearchActive
+              ? "Compare artists, albums, and singles before sending anything to Lidarr."
+              : "Start with what just arrived, what is queued, and what is already available before you ask for more."}
+          </p>
         </div>
       </section>
 
@@ -1098,6 +1008,8 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
           )}
         </button>
       </form>
+
+      {!isSearchActive ? <DiscoverHomeSummary items={homeSummaryItems} /> : null}
 
       {showDiscoverHome ? (
         <DiscoverHomeSection homeData={homeData} discoverStateHref={discoverStateHref} />

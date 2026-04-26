@@ -45,7 +45,7 @@ export function AppHeader({ user }: Props) {
     >
       <div className="mx-auto flex w-full max-w-[min(1600px,calc(100vw-1.5rem))] flex-wrap items-center gap-3 px-4 sm:max-w-[min(1720px,calc(100vw-3rem))] sm:px-6">
         <Link
-          className="font-display text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-lg"
+          className="rounded-lg font-brand text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           href="/discover"
         >
           Melodarr

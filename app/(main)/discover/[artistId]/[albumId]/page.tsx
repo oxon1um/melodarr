@@ -257,7 +257,7 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
           className="relative h-36 w-36 sm:h-48 sm:w-48 shrink-0 overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2"
         />
         <div className="space-y-2">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{album.title}</h1>
+          <h1 className="font-brand text-3xl font-semibold tracking-tight">{album.title}</h1>
           <p className="text-lg text-muted">
             <Link
               href={artistHref}

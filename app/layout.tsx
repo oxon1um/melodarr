@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Syne, DM_Sans, Cormorant_Garamond } from "next/font/google";
+import { Syne, DM_Sans, Fraunces } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import "@/styles/globals.css";
 
@@ -15,9 +15,9 @@ const dmSans = DM_Sans({
   display: "swap"
 });
 
-const cormorantGaramond = Cormorant_Garamond({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  variable: "--font-cormorant-garamond",
+  variable: "--font-fraunces",
   weight: ["500", "600", "700"],
   display: "swap"
 });
@@ -37,7 +37,7 @@ export default async function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${syne.variable} ${dmSans.variable} ${cormorantGaramond.variable}`}>
+      <body className={`${syne.variable} ${dmSans.variable} ${fraunces.variable}`}>
         <ToastProvider>
           <div className="relative min-h-screen text-text">
             <a
