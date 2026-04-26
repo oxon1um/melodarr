@@ -2,6 +2,15 @@
   "name": "melodarr",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oxon1um/melodarr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/oxon1um/melodarr/issues"
+  },
+  "homepage": "https://github.com/oxon1um/melodarr#readme",
   "type": "module",
   "scripts": {
     "dev": "next dev",
