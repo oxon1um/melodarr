@@ -1,40 +1,14 @@
-import { createHmac } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { test, expect } from "@playwright/test";
 
 const IMAGE_UPSTREAM_PORT = Number.parseInt(process.env.PLAYWRIGHT_IMAGE_UPSTREAM_PORT ?? "45731", 10);
 const IMAGE_ORIGIN = `http://127.0.0.1:${IMAGE_UPSTREAM_PORT}`;
-const SESSION_SECRET = process.env.SESSION_SECRET ?? "playwright-test-session-secret-with-enough-entropy-for-ci";
 const PNG_1X1 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
   "base64",
 );
 
 let imageServer: Server;
-
-const encodeSignature = (value: Buffer): string =>
-  value
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-
-const createSignedImagePath = (src: string): string => {
-  const expiresAt = Math.floor(Date.now() / 1000) + 60;
-  const signature = encodeSignature(
-    createHmac("sha256", SESSION_SECRET)
-      .update(`${src}:${expiresAt}`)
-      .digest(),
-  );
-
-  const params = new URLSearchParams({
-    src,
-    exp: String(expiresAt),
-    sig: signature,
-  });
-
-  return `/api/image?${params.toString()}`;
-};
 
 const LONG_REMOTE_IMAGE_PATH = "/cache/https://coverartarchive.org/release/fc4ca5a7-ac12-4a30-92db-6c44c971349a/42537485144-1200.jpg";
 
@@ -95,12 +69,7 @@ test("keeps the sticky app header outside the centered content container", async
 });
 
 test("loads configured private cover images through the signed image proxy", async ({ page }) => {
-  await page.goto("/setup");
-
-  const imagePath = createSignedImagePath(`${IMAGE_ORIGIN}${LONG_REMOTE_IMAGE_PATH}`);
-  const responsePromise = page.waitForResponse((response) =>
-    response.url().includes("/api/image") && response.status() === 200,
-  );
+  const expectedUpstreamUrl = `${IMAGE_ORIGIN}${LONG_REMOTE_IMAGE_PATH}`;
   const optimizerResponses: string[] = [];
 
   page.on("response", (response) => {
@@ -109,16 +78,18 @@ test("loads configured private cover images through the signed image proxy", asy
     }
   });
 
-  await page.evaluate((src) => {
-    const image = document.createElement("img");
-    image.alt = "Smoke test cover";
-    image.src = src;
-    image.dataset.testid = "smoke-cover";
-    document.body.append(image);
-  }, imagePath);
+  await page.goto("/e2e-cover-image");
 
-  const response = await responsePromise;
-  await expect(page.locator("img[data-testid='smoke-cover']")).toHaveJSProperty("naturalWidth", 1);
-  expect(response.headers()["content-type"]).toContain("image/");
+  const image = page.getByAltText("Smoke test cover");
+
+  await expect(image).toBeVisible();
+  const renderedSrc = await image.getAttribute("src");
+
+  expect(renderedSrc).toBeTruthy();
+  expect(renderedSrc?.startsWith("/api/image?")).toBe(true);
+
+  const renderedUrl = new URL(renderedSrc ?? "", page.url());
+  expect(renderedUrl.searchParams.get("src")).toBe(expectedUpstreamUrl);
+  await expect(image).toHaveJSProperty("naturalWidth", 1);
   expect(optimizerResponses).toHaveLength(0);
 });
