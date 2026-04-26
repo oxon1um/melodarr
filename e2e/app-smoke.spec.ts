@@ -1,6 +1,8 @@
 import { createServer, type Server } from "node:http";
 import { test, expect } from "@playwright/test";
 
+import { prisma } from "../lib/db/prisma";
+
 const IMAGE_UPSTREAM_PORT = Number.parseInt(process.env.PLAYWRIGHT_IMAGE_UPSTREAM_PORT ?? "45731", 10);
 const IMAGE_ORIGIN = `http://127.0.0.1:${IMAGE_UPSTREAM_PORT}`;
 const PNG_1X1 = Buffer.from(
@@ -11,6 +13,14 @@ const PNG_1X1 = Buffer.from(
 let imageServer: Server;
 
 const LONG_REMOTE_IMAGE_PATH = "/cache/https://coverartarchive.org/release/fc4ca5a7-ac12-4a30-92db-6c44c971349a/42537485144-1200.jpg";
+
+async function resetDatabaseState(): Promise<void> {
+  await prisma.auditLog.deleteMany();
+  await prisma.request.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.appConfig.deleteMany();
+}
 
 test.beforeAll(async () => {
   imageServer = createServer((req, res) => {
@@ -40,6 +50,50 @@ test.afterAll(async () => {
   await new Promise<void>((resolve, reject) => {
     imageServer.close((error) => (error ? reject(error) : resolve()));
   });
+
+  await prisma.$disconnect();
+});
+
+test.beforeEach(async () => {
+  await resetDatabaseState();
+});
+
+test("returns a liveness response for container health checks", async ({ request }) => {
+  const response = await request.get("/api/health/live");
+  const payload = (await response.json()) as { status?: string };
+
+  expect(response.status()).toBe(200);
+  expect(payload).toEqual({ status: "ok" });
+});
+
+test("renders the setup wizard with the required account fields", async ({ page }) => {
+  await page.goto("/setup");
+
+  await expect(page.getByRole("heading", { name: "Welcome to Melodarr" })).toBeVisible();
+  await expect(page.getByLabel("Username")).toBeVisible();
+  await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Confirm Password")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create Administrator" })).toBeEnabled();
+  await expect(page.getByText("Configure Jellyfin and Lidarr in Settings")).toBeVisible();
+});
+
+test("validates setup password confirmation before submitting", async ({ page }) => {
+  await page.goto("/setup");
+
+  await page.getByLabel("Username").fill("admin");
+  await page.getByLabel("Password", { exact: true }).fill("correct-password");
+  await page.getByLabel("Confirm Password").fill("different-password");
+  await page.getByRole("button", { name: "Create Administrator" }).click();
+
+  await expect(page.getByText("Passwords do not match.")).toBeVisible();
+  await expect(page).toHaveURL(/\/setup$/);
+});
+
+test("redirects protected discovery pages to setup before initialization", async ({ page }) => {
+  await page.goto("/discover");
+
+  await expect(page).toHaveURL(/\/setup$/);
+  await expect(page.getByRole("heading", { name: "Welcome to Melodarr" })).toBeVisible();
 });
 
 test("keeps the sticky app header outside the centered content container", async ({ page }) => {

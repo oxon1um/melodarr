@@ -66,6 +66,17 @@ jobs:
       - name: Run verification gate
         run: npm run verify
 
+      - name: Upload Playwright diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+          if-no-files-found: ignore
+
   build-and-push:
     runs-on: ubuntu-latest
     needs: verify
