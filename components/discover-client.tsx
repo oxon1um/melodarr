@@ -494,8 +494,8 @@ function DiscoverHomeSection({ homeData, discoverStateHref }: DiscoverHomeSectio
       <section className="space-y-5 sm:space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-text sm:text-[2rem]">
-              Fresh this week
+            <h2 className="font-brand text-2xl font-semibold tracking-tight text-text sm:text-[2rem]">
+              Freshly added this week
             </h2>
             <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-[0.95rem]">
               Recent imports from Lidarr, ready to open, play, or use as a starting point for the next request.

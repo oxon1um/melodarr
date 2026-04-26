@@ -224,7 +224,7 @@ export function AdminSettingsForm() {
   return (
     <Card className="space-y-8">
       <div className="pb-2">
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="font-brand text-3xl font-semibold tracking-tight">Settings</h1>
       </div>
 
       <form className="grid gap-8 lg:grid-cols-2" onSubmit={save}>

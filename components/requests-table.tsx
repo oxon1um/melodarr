@@ -177,7 +177,7 @@ export function RequestsTable({ admin = false }: Props) {
     <Card className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">
+          <h1 className="font-brand text-3xl font-semibold tracking-tight">
             {admin ? "Manage Requests" : "My Requests"}
           </h1>
           <p className="text-sm text-muted">
