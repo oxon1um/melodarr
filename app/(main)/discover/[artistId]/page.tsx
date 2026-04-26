@@ -53,7 +53,7 @@ const getReleaseSortFromParam = (sortParam: string | null): ReleaseSort =>
     : DEFAULT_RELEASE_SORT;
 
 const getViewModeFromParam = (viewParam: string | null): ViewMode =>
-  viewParam === "list" ? "list" : "grid";
+  viewParam === "grid" ? "grid" : "list";
 
 const chooseImage = (images?: ImageAsset[]) => {
   return pickPreferredImageUrl(images, ["cover", "poster", "fanart", "banner"]);
@@ -212,7 +212,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
     } else {
       params.set("sort", sort);
     }
-    if (viewMode === "grid") {
+    if (viewMode === "list") {
       params.delete("view");
     } else {
       params.set("view", viewMode);
@@ -337,7 +337,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
   if (sort !== DEFAULT_RELEASE_SORT) {
     artistParams.set("sort", sort);
   }
-  if (viewMode !== "grid") {
+  if (viewMode !== "list") {
     artistParams.set("view", viewMode);
   }
   const artistHref = (`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}?${artistParams.toString()}`) as Route;
@@ -367,7 +367,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
           imageClassName="object-cover object-center"
         />
         <div className="max-w-3xl self-start space-y-3">
-          <h1 className="font-display text-3xl font-semibold leading-none tracking-tight">{artist.artistName}</h1>
+          <h1 className="font-brand text-3xl font-semibold leading-none tracking-tight">{artist.artistName}</h1>
           {availableCount > 0 && (
             <p className="inline-flex items-center gap-1.5 text-sm text-muted">
               <svg className="h-3.5 w-3.5 text-success shrink-0" fill="currentColor" viewBox="0 0 20 20">

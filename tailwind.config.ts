@@ -9,6 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
+        brand: ["var(--font-fraunces)", "serif"],
         display: ["var(--font-syne)", "sans-serif"],
         body: ["var(--font-dm-sans)", "sans-serif"]
       },
