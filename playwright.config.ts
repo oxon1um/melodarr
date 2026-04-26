@@ -9,7 +9,13 @@ export default defineConfig({
   fullyParallel: true,
   workers: 1,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["html", { open: "never" }]
+      ]
+    : "list",
+  outputDir: "test-results",
   webServer: {
     command: "npm run start",
     url: `${baseURL}/setup`,
@@ -24,7 +30,9 @@ export default defineConfig({
   },
   use: {
     baseURL,
+    screenshot: "only-on-failure",
     trace: "on-first-retry",
+    video: "retain-on-failure",
   },
   projects: [
     {
