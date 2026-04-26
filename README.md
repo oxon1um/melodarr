@@ -1,5 +1,7 @@
 <a id="readme-top"></a>
 
+# Melodarr
+
 <!-- PROJECT SHIELDS -->
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
@@ -11,10 +13,8 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <h3 align="center">Melodarr</h3>
-
   <p align="center">
-    Dockerized music discovery and requests for Lidarr with optional Jellyfin login.
+    Self-hosted music discovery and requests for Lidarr with optional Jellyfin login.
     <br />
     <br />
     <a href="https://github.com/oxon1um/melodarr/issues/new?labels=bug">Report Bug</a>
@@ -47,6 +47,7 @@
     <li><a href="#development">Development</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
   </ol>
 </details>
 
@@ -55,11 +56,13 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-Melodarr is a music discovery and request application for [Lidarr](https://lidarr.audio/),
-inspired by [Seerr](https://github.com/seerr-team/seerr). It helps users browse artists,
-albums, and tracks, then submit requests that are tracked and automatically added to Lidarr.
-[Jellyfin](https://jellyfin.org/) can optionally be used for login, so users can sign in with
-their existing Jellyfin credentials instead of creating separate Melodarr-only accounts.
+Melodarr is a self-hosted music discovery and request application for
+[Lidarr](https://lidarr.audio/), inspired by [Seerr](https://github.com/seerr-team/seerr).
+It gives Lidarr users a friendlier way to discover artists, albums, singles, and tracks,
+check whether music is already available, and submit requests that can be reviewed,
+approved, and automatically sent to Lidarr. [Jellyfin](https://jellyfin.org/) can optionally
+be used for login, so household users can sign in with existing Jellyfin credentials instead
+of creating separate Melodarr-only accounts.
 
 Key features:
 
@@ -285,6 +288,15 @@ npm run verify
 
 See [Development Workflow](docs/development-workflow.md) for the required branch, pull request,
 and verification-gate process.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- LICENSE -->
+## License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
