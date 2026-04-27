@@ -377,8 +377,6 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
             const rotateY = offset * -24;
             const scale = 1 - distance * 0.12;
             const opacity = Math.max(0, 1 - distance * 0.24);
-            const blur = distance === 0 ? 0 : Math.min(distance * 0.35, 1);
-            const isActive = distance === 0;
 
             const card = (
               <>
@@ -390,7 +388,6 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
                     className="relative h-full w-full"
                     imageClassName="object-cover"
                   />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[rgba(9,8,10,0.68)] to-transparent" />
                 </div>
               </>
             );
@@ -402,11 +399,10 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
                 style={{
                   transform: `translate3d(${translateX}px, ${translateY}px, ${-distance * 90}px) rotateY(${rotateY}deg) scale(${scale})`,
                   opacity,
-                  filter: `blur(${blur}px) saturate(${isActive ? 1 : 0.9})`,
                   zIndex: 20 - distance,
                   transition: isDragging
                     ? "none"
-                    : "transform 620ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms ease-out, filter 260ms ease-out"
+                    : "transform 620ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms ease-out"
                 }}
               >
                 {href ? (
