@@ -469,6 +469,24 @@ const albumSearchKey = (album: Pick<LidarrAlbumSearchResult, "title" | "artistNa
 const matchesAlbumSearchTerm = (album: Pick<LidarrAlbumSearchResult, "title" | "artistName">, term: string): boolean =>
   matchesSearchText(album.title, term) || matchesSearchText(album.artistName, term);
 
+const matchesSongSearchTerm = (song: Pick<LidarrSongSearchResult, "title" | "albumTitle">, term: string): boolean =>
+  matchesSearchText(song.title, term) || matchesSearchText(song.albumTitle, term);
+
+const songToAlbumSearchResult = (song: LidarrSongSearchResult): LidarrAlbumSearchResult | null => {
+  const title = song.albumTitle ?? song.title;
+  if (!title || !song.artistName) {
+    return null;
+  }
+
+  return {
+    title,
+    artistName: song.artistName,
+    foreignAlbumId: song.foreignAlbumId,
+    foreignArtistId: song.foreignArtistId,
+    images: song.images
+  };
+};
+
 const matchesArtistIdentity = (
   album: Pick<LidarrArtistAlbum, "artistName" | "foreignArtistId"> & { artist?: { artistName?: string; foreignArtistId?: string } },
   foreignArtistId: string,
@@ -1674,9 +1692,10 @@ export class LidarrClient {
         const encoded = encodeURIComponent(term);
         const rules = await this.getReleaseFilterRules(metadataProfileId);
 
-        const [artists, albumsRaw, libraryAlbumsRaw] = await Promise.all([
+        const [artists, albumsRaw, songsRaw, libraryAlbumsRaw] = await Promise.all([
           this.searchArtists(term),
           this.tryRequest<unknown[]>(`/api/v1/album/lookup?term=${encoded}`),
+          this.tryRequest<unknown[]>(`/api/v1/song/lookup?term=${encoded}`),
           this.getAllAlbums()
         ]);
 
@@ -1685,6 +1704,12 @@ export class LidarrClient {
           .filter((item): item is LidarrAlbumSearchResult => Boolean(item));
         const libraryAlbums = (libraryAlbumsRaw ?? [])
           .map(normalizeAlbum)
+          .filter((item): item is LidarrAlbumSearchResult => Boolean(item));
+        const songMatchedAlbums = (songsRaw ?? [])
+          .map(normalizeSong)
+          .filter((item): item is LidarrSongSearchResult => Boolean(item))
+          .filter((song) => matchesSongSearchTerm(song, term))
+          .map(songToAlbumSearchResult)
           .filter((item): item is LidarrAlbumSearchResult => Boolean(item));
         const artistExpandedAlbums = await this.expandAlbumsFromArtists(artists, libraryAlbums, rules, metadataProfileId);
         const enrichedArtists = await this.enrichDiscoverArtists(artists);
@@ -1717,9 +1742,10 @@ export class LidarrClient {
         }).filter((album) => isReleaseAllowedByRules(album, rules));
         const releases = await this.hydrateDiscoverAlbumResults(
           this.mergeAlbumCollections(
-          artistScopedAlbums,
-          artistExpandedAlbums,
-          libraryAlbumsMatchingTerm
+            artistScopedAlbums,
+            artistExpandedAlbums,
+            songMatchedAlbums,
+            libraryAlbumsMatchingTerm
           )
         );
         const { albums, singles } = this.splitAlbumResultsByGroup(releases);

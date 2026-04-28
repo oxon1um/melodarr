@@ -1334,6 +1334,54 @@ let fetchMock: ReturnType<typeof vi.fn<(input: RequestInfo | URL, init?: Request
     });
   });
 
+  it("surfaces albums from matching song title search results", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/artist/lookup?term=Alors%20on%20danse")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      if (url.includes("/api/v1/album/lookup?term=Alors%20on%20danse")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      if (url.includes("/api/v1/song/lookup?term=Alors%20on%20danse")) {
+        return Promise.resolve(
+          jsonResponse([
+            {
+              title: "Alors on danse",
+              artistName: "Stromae",
+              albumTitle: "Cheese",
+              foreignAlbumId: "album-cheese",
+              foreignArtistId: "artist-stromae",
+              images: [{ url: "/cheese.jpg" }]
+            }
+          ])
+        );
+      }
+
+      if (url.endsWith("/api/v1/album")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const client = new LidarrClient("http://lidarr", "test-key");
+    const results = await client.searchDiscover("Alors on danse");
+
+    expect(results.albums).toEqual([
+      expect.objectContaining({
+        title: "Cheese",
+        artistName: "Stromae",
+        foreignAlbumId: "album-cheese",
+        foreignArtistId: "artist-stromae",
+        images: [{ url: "http://lidarr/cheese.jpg" }]
+      })
+    ]);
+  });
+
   it("counts track files by album id for availability checks", async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
