@@ -987,7 +987,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search artists, albums, singles, songs..."
+            placeholder="Search artists, albums, singles..."
             className="field h-12 w-full pl-4 pr-4"
           />
         </div>
