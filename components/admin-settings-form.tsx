@@ -320,76 +320,94 @@ export function AdminSettingsForm() {
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block text-sm" htmlFor="lidarr-url">
-                <span className="mb-2 block text-muted">Server URL</span>
-                <input
-                  id="lidarr-url"
-                  type="url"
-                  value={state.lidarrUrl ?? ""}
-                  onChange={(event) => setState((prev) => ({ ...prev, lidarrUrl: event.target.value }))}
-                  className="field"
-                  placeholder="http://lidarr:8686"
-                />
-              </label>
-              <label className="block text-sm" htmlFor="lidarr-api-key">
-                <span className="mb-2 block text-muted">API Key</span>
-                <input
-                  id="lidarr-api-key"
-                  value={state.lidarrApiKey ?? ""}
-                  onChange={(event) =>
-                    setState((prev) => ({ ...prev, lidarrApiKey: event.target.value }))
-                  }
-                  className="field"
-                  placeholder="Paste API key"
-                />
-              </label>
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block text-sm" htmlFor="lidarr-url">
+                  <span className="mb-2 block text-muted">Server URL</span>
+                  <input
+                    id="lidarr-url"
+                    type="url"
+                    value={state.lidarrUrl ?? ""}
+                    onChange={(event) => setState((prev) => ({ ...prev, lidarrUrl: event.target.value }))}
+                    className="field"
+                    placeholder="http://lidarr:8686"
+                  />
+                </label>
+                <label className="block text-sm" htmlFor="lidarr-api-key">
+                  <span className="mb-2 block text-muted">API Key</span>
+                  <input
+                    id="lidarr-api-key"
+                    value={state.lidarrApiKey ?? ""}
+                    onChange={(event) =>
+                      setState((prev) => ({ ...prev, lidarrApiKey: event.target.value }))
+                    }
+                    className="field"
+                    placeholder="Paste API key"
+                  />
+                </label>
+              </div>
 
-              <label className="block text-sm" htmlFor="lidarr-root-folder">
-                <span className="mb-2 block text-muted">Root Folder</span>
-                <input
-                  id="lidarr-root-folder"
-                  value={state.lidarrRootFolder ?? ""}
-                  onChange={(event) =>
-                    setState((prev) => ({ ...prev, lidarrRootFolder: event.target.value }))
-                  }
-                  className="field"
-                  placeholder="/music"
-                />
-              </label>
-              <label className="block text-sm" htmlFor="lidarr-quality-profile">
-                <span className="mb-2 block text-muted">Quality Profile ID</span>
-                <input
-                  id="lidarr-quality-profile"
-                  type="number"
-                  value={state.lidarrQualityProfileId ?? ""}
-                  onChange={(event) =>
-                    setState((prev) => ({
-                      ...prev,
-                      lidarrQualityProfileId: event.target.value ? Number(event.target.value) : null
-                    }))
-                  }
-                  className="field"
-                  placeholder="1"
-                />
-              </label>
+              <details className="group rounded-2xl border border-[var(--edge)] bg-[var(--bg-soft)]/40 p-4">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-panel [&::-webkit-details-marker]:hidden">
+                  <span>
+                    Advanced Lidarr defaults
+                    <span className="mt-1 block text-xs font-normal text-muted">
+                      Optional overrides for new artists when Lidarr does not provide defaults.
+                    </span>
+                  </span>
+                  <span className="text-muted transition-transform group-open:rotate-180" aria-hidden>
+                    ▾
+                  </span>
+                </summary>
 
-              <label className="block text-sm md:col-span-2" htmlFor="lidarr-metadata-profile">
-                <span className="mb-2 block text-muted">Metadata Profile ID (optional)</span>
-                <input
-                  id="lidarr-metadata-profile"
-                  type="number"
-                  value={state.lidarrMetadataProfileId ?? ""}
-                  onChange={(event) =>
-                    setState((prev) => ({
-                      ...prev,
-                      lidarrMetadataProfileId: event.target.value ? Number(event.target.value) : null
-                    }))
-                  }
-                  className="field"
-                  placeholder="Optional"
-                />
-              </label>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <label className="block text-sm" htmlFor="lidarr-root-folder">
+                    <span className="mb-2 block text-muted">Root Folder</span>
+                    <input
+                      id="lidarr-root-folder"
+                      value={state.lidarrRootFolder ?? ""}
+                      onChange={(event) =>
+                        setState((prev) => ({ ...prev, lidarrRootFolder: event.target.value }))
+                      }
+                      className="field"
+                      placeholder="/music"
+                    />
+                  </label>
+                  <label className="block text-sm" htmlFor="lidarr-quality-profile">
+                    <span className="mb-2 block text-muted">Quality Profile ID</span>
+                    <input
+                      id="lidarr-quality-profile"
+                      type="number"
+                      value={state.lidarrQualityProfileId ?? ""}
+                      onChange={(event) =>
+                        setState((prev) => ({
+                          ...prev,
+                          lidarrQualityProfileId: event.target.value ? Number(event.target.value) : null
+                        }))
+                      }
+                      className="field"
+                      placeholder="1"
+                    />
+                  </label>
+
+                  <label className="block text-sm md:col-span-2" htmlFor="lidarr-metadata-profile">
+                    <span className="mb-2 block text-muted">Metadata Profile ID (optional)</span>
+                    <input
+                      id="lidarr-metadata-profile"
+                      type="number"
+                      value={state.lidarrMetadataProfileId ?? ""}
+                      onChange={(event) =>
+                        setState((prev) => ({
+                          ...prev,
+                          lidarrMetadataProfileId: event.target.value ? Number(event.target.value) : null
+                        }))
+                      }
+                      className="field"
+                      placeholder="Optional"
+                    />
+                  </label>
+                </div>
+              </details>
             </div>
           </section>
         </div>
