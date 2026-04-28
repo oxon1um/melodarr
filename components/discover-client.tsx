@@ -85,6 +85,8 @@ const emptyResults: DiscoveryResults = {
 };
 
 const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
+const DISCOVER_RELEASE_GRID_CLASS_NAME =
+  "grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr))]";
 
 const chooseArtistImage = (images?: ImageAsset[]) =>
   pickPreferredImageUrl(images, ["cover", "poster", "fanart", "banner"]);
@@ -1165,11 +1167,11 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
       {(filter === "all" || filter === "albums") && displayedAlbums.length > 0 ? (
         <section className="space-y-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">Albums</h2>
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {visibleAlbums.map((album, index) => {
-            const key = albumKey({
-              foreignAlbumId: album.foreignAlbumId,
-              artistName: album.artistName,
+          <div className={DISCOVER_RELEASE_GRID_CLASS_NAME}>
+            {visibleAlbums.map((album, index) => {
+              const key = albumKey({
+                foreignAlbumId: album.foreignAlbumId,
+                artistName: album.artistName,
                 title: album.title
               });
               const albumRequestKey = `album:${key}`;
@@ -1270,7 +1272,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
       {(filter === "all" || filter === "singles") && displayedSingles.length > 0 ? (
         <section className="space-y-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">Singles</h2>
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          <div className={DISCOVER_RELEASE_GRID_CLASS_NAME}>
             {visibleSingles.map((single, index) => {
               const key = albumKey({
                 foreignAlbumId: single.foreignAlbumId,
