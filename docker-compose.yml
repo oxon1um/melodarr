@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/oxon1um/melodarr:latest
+    image: ghcr.io/oxon1um/melodarr:v0.1.0-alpha1
     restart: unless-stopped
     ports:
       - "30000:3000"
