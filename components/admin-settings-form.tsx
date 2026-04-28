@@ -223,8 +223,11 @@ export function AdminSettingsForm() {
 
   return (
     <Card className="space-y-8">
-      <div className="pb-2">
-        <h1 className="font-brand text-3xl font-semibold tracking-tight">Settings</h1>
+      <div className="space-y-1 pb-2">
+        <h1 className="font-brand text-3xl font-semibold tracking-tight">Configure Melodarr</h1>
+        <p className="text-sm text-muted">
+          Connect Lidarr and Jellyfin, set request defaults, and manage account access.
+        </p>
       </div>
 
       <form className="grid gap-8 lg:grid-cols-2" onSubmit={save}>
