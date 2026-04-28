@@ -65,6 +65,8 @@ const albumKey = (album: { foreignAlbumId?: string; title: string }) =>
 const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
 const ARTIST_RELEASE_GRID_CLASS_NAME =
   "grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]";
+const RELEASE_TILE_TITLE_CLASS_NAME =
+  "line-clamp-3 break-words text-sm font-medium leading-snug text-text [overflow-wrap:anywhere]";
 
 type ArtistDetailContentProps = {
   artistId: string;
@@ -512,7 +514,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                       </Link>
                       <div className={viewMode === "list" ? "flex min-w-0 flex-1 flex-col justify-between" : ""}>
                         <div className={viewMode === "list" ? "min-w-0" : "mt-3 space-y-1"}>
-                          <p className="truncate text-sm font-medium text-text">{album.title}</p>
+                          <p className={RELEASE_TILE_TITLE_CLASS_NAME}>{album.title}</p>
                           {album.releaseDate && (
                             <p className="text-xs text-muted">{new Date(album.releaseDate).getFullYear()}</p>
                           )}
@@ -615,7 +617,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
                       </Link>
                       <div className={viewMode === "list" ? "flex min-w-0 flex-1 flex-col justify-between" : ""}>
                         <div className={viewMode === "list" ? "min-w-0" : "mt-3 space-y-1"}>
-                          <p className="truncate text-sm font-medium text-text">{single.title}</p>
+                          <p className={RELEASE_TILE_TITLE_CLASS_NAME}>{single.title}</p>
                           {single.releaseDate && (
                             <p className="text-xs text-muted">{new Date(single.releaseDate).getFullYear()}</p>
                           )}

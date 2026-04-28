@@ -87,6 +87,10 @@ const emptyResults: DiscoveryResults = {
 const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
 const DISCOVER_RELEASE_GRID_CLASS_NAME =
   "grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr))]";
+const DISCOVER_RELEASE_CARD_CLASS_NAME =
+  "group rounded-2xl border border-[var(--edge)] bg-panel p-4 shadow-[0_18px_42px_rgba(17,13,22,0.08)] transition-all hover:-translate-y-0.5 hover:border-[var(--edge-bright)] hover:bg-panel-2/45 hover:shadow-[0_22px_54px_rgba(17,13,22,0.12)] motion-safe:animate-fade-in-up";
+const RELEASE_TITLE_CLASS_NAME =
+  "block text-base font-medium leading-snug tracking-tight text-text line-clamp-3 break-words [overflow-wrap:anywhere]";
 
 const chooseArtistImage = (images?: ImageAsset[]) =>
   pickPreferredImageUrl(images, ["cover", "poster", "fanart", "banner"]);
@@ -378,7 +382,7 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
             const translateY = distance === 0 ? -8 : 6 + distance * 8;
             const rotateY = offset * -24;
             const scale = 1 - distance * 0.12;
-            const opacity = Math.max(0, 1 - distance * 0.24);
+            const opacity = distance <= 1 ? 1 : Math.max(0.48, 1 - distance * 0.16);
 
             const card = (
               <>
@@ -983,7 +987,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search artists, albums, singles..."
+            placeholder="Search artists, albums, singles, songs..."
             className="field h-12 w-full pl-4 pr-4"
           />
         </div>
@@ -1188,7 +1192,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
               return (
                 <article
                   key={`album:${key}`}
-                  className="group rounded-2xl border border-[var(--edge)] bg-panel-2/20 p-4 transition-colors hover:border-[var(--edge-bright)] hover:bg-panel-2/35 motion-safe:animate-fade-in-up"
+                  className={DISCOVER_RELEASE_CARD_CLASS_NAME}
                   style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
@@ -1244,11 +1248,11 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
                     </div>
                     <div className="min-w-0 flex-1">
                       {albumHref ? (
-                        <Link href={albumHref} className="truncate text-base font-medium tracking-tight hover:text-accent-hover">
+                        <Link href={albumHref} className={`${RELEASE_TITLE_CLASS_NAME} hover:text-accent-hover`}>
                           {album.title}
                         </Link>
                       ) : (
-                        <h3 className="truncate text-base font-medium tracking-tight">{album.title}</h3>
+                        <h3 className={RELEASE_TITLE_CLASS_NAME}>{album.title}</h3>
                       )}
                       <p className="truncate text-sm text-muted">{album.artistName}</p>
                       <p className="mt-1.5 text-xs text-muted">
@@ -1293,7 +1297,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
               return (
                 <article
                   key={`single:${key}`}
-                  className="group rounded-2xl border border-[var(--edge)] bg-panel-2/20 p-4 transition-colors hover:border-[var(--edge-bright)] hover:bg-panel-2/35 motion-safe:animate-fade-in-up"
+                  className={DISCOVER_RELEASE_CARD_CLASS_NAME}
                   style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
@@ -1349,11 +1353,11 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
                     </div>
                     <div className="min-w-0 flex-1">
                       {singleHref ? (
-                        <Link href={singleHref} className="truncate text-base font-medium tracking-tight hover:text-accent-hover">
+                        <Link href={singleHref} className={`${RELEASE_TITLE_CLASS_NAME} hover:text-accent-hover`}>
                           {single.title}
                         </Link>
                       ) : (
-                        <h3 className="truncate text-base font-medium tracking-tight">{single.title}</h3>
+                        <h3 className={RELEASE_TITLE_CLASS_NAME}>{single.title}</h3>
                       )}
                       <p className="truncate text-sm text-muted">{single.artistName}</p>
                       <p className="mt-1.5 text-xs text-muted">
@@ -1382,7 +1386,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
             </svg>
           </div>
           <p className="text-base font-medium text-muted">No results for &quot;{submittedQuery || query}&quot;</p>
-          <p className="mt-1.5 text-sm text-muted">Check the spelling or try a different artist name.</p>
+          <p className="mt-1.5 text-sm text-muted">Check the spelling or try a different artist, album, or song.</p>
           <button
             type="button"
             onClick={clearSearch}
