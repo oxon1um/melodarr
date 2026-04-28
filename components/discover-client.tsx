@@ -1184,9 +1184,9 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
               });
 
               return (
-                <Card
+                <article
                   key={`album:${key}`}
-                  className="group motion-safe:animate-fade-in-up"
+                  className="group rounded-2xl border border-[var(--edge)] bg-panel-2/20 p-4 transition-colors hover:border-[var(--edge-bright)] hover:bg-panel-2/35 motion-safe:animate-fade-in-up"
                   style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
@@ -1254,7 +1254,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
                       </p>
                     </div>
                   </div>
-                </Card>
+                </article>
               );
             })}
           </div>
@@ -1289,9 +1289,9 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
               });
 
               return (
-                <Card
+                <article
                   key={`single:${key}`}
-                  className="group motion-safe:animate-fade-in-up"
+                  className="group rounded-2xl border border-[var(--edge)] bg-panel-2/20 p-4 transition-colors hover:border-[var(--edge-bright)] hover:bg-panel-2/35 motion-safe:animate-fade-in-up"
                   style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
                 >
                   <div className="flex gap-4">
@@ -1359,7 +1359,7 @@ export function DiscoverClient({ homeData }: DiscoverClientProps) {
                       </p>
                     </div>
                   </div>
-                </Card>
+                </article>
               );
             })}
           </div>
