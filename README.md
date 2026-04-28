@@ -128,6 +128,9 @@ and Redis together.
    docker compose up -d
    ```
 
+   The included Compose file pins the Melodarr image to `v0.1.0-alpha1`. Update the image tag
+   when upgrading to a newer release.
+
 4. Open Melodarr
    ```sh
    http://localhost:30000
@@ -209,7 +212,7 @@ Default Docker port mapping:
 <!-- DEVELOPMENT -->
 ## Development
 
-Use Node.js 20 for local development.
+Use Node.js 20 for local development, CI, and Docker builds.
 
 1. Install dependencies
    ```sh
@@ -251,6 +254,9 @@ Useful commands:
 | `npm run prisma:generate` | Generate Prisma client |
 | `npm run prisma:push` | Push schema changes to the database |
 | `npm run prisma:migrate` | Apply Prisma migrations |
+
+Docker startup applies checked-in Prisma migrations with `prisma migrate deploy` before starting
+the app.
 
 For request status sync and discover-home freshness, make sure your local app can reach the
 same Lidarr instance configured in Melodarr settings.
