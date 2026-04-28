@@ -63,6 +63,8 @@ const albumKey = (album: { foreignAlbumId?: string; title: string }) =>
   album.foreignAlbumId ?? album.title;
 
 const DEFAULT_RELEASE_SORT: ReleaseSort = "newest";
+const ARTIST_RELEASE_GRID_CLASS_NAME =
+  "grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]";
 
 type ArtistDetailContentProps = {
   artistId: string;
@@ -343,7 +345,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
   const artistHref = (`/discover/${encodeURIComponent(artist.foreignArtistId ?? artistId)}?${artistParams.toString()}`) as Route;
   const releaseGridClassName =
     viewMode === "grid"
-      ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+      ? ARTIST_RELEASE_GRID_CLASS_NAME
       : "space-y-4";
 
   return (
