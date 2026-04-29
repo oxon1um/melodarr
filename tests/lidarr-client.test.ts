@@ -1382,6 +1382,116 @@ let fetchMock: ReturnType<typeof vi.fn<(input: RequestInfo | URL, init?: Request
     ]);
   });
 
+  it("keeps release dates from album lookup results for non-artist searches", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/artist/lookup?term=Racine%20carr%C3%A9e")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      if (url.includes("/api/v1/album/lookup?term=Racine%20carr%C3%A9e")) {
+        return Promise.resolve(
+          jsonResponse([
+            {
+              title: "Racine carrée",
+              artistName: "Stromae",
+              foreignAlbumId: "album-racine",
+              foreignArtistId: "artist-stromae",
+              releaseDate: "2013-08-16",
+              images: [{ url: "/racine.jpg" }]
+            }
+          ])
+        );
+      }
+
+      if (url.includes("/api/v1/song/lookup?term=Racine%20carr%C3%A9e")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      if (url.endsWith("/api/v1/album")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const client = new LidarrClient("http://lidarr", "test-key");
+    const results = await client.searchDiscover("Racine carrée");
+
+    expect(results.albums).toEqual([
+      expect.objectContaining({
+        title: "Racine carrée",
+        releaseDate: "2013-08-16",
+        images: [{ url: "http://lidarr/racine.jpg" }]
+      })
+    ]);
+  });
+
+  it("filters weak single-token release matches from multi-word searches", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/artist/lookup?term=Racine%20carree")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      if (url.includes("/api/v1/album/lookup?term=Racine%20carree")) {
+        return Promise.resolve(
+          jsonResponse([
+            {
+              title: "Racine carrée",
+              artistName: "Stromae",
+              foreignAlbumId: "album-racine",
+              foreignArtistId: "artist-stromae",
+              releaseDate: "2013-08-16",
+              images: [{ url: "/racine.jpg" }]
+            },
+            {
+              title: "Racine",
+              artistName: "Unrelated Artist",
+              foreignAlbumId: "album-racine-only",
+              foreignArtistId: "artist-other",
+              images: [{ url: "/racine-only.jpg" }]
+            },
+            {
+              title: "Carrée",
+              artistName: "Another Artist",
+              foreignAlbumId: "album-carree-only",
+              foreignArtistId: "artist-another",
+              images: [{ url: "/carree-only.jpg" }]
+            },
+            {
+              title: "Racine carre",
+              artistName: "Typo Friendly",
+              foreignAlbumId: "album-racine-typo",
+              foreignArtistId: "artist-typo",
+              images: [{ url: "/racine-typo.jpg" }]
+            }
+          ])
+        );
+      }
+
+      if (url.includes("/api/v1/song/lookup?term=Racine%20carree")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      if (url.endsWith("/api/v1/album")) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const client = new LidarrClient("http://lidarr", "test-key");
+    const results = await client.searchDiscover("Racine carree");
+
+    expect(results.albums.map((album) => album.title)).toEqual([
+      "Racine carrée",
+      "Racine carre"
+    ]);
+  });
+
   it("counts track files by album id for availability checks", async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);

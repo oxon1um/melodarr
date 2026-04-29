@@ -379,6 +379,7 @@ const normalizeAlbum = (raw: unknown): LidarrAlbumSearchResult | null => {
     foreignArtistId: pickString(item, "foreignArtistId") ?? pickString(artist, "foreignArtistId"),
     type: pickString(item, "type", "albumType", "Type"),
     releaseGroup: normalizeReleaseGroup(pickString(item, "type", "albumType", "Type")),
+    releaseDate: pickString(item, "releaseDate", "ReleaseDate"),
     secondaryTypes: pickStringArray(item, "secondaryTypes", "SecondaryTypes"),
     releaseStatuses: pickStringArray(item, "releaseStatuses", "ReleaseStatuses"),
     overview: pickString(item, "overview"),
@@ -463,11 +464,176 @@ const matchesSearchText = (value: string | undefined, term: string): boolean => 
   return Boolean(normalizedValue && normalizedTerm && normalizedValue.includes(normalizedTerm));
 };
 
+const tokenizeSearchText = (value: string | undefined): string[] => {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return [];
+  }
+
+  return normalized
+    .split(/[^a-z0-9]+/u)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+};
+
+const getEditDistance = (left: string, right: string): number => {
+  if (left === right) {
+    return 0;
+  }
+
+  if (left.length === 0) {
+    return right.length;
+  }
+
+  if (right.length === 0) {
+    return left.length;
+  }
+
+  const previousRow = Array.from({ length: right.length + 1 }, (_, index) => index);
+  const currentRow = Array.from({ length: right.length + 1 }, () => 0);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    currentRow[0] = leftIndex;
+
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      currentRow[rightIndex] = Math.min(
+        previousRow[rightIndex] + 1,
+        currentRow[rightIndex - 1] + 1,
+        previousRow[rightIndex - 1] + substitutionCost
+      );
+    }
+
+    previousRow.splice(0, previousRow.length, ...currentRow);
+  }
+
+  return previousRow[right.length] ?? 0;
+};
+
+const isTypoTolerantTokenMatch = (queryToken: string, candidateToken: string): boolean => {
+  if (candidateToken.includes(queryToken) || queryToken.includes(candidateToken)) {
+    return true;
+  }
+
+  const allowedDistance = queryToken.length >= 6 ? 2 : 1;
+  return Math.min(queryToken.length, candidateToken.length) >= 4
+    && getEditDistance(queryToken, candidateToken) <= allowedDistance;
+};
+
+const includesAllSearchTokens = (tokens: string[], queryTokens: string[]): boolean =>
+  queryTokens.every((queryToken) =>
+    tokens.some((candidateToken) => isTypoTolerantTokenMatch(queryToken, candidateToken))
+  );
+
+const getSearchTokenSpan = (tokens: string[], queryTokens: string[]): number | null => {
+  const indexes = queryTokens.map((queryToken) =>
+    tokens.findIndex((candidateToken) => isTypoTolerantTokenMatch(queryToken, candidateToken))
+  );
+
+  if (indexes.some((index) => index === -1)) {
+    return null;
+  }
+
+  return Math.max(...indexes) - Math.min(...indexes);
+};
+
+const scoreAlbumSearchMatch = (
+  album: Pick<LidarrAlbumSearchResult, "title" | "artistName" | "overview">,
+  term: string
+): number | null => {
+  const normalizedTerm = normalizeText(term);
+  if (!normalizedTerm) {
+    return 0;
+  }
+
+  const title = normalizeText(album.title);
+  const artistName = normalizeText(album.artistName);
+  const overview = normalizeText(album.overview);
+  const queryTokens = tokenizeSearchText(term);
+
+  if (title === normalizedTerm) {
+    return 120;
+  }
+
+  if (title?.startsWith(normalizedTerm)) {
+    return 110;
+  }
+
+  if (title?.includes(normalizedTerm)) {
+    return 100;
+  }
+
+  if (queryTokens.length <= 1) {
+    if (artistName === normalizedTerm) {
+      return 90;
+    }
+
+    if (artistName?.startsWith(normalizedTerm)) {
+      return 80;
+    }
+
+    if (title?.includes(normalizedTerm)) {
+      return 70;
+    }
+
+    if (artistName?.includes(normalizedTerm)) {
+      return 55;
+    }
+
+    if (overview?.includes(normalizedTerm)) {
+      return 20;
+    }
+
+    return null;
+  }
+
+  const titleTokens = tokenizeSearchText(album.title);
+  const artistTokens = tokenizeSearchText(album.artistName);
+  const combinedTokens = [...titleTokens, ...artistTokens];
+  const titleSpan = getSearchTokenSpan(titleTokens, queryTokens);
+
+  if (titleSpan !== null) {
+    return Math.max(96 - titleSpan, 70);
+  }
+
+  if (includesAllSearchTokens(combinedTokens, queryTokens)) {
+    return 58;
+  }
+
+  return null;
+};
+
+const rankAlbumSearchResults = (
+  albums: LidarrAlbumSearchResult[],
+  term: string
+): LidarrAlbumSearchResult[] =>
+  albums
+    .map((album, index) => ({ album, index, score: scoreAlbumSearchMatch(album, term) }))
+    .filter((entry): entry is { album: LidarrAlbumSearchResult; index: number; score: number } =>
+      entry.score !== null
+    )
+    .sort((left, right) => {
+      if (left.score !== right.score) {
+        return right.score - left.score;
+      }
+
+      const leftDate = Date.parse(left.album.releaseDate ?? "");
+      const rightDate = Date.parse(right.album.releaseDate ?? "");
+      if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate) && leftDate !== rightDate) {
+        return rightDate - leftDate;
+      }
+
+      return left.index - right.index;
+    })
+    .map((entry) => entry.album);
+
 const albumSearchKey = (album: Pick<LidarrAlbumSearchResult, "title" | "artistName" | "foreignAlbumId">): string =>
   album.foreignAlbumId ?? `${normalizeText(album.artistName) ?? album.artistName}:${normalizeText(album.title) ?? album.title}`;
 
-const matchesAlbumSearchTerm = (album: Pick<LidarrAlbumSearchResult, "title" | "artistName">, term: string): boolean =>
-  matchesSearchText(album.title, term) || matchesSearchText(album.artistName, term);
+const matchesAlbumSearchTerm = (
+  album: Pick<LidarrAlbumSearchResult, "title" | "artistName" | "overview">,
+  term: string
+): boolean => scoreAlbumSearchMatch(album, term) !== null;
 
 const matchesSongSearchTerm = (song: Pick<LidarrSongSearchResult, "title" | "albumTitle">, term: string): boolean =>
   matchesSearchText(song.title, term) || matchesSearchText(song.albumTitle, term);
@@ -1728,7 +1894,8 @@ export class LidarrClient {
                 matchesArtistIdentity(album, artist.foreignArtistId ?? "", artist.artistName)
               )
             ).filter((album) => isReleaseAllowedByRules(album, rules))
-          : lookupAlbums;
+          : rankAlbumSearchResults(lookupAlbums, term)
+              .filter((album) => isReleaseAllowedByRules(album, rules));
         const libraryAlbumsMatchingTerm = libraryAlbums.filter((album) => {
           if (!matchesAlbumSearchTerm(album, term)) {
             return false;

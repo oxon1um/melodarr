@@ -91,6 +91,9 @@ const DISCOVER_RELEASE_CARD_CLASS_NAME =
   "group rounded-2xl border border-[var(--edge)] bg-panel p-4 shadow-[0_18px_42px_rgba(17,13,22,0.08)] transition-all hover:-translate-y-0.5 hover:border-[var(--edge-bright)] hover:bg-panel-2/45 hover:shadow-[0_22px_54px_rgba(17,13,22,0.12)] motion-safe:animate-fade-in-up";
 const RELEASE_TITLE_CLASS_NAME =
   "block text-base font-medium leading-snug tracking-tight text-text line-clamp-3 break-words [overflow-wrap:anywhere]";
+const COVERFLOW_MAX_VISIBLE_DISTANCE = 4;
+const COVERFLOW_CARD_SPACING_PX = 196;
+const COVERFLOW_EDGE_TUCK_PX = 34;
 
 const chooseArtistImage = (images?: ImageAsset[]) =>
   pickPreferredImageUrl(images, ["cover", "poster", "fanart", "banner"]);
@@ -115,6 +118,32 @@ const getReleaseYearLabel = (releaseDate?: string): string => {
   }
 
   return releaseDate.match(/\d{4}/)?.[0] ?? "Unknown year";
+};
+
+const getCircularCoverflowOffset = (index: number, activeIndex: number, total: number): number => {
+  if (total <= 0) {
+    return 0;
+  }
+
+  let offset = index - activeIndex;
+  const half = total / 2;
+
+  if (offset > half) {
+    offset -= total;
+  }
+
+  if (offset < -half) {
+    offset += total;
+  }
+
+  return offset;
+};
+
+const getCoverflowLayer = (offset: number): number => {
+  const distance = Math.abs(offset);
+  const sideTieBreak = offset > 0 ? 1 : 0;
+
+  return 100 - distance * 10 + sideTieBreak;
 };
 
 const hasRenderableArtistCard = (artist: Artist, releases: Album[]): boolean =>
@@ -364,10 +393,10 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
         <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[var(--panel)]/35 to-transparent" />
         <div className="absolute inset-0 [perspective:1400px]">
           {visibleReleases.map((release, index) => {
-            const offset = index - clampedActiveIndex;
+            const offset = getCircularCoverflowOffset(index, clampedActiveIndex, visibleReleases.length);
             const distance = Math.abs(offset);
 
-            if (distance > 4) {
+            if (distance > COVERFLOW_MAX_VISIBLE_DISTANCE) {
               return null;
             }
 
@@ -378,11 +407,17 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
               from: discoverStateHref
             });
             const image = chooseAlbumImage(release.images);
-            const translateX = offset * 196 + dragOffset * Math.max(0.35, 1 - distance * 0.22);
+            const side = Math.sign(offset);
+            const edgeTuck = distance >= 2 ? -side * COVERFLOW_EDGE_TUCK_PX : 0;
+            const translateX =
+              offset * COVERFLOW_CARD_SPACING_PX
+              + edgeTuck
+              + dragOffset * Math.max(0.35, 1 - distance * 0.22);
             const translateY = distance === 0 ? -8 : 6 + distance * 8;
             const rotateY = offset * -24;
             const scale = 1 - distance * 0.12;
             const opacity = distance <= 1 ? 1 : Math.max(0.48, 1 - distance * 0.16);
+            const zIndex = getCoverflowLayer(offset);
 
             const card = (
               <>
@@ -405,7 +440,8 @@ function DiscoverFreshCoverflow({ releases, discoverStateHref }: DiscoverFreshCo
                 style={{
                   transform: `translate3d(${translateX}px, ${translateY}px, ${-distance * 90}px) rotateY(${rotateY}deg) scale(${scale})`,
                   opacity,
-                  zIndex: 20 - distance,
+                  zIndex,
+                  willChange: isDragging ? "transform" : "transform, opacity",
                   transition: isDragging
                     ? "none"
                     : "transform 620ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms ease-out"
