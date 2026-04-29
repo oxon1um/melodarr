@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { IconCheck, IconRefresh, IconX, IconAlbum, IconUser, IconTrash } from "@/components/ui/icons";
@@ -34,6 +34,18 @@ type RequestsPayload = {
   nextCursor?: string | null;
   hasMore?: boolean;
 };
+
+const REQUEST_ROW_CLASS_NAME =
+  "group relative overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2/40 p-4 transition-all hover:border-[var(--edge-bright)] motion-safe:animate-fade-in-up";
+const REQUEST_ROW_ANIMATION_DURATION_MS = 620;
+const REQUEST_ROW_STAGGER_MS = 28;
+const REQUEST_ROW_MAX_DELAY_MS = 180;
+
+const getRequestRowAnimationStyle = (index: number): CSSProperties => ({
+  animationDelay: `${Math.min(index * REQUEST_ROW_STAGGER_MS, REQUEST_ROW_MAX_DELAY_MS)}ms`,
+  animationDuration: `${REQUEST_ROW_ANIMATION_DURATION_MS}ms`,
+  animationFillMode: "both",
+});
 
 const timestamp = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -155,26 +167,8 @@ export function RequestsTable({ admin = false }: Props) {
     await load();
   };
 
-  if (loading) {
-    return (
-      <Card className="space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-1">
-            <div className="skeleton-shimmer h-8 w-48 rounded-lg" />
-            <div className="skeleton-shimmer h-4 w-72 rounded-lg" />
-          </div>
-        </div>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton-shimmer h-24 w-full rounded-2xl" />
-          ))}
-        </div>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="space-y-6">
+    <Card className="space-y-6" aria-busy={loading}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <h1 className="font-brand text-3xl font-semibold tracking-tight">
@@ -186,13 +180,20 @@ export function RequestsTable({ admin = false }: Props) {
               : "See your requests and their current status."}
           </p>
         </div>
-        <button type="button" onClick={() => void load()} className="btn-ghost w-fit rounded-lg">
+        <button
+          type="button"
+          onClick={() => void load()}
+          disabled={loading || loadingMore}
+          className="btn-ghost w-fit rounded-lg"
+        >
           <IconRefresh className="h-4 w-4" />
-          Refresh
+          {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
-      {!items.length ? (
+      {loading && !items.length ? (
+        <RequestListSkeleton />
+      ) : !items.length ? (
         <div className="empty-state empty-state-warm">
           <div className="mb-5 flex h-20 w-20 mx-auto items-center justify-center rounded-full border border-[var(--edge)] bg-panel-2/30">
             <svg aria-hidden="true" className="h-10 w-10 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
@@ -215,8 +216,8 @@ export function RequestsTable({ admin = false }: Props) {
             return (
               <article
                 key={item.id}
-                className="group relative overflow-hidden rounded-2xl border border-[var(--edge)] bg-panel-2/40 p-4 transition-all hover:border-[var(--edge-bright)] motion-safe:animate-fade-in-up"
-                style={{ animationDelay: `${Math.min(index * 50, 280)}ms` }}
+                className={REQUEST_ROW_CLASS_NAME}
+                style={getRequestRowAnimationStyle(index)}
               >
                 <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent" />
@@ -321,5 +322,15 @@ export function RequestsTable({ admin = false }: Props) {
         onCancel={() => setDeleteId(null)}
       />
     </Card>
+  );
+}
+
+function RequestListSkeleton() {
+  return (
+    <div className="space-y-3" aria-label="Loading requests">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="skeleton-shimmer h-24 w-full rounded-2xl" />
+      ))}
+    </div>
   );
 }
