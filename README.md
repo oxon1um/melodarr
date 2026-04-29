@@ -58,16 +58,18 @@
 
 Melodarr is a self-hosted music discovery and request application for
 [Lidarr](https://lidarr.audio/), inspired by [Seerr](https://github.com/seerr-team/seerr).
-It gives Lidarr users a friendlier way to discover artists, albums, singles, and tracks,
-check whether music is already available, and submit requests that can be reviewed,
-approved, and automatically sent to Lidarr. [Jellyfin](https://jellyfin.org/) can optionally
+It gives Lidarr users a friendlier way to discover artists, albums, and singles,
+including release matches found from song-title searches. Users can check whether music is
+already available and submit requests that can be reviewed, approved, and automatically sent
+to Lidarr. [Jellyfin](https://jellyfin.org/) can optionally
 be used for login, so household users can sign in with existing Jellyfin credentials instead
 of creating separate Melodarr-only accounts.
 
 Key features:
 
 * First-run setup wizard with admin account creation
-* Browse and discover artists, albums, and tracks via Lidarr-backed discovery
+* Browse and discover artists, albums, and singles via Lidarr-backed discovery
+* Search by artist, release, or song title to find matching albums and singles
 * Request albums or full artist discographies, then submit them to Lidarr
 * Request status tracking from review to Lidarr submission through completed imports
 * Optional admin approval flow or auto-approve mode
@@ -131,6 +133,9 @@ and Redis together.
    The included Compose file pins the Melodarr image to `v0.1.0-alpha1`. Update the image tag
    when upgrading to a newer release.
 
+   Docker startup runs checked-in Prisma migrations with `prisma migrate deploy`. New installs
+   start from an empty database and apply the bundled initial migration automatically.
+
 4. Open Melodarr
    ```sh
    http://localhost:30000
@@ -175,7 +180,8 @@ After the first-run setup wizard:
 1. Create the initial admin account.
 2. Go to **Settings** and configure the Lidarr connection.
 3. Optionally configure Jellyfin login so users can sign in with existing Jellyfin credentials.
-4. Browse discovered artists, albums, and tracks.
+4. Browse discovered artists, albums, and singles. Song-title searches return the matching
+   album or single release when Lidarr provides enough metadata.
 5. Request albums or full artist discographies.
 6. Track each request until Lidarr reports the requested album is available.
 
@@ -204,6 +210,30 @@ Default Docker port mapping:
 3. Set the required environment variables.
 4. Map `/mnt/pool/apps/melodarr/postgres` to `/var/lib/postgresql` for PostgreSQL.
 5. Map `/mnt/pool/apps/melodarr/redis` to `/data` for Redis.
+
+### Upgrading existing alpha installs
+
+Melodarr uses Prisma migrations at container startup. If you ran an early alpha build that created
+tables with `prisma db push` before migrations were added, the first upgrade can fail with Prisma
+`P3005` because the existing database is not empty and has no migration history yet.
+
+This is a one-time baseline step for those existing databases only. New empty deployments do not
+need it.
+
+Run this against the same Docker network and database credentials used by your Melodarr stack, then
+restart the app container:
+
+```sh
+docker run --rm \
+  --network <melodarr-network> \
+  --entrypoint npx \
+  -e DATABASE_URL='postgresql://melodarr:melodarr@db:5432/melodarr?schema=public' \
+  ghcr.io/oxon1um/melodarr:v0.1.0-alpha1 \
+  prisma migrate resolve --applied 20260428100000_init
+```
+
+On systems that require elevated Docker access, prefix the command with `sudo`. Replace the network,
+username, password, host, and database name if your deployment does not use the Compose defaults.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
