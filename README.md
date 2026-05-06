@@ -130,7 +130,7 @@ and Redis together.
    docker compose up -d
    ```
 
-   The included Compose file pins the Melodarr image to `v0.1.0-alpha1`. Update the image tag
+   The included Compose file pins the Melodarr image to `v0.1.0-alpha2`. Update the image tag
    when upgrading to a newer release.
 
    Docker startup runs checked-in Prisma migrations with `prisma migrate deploy`. New installs
@@ -228,7 +228,7 @@ docker run --rm \
   --network <melodarr-network> \
   --entrypoint npx \
   -e DATABASE_URL='postgresql://melodarr:melodarr@db:5432/melodarr?schema=public' \
-  ghcr.io/oxon1um/melodarr:v0.1.0-alpha1 \
+  ghcr.io/oxon1um/melodarr:v0.1.0-alpha2 \
   prisma migrate resolve --applied 20260428100000_init
 ```
 
