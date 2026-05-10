@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 const findMany = vi.fn();
 const requireUser = vi.fn();
 const syncSubmittedAlbumRequestsIfStale = vi.fn();
+const shouldRunRequestListSync = vi.fn();
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -22,9 +23,14 @@ vi.mock("@/lib/requests/service", () => ({
   syncSubmittedAlbumRequestsIfStale
 }));
 
+vi.mock("@/lib/requests/sync-rate-limit", () => ({
+  shouldRunRequestListSync
+}));
+
 describe("GET /api/requests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    shouldRunRequestListSync.mockResolvedValue(true);
   });
 
   it("returns paginated requests with nextCursor and hasMore", async () => {
@@ -96,5 +102,20 @@ describe("GET /api/requests", () => {
       nextCursor: null,
       hasMore: false
     });
+  });
+
+  it("skips request sync when the sync side effect is rate limited", async () => {
+    requireUser.mockResolvedValue({ id: "user-1", role: Role.USER });
+    shouldRunRequestListSync.mockResolvedValue(false);
+    findMany.mockResolvedValue([]);
+
+    const { GET } = await import("../app/api/requests/route");
+    const request = new NextRequest("http://localhost:3000/api/requests");
+    const response = await GET(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(syncSubmittedAlbumRequestsIfStale).not.toHaveBeenCalled();
+    expect(payload).toEqual({ requests: [], nextCursor: null, hasMore: false });
   });
 });

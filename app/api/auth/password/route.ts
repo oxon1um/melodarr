@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { jsonError, jsonOk } from "@/lib/http";
+import { validateMutationRequest } from "@/lib/http/mutation-guard";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
@@ -38,6 +39,9 @@ const canManageLocalPasswords = async (userId: string): Promise<boolean> => {
 
 export async function PUT(req: NextRequest) {
   try {
+    const blocked = await validateMutationRequest(req);
+    if (blocked) return blocked;
+
     const user = await requireUser(req);
     const allowed = await canManageLocalPasswords(user.id);
     if (!allowed) {
@@ -92,6 +96,9 @@ export async function PUT(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const blocked = await validateMutationRequest(req);
+    if (blocked) return blocked;
+
     const actor = await requireAdmin(req);
     const allowed = await canManageLocalPasswords(actor.id);
     if (!allowed) {

@@ -8,6 +8,7 @@ import { CoverImage } from "@/components/ui/cover-image";
 import { IconAlbum, IconDownload } from "@/components/ui/icons";
 import { useToast } from "@/components/ui/toast-provider";
 import { pickPreferredImageUrl, type ImageAsset } from "@/lib/image-selection";
+import { getSafeReturnPath } from "@/lib/navigation/return-path";
 
 type AlbumDetails = {
   title: string;
@@ -63,7 +64,8 @@ function AlbumDetailContent({ artistId, albumId }: AlbumDetailContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const artistNameParam = searchParams.get("artistName") || undefined;
-  const from = searchParams.get("from") || undefined;
+  const fromParam = searchParams.get("from");
+  const from = fromParam ? getSafeReturnPath(fromParam) : undefined;
 
   const toast = useToast();
   const [data, setData] = useState<AlbumData | null>(null);
