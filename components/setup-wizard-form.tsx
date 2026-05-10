@@ -94,7 +94,7 @@ export function SetupWizardForm() {
                 placeholder="Choose a username"
               />
             </label>
-            <div />
+            <div className="hidden sm:block" aria-hidden="true" />
 
             <label className="block text-sm" htmlFor="setup-password">
               <span className="mb-2 block text-muted">Password</span>

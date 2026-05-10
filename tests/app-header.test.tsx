@@ -12,17 +12,22 @@ vi.mock("@/components/ui/logout-button", () => ({
 }));
 
 describe("AppHeader", () => {
-  it("renders account utilities in a right-aligned header zone", async () => {
+  it("renders responsive account utilities in a right-aligned header zone", async () => {
     usePathname.mockReturnValue("/discover");
 
     const { AppHeader } = await import("../components/app-header");
     const markup = renderToStaticMarkup(
-      <AppHeader user={{ username: "test", role: "ADMIN" }} />
+      <AppHeader user={{ username: "very-long-admin-username", role: "ADMIN" }} />
     );
 
     expect(markup).toContain("Main navigation");
-    expect(markup).toContain("ml-auto flex items-center gap-3");
-    expect(markup).toContain(">test<");
+    expect(markup).toContain("ml-auto flex min-w-0 items-center");
+    expect(markup).toContain("truncate");
+    expect(markup).toContain("title=\"very-long-admin-username\"");
+    expect(markup).toContain(">very-long-admin-username<");
+    expect(markup).toContain("aria-expanded=\"false\"");
+    expect(markup).toContain("aria-controls=\"mobile-main-navigation\"");
+    expect(markup).toContain("Open navigation menu");
     expect(markup).toContain(">Logout<");
   });
 });
