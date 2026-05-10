@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { jsonError, jsonOk } from "@/lib/http";
+import { validateMutationRequest } from "@/lib/http/mutation-guard";
 import { approvePendingRequest, deleteRequestFromLidarr } from "@/lib/requests/service";
 
 const updateSchema = z.object({
@@ -15,6 +16,9 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const blocked = await validateMutationRequest(req);
+    if (blocked) return blocked;
+
     await requireAdmin(req);
     const { id } = await context.params;
     const body = updateSchema.parse(await req.json());
@@ -52,6 +56,9 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const blocked = await validateMutationRequest(req);
+    if (blocked) return blocked;
+
     await requireAdmin(req);
     const { id } = await context.params;
 

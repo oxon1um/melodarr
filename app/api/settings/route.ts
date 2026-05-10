@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 import { jsonError, jsonOk } from "@/lib/http";
+import { validateMutationRequest } from "@/lib/http/mutation-guard";
 import { JellyfinClient } from "@/lib/jellyfin/client";
 import { LidarrClient } from "@/lib/lidarr/client";
 import { prisma } from "@/lib/db/prisma";
@@ -59,6 +60,9 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const blocked = await validateMutationRequest(req);
+    if (blocked) return blocked;
+
     await requireAdmin(req);
     const payload = settingsSchema.parse(await req.json());
 

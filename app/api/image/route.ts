@@ -448,6 +448,8 @@ export async function GET(req: NextRequest) {
     const headers = new Headers();
     headers.set("Content-Type", contentType);
     headers.set("Cache-Control", CACHE_CONTROL);
+    headers.set("Referrer-Policy", "no-referrer");
+    headers.set("X-Content-Type-Options", "nosniff");
 
     return new NextResponse(response.body, {
       status: 200,

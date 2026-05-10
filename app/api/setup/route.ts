@@ -6,6 +6,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { attachSessionCookie, createSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { jsonError } from "@/lib/http";
+import { validateMutationRequest } from "@/lib/http/mutation-guard";
 import { getRuntimeSecret } from "@/lib/runtime/secret";
 
 const setupSchema = z.object({
@@ -15,6 +16,9 @@ const setupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const blocked = await validateMutationRequest(req);
+    if (blocked) return blocked;
+
     const initialized = await isAppInitialized();
     if (initialized) {
       return jsonError("Setup has already been completed", 409);

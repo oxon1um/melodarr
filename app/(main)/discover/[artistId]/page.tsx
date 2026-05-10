@@ -15,6 +15,7 @@ import {
   sortReleases
 } from "@/lib/discover/release-browser";
 import { pickPreferredImageUrl, type ImageAsset } from "@/lib/image-selection";
+import { getSafeReturnPath } from "@/lib/navigation/return-path";
 import { useProgressiveCount } from "@/lib/use-progressive-count";
 
 type ArtistDetails = {
@@ -76,7 +77,7 @@ function ArtistDetailContent({ artistId }: ArtistDetailContentProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const artistName = searchParams.get("artistName") || undefined;
-  const from = searchParams.get("from") || "/discover";
+  const from = getSafeReturnPath(searchParams.get("from"));
   const sortParam = searchParams.get("sort");
   const viewParam = searchParams.get("view");
 
