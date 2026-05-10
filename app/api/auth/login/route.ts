@@ -2,14 +2,13 @@ import { Role } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isAppInitialized } from "@/lib/app-state";
+import { enforceLoginRateLimit } from "@/lib/auth/login-rate-limit";
 import { createSession, attachSessionCookie } from "@/lib/auth/session";
-import { clientIp } from "@/lib/auth/request";
 import { verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db/prisma";
 import { jsonError } from "@/lib/http";
 import { isHttpsRequest } from "@/lib/http/protocol";
 import { authenticateWithJellyfin } from "@/lib/jellyfin/client";
-import { enforceRateLimit } from "@/lib/rate-limit/simple";
 import { getRuntimeSecret } from "@/lib/runtime/secret";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
@@ -74,13 +73,13 @@ export async function POST(req: NextRequest) {
 
     await getRuntimeSecret();
 
-    const ip = clientIp(req);
-    const limit = await enforceRateLimit(`login:${ip}`, { max: 10, windowSec: 60 });
+    const body = loginSchema.parse(await req.json());
+
+    const limit = await enforceLoginRateLimit(req, body.username);
     if (!limit.allowed) {
       return jsonError(`Too many login attempts. Retry in ${limit.retryAfterSec}s`, 429);
     }
 
-    const body = loginSchema.parse(await req.json());
     const provider = body.provider ?? "local";
 
     if (provider === "jellyfin") {

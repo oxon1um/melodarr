@@ -3,11 +3,16 @@ import { requireUser } from "@/lib/auth/session";
 import { jsonError, jsonOk } from "@/lib/http";
 import { withOptimizedImageUrls } from "@/lib/images";
 import { LidarrClient } from "@/lib/lidarr/client";
+import { enforceSearchRateLimit } from "@/lib/search/rate-limit";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ albumId: string }> }) {
   try {
-    await requireUser(req);
+    const user = await requireUser(req);
+    const limit = await enforceSearchRateLimit(user);
+    if (!limit.allowed) {
+      return jsonError(`Too many search requests. Retry in ${limit.retryAfterSec}s`, 429);
+    }
 
     const { albumId } = await params;
     if (!albumId) {

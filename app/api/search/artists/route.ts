@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/session";
 import { jsonError, jsonOk } from "@/lib/http";
 import { withOptimizedImageUrlsForMany } from "@/lib/images";
 import { LidarrClient } from "@/lib/lidarr/client";
+import { enforceSearchRateLimit } from "@/lib/search/rate-limit";
 import { getRuntimeConfig } from "@/lib/settings/store";
 
 const normalizeText = (value: string | undefined) => value?.trim().toLowerCase() ?? "";
@@ -26,7 +27,11 @@ type AlbumWithStatus = {
 
 export async function GET(req: NextRequest) {
   try {
-    await requireUser(req);
+    const user = await requireUser(req);
+    const limit = await enforceSearchRateLimit(user);
+    if (!limit.allowed) {
+      return jsonError(`Too many search requests. Retry in ${limit.retryAfterSec}s`, 429);
+    }
 
     const query = req.nextUrl.searchParams.get("q")?.trim();
     if (!query || query.length < 2) {

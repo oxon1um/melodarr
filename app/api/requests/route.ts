@@ -4,11 +4,13 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { jsonError, jsonOk } from "@/lib/http";
+import { validateMutationRequest } from "@/lib/http/mutation-guard";
 import {
   createAlbumRequest,
   createArtistRequest,
   syncSubmittedAlbumRequestsIfStale,
 } from "@/lib/requests/service";
+import { shouldRunRequestListSync } from "@/lib/requests/sync-rate-limit";
 
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
@@ -26,10 +28,12 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req);
 
-    try {
-      await syncSubmittedAlbumRequestsIfStale();
-    } catch {
-      // Keep request listings available even when sync cannot run.
+    if (await shouldRunRequestListSync(user)) {
+      try {
+        await syncSubmittedAlbumRequestsIfStale();
+      } catch {
+        // Keep request listings available even when sync cannot run.
+      }
     }
 
     const statusFilterRaw = req.nextUrl.searchParams.get("status");
@@ -79,6 +83,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const blocked = await validateMutationRequest(req);
+    if (blocked) return blocked;
+
     const user = await requireUser(req);
     const payload = createRequestSchema.parse(await req.json());
 
