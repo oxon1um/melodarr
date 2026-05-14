@@ -14,6 +14,12 @@ workflow for code, configuration, Docker, CI, and documentation changes.
 6. Merge only after the required `verify` check is green.
 7. Delete the branch after merge and update local `main`.
 
+For agent-driven changes, pushing a branch implies follow-through unless the user says otherwise:
+open or update the pull request, watch GitHub Actions, merge when `verify` and any other required
+checks are green, delete the remote branch, and make sure local `main` is current. If a check fails or
+is blocked, stop and report the failure with the relevant check/log link or error summary, then
+propose the smallest safe fix and wait for explicit approval before changing code again.
+
 Do not push directly to `main`. The remote ruleset should reject direct pushes, force pushes, and
 branch deletion, but agents and contributors should not attempt to bypass it.
 
@@ -37,6 +43,8 @@ full gate.
 
 - Keep commits off local `main` when possible; create or switch to a topic branch first.
 - If local changes already exist on `main`, create a topic branch before committing them.
+- After pushing a PR branch, watch GitHub Actions and complete the merge/delete-branch/update-main
+  steps when checks are green unless the user asks you to stop earlier.
 - Stop on any failed check. Report the failure, propose the fix, and get approval before changing
   code.
 - Use `.github/rulesets/main-protection.json` as the importable source for the GitHub ruleset.
