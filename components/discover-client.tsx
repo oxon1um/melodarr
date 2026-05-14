@@ -552,9 +552,11 @@ function DiscoverHomeSection({ homeData, discoverStateHref }: DiscoverHomeSectio
             <p className="text-base font-medium text-muted">
               {homeData.libraryStatus === "connected" ? "No recent library additions yet." : statusLabel}
             </p>
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">
-              {getDiscoverHomeEmptyCopy(homeData.libraryStatus)}
-            </p>
+            {homeData.libraryStatus !== "connected" ? (
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">
+                {getDiscoverHomeEmptyCopy(homeData.libraryStatus)}
+              </p>
+            ) : null}
             {homeData.libraryStatus !== "connected" ? (
               <Link href={"/admin/settings" as Route} className="btn-ghost mt-4 w-fit">
                 Review connection settings
