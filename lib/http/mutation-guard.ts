@@ -23,8 +23,16 @@ const getAllowedOrigin = async (): Promise<string> => {
   }
 };
 
+const getRequestUrlOrigin = (url: string): string | null => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+};
+
 export const validateMutationRequest = async (
-  req: Pick<NextRequest, "headers" | "method">
+  req: Pick<NextRequest, "headers" | "method" | "url">
 ): Promise<NextResponse | null> => {
   if (!UNSAFE_METHODS.has(req.method.toUpperCase())) return null;
 
@@ -37,7 +45,8 @@ export const validateMutationRequest = async (
   if (!requestOrigin) return null;
 
   const allowedOrigin = await getAllowedOrigin();
-  if (requestOrigin !== allowedOrigin) {
+  const requestUrlOrigin = getRequestUrlOrigin(req.url);
+  if (requestOrigin !== allowedOrigin && requestOrigin !== requestUrlOrigin) {
     return jsonError("Request origin is not allowed", 403);
   }
 
