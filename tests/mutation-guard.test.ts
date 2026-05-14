@@ -8,7 +8,8 @@ vi.mock("@/lib/runtime/app-config", () => ({
 
 const request = (input: { method: string; headers?: Record<string, string> }) => ({
   method: input.method,
-  headers: new Headers(input.headers)
+  headers: new Headers(input.headers),
+  url: "https://melodarr.example.com/api/test"
 });
 
 describe("validateMutationRequest", () => {
@@ -25,6 +26,21 @@ describe("validateMutationRequest", () => {
           "sec-fetch-site": "same-origin"
         }
       }))
+    ).resolves.toBeNull();
+  });
+
+  it("allows mutations from the request URL origin when app URL differs", async () => {
+    await expect(
+      validateMutationRequest({
+        ...request({
+          method: "POST",
+          headers: {
+            origin: "http://localhost:30000",
+            "sec-fetch-site": "same-origin"
+          }
+        }),
+        url: "http://localhost:30000/api/setup"
+      })
     ).resolves.toBeNull();
   });
 
