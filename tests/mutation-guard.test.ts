@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { validateMutationRequest } from "../lib/http/mutation-guard";
+import { getEffectiveAppUrl } from "@/lib/runtime/app-config";
 
 vi.mock("@/lib/runtime/app-config", () => ({
   getEffectiveAppUrl: vi.fn(async () => "https://melodarr.example.com")
@@ -13,6 +14,23 @@ const request = (input: { method: string; headers?: Record<string, string> }) =>
 });
 
 describe("validateMutationRequest", () => {
+  it("falls back to the localhost app origin when app config is invalid", async () => {
+    vi.mocked(getEffectiveAppUrl).mockResolvedValueOnce("not-a-url");
+
+    await expect(
+      validateMutationRequest({
+        ...request({
+          method: "POST",
+          headers: {
+            origin: "http://localhost:3000",
+            "sec-fetch-site": "same-origin"
+          }
+        }),
+        url: "https://proxy.example.com/api/setup"
+      })
+    ).resolves.toBeNull();
+  });
+
   it("allows safe methods", async () => {
     await expect(validateMutationRequest(request({ method: "GET" }))).resolves.toBeNull();
   });
@@ -62,6 +80,21 @@ describe("validateMutationRequest", () => {
       method: "PUT",
       headers: { origin: "https://evil.example.com" }
     }));
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("rejects origin mismatches when the request URL is invalid", async () => {
+    const response = await validateMutationRequest({
+      ...request({
+        method: "POST",
+        headers: {
+          origin: "http://localhost:30000",
+          "sec-fetch-site": "same-origin"
+        }
+      }),
+      url: "not-a-url"
+    });
 
     expect(response?.status).toBe(403);
   });
