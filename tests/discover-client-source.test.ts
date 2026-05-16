@@ -33,4 +33,15 @@ describe("discover landing state", () => {
     expect(source).toContain("getCoverflowLayer(offset)");
     expect(source).not.toContain("zIndex: 20 - distance");
   });
+
+  it("only renders the discover empty-state helper copy when the library is disconnected", async () => {
+    const source = await readFile(
+      new URL("../components/discover-client.tsx", import.meta.url),
+      "utf8"
+    );
+
+    expect(source).toContain('{homeData.libraryStatus === "connected" ? "No recent library additions yet." : statusLabel}');
+    expect(source).toContain('{homeData.libraryStatus !== "connected" ? (');
+    expect(source).toContain("{getDiscoverHomeEmptyCopy(homeData.libraryStatus)}");
+  });
 });
