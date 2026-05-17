@@ -7,6 +7,24 @@ import userEvent from "@testing-library/user-event";
 
 const usePathname = vi.fn();
 
+vi.mock("next/image", () => ({
+  default: ({
+    alt,
+    priority: _priority,
+    src,
+    ...props
+  }: {
+    alt?: string;
+    priority?: boolean;
+    src: string;
+  }) => {
+    void _priority;
+    // Rendering a plain img keeps the Next.js image mock deterministic in jsdom.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img alt={alt} src={src} {...props} />;
+  }
+}));
+
 vi.mock("next/link", () => ({
   default: ({ children, href, onClick, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & {
     children: ReactNode;
@@ -44,7 +62,11 @@ describe("AppHeader", () => {
     const user = userEvent.setup();
     const { AppHeader } = await import("../components/app-header");
 
-    render(<AppHeader user={{ username: "very-long-admin-username", role: "ADMIN" }} />);
+    const { container } = render(<AppHeader user={{ username: "very-long-admin-username", role: "ADMIN" }} />);
+
+    screen.getByRole("link", { name: "Melodarr" });
+    const brandLogo = container.querySelector('a[href="/discover"] img[src="/brands/melodarr.svg"]');
+    expect(brandLogo).not.toBeNull();
 
     const menuButton = screen.getByRole("button", { name: "Open navigation menu" });
     expect(menuButton.getAttribute("aria-expanded")).toBe("false");
