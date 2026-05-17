@@ -23,7 +23,14 @@ describe("image signing", () => {
 
   it("prefers external remote artwork URLs over Lidarr-served image URLs", async () => {
     const { verifySignedImageParams, withOptimizedImageUrls } = await import("../lib/images");
-    const result = await withOptimizedImageUrls({
+    const result = await withOptimizedImageUrls<{
+      images: Array<{
+        coverType: string;
+        remoteUrl: string;
+        url: string;
+        optimizedUrl?: string;
+      }>;
+    }>({
       images: [
         {
           coverType: "poster",

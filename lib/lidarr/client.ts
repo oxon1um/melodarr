@@ -1,4 +1,5 @@
 import { clearJsonCache, fromJsonCache, invalidateJsonCacheNamespace } from "@/lib/cache/json-cache";
+import { getCoverFallbackImages } from "@/lib/metadata/covers";
 
 export type LidarrImage = {
   coverType?: string;
@@ -1427,6 +1428,18 @@ export class LidarrClient {
       }
     }
 
+    if (!hasUsableImageSet(hydratedAlbum.images)) {
+      hydratedAlbum = {
+        ...hydratedAlbum,
+        images: await getCoverFallbackImages({
+          foreignAlbumId: hydratedAlbum.foreignAlbumId,
+          artistName: hydratedAlbum.artistName ?? hydratedAlbum.artist?.artistName,
+          albumTitle: hydratedAlbum.title,
+          releaseDate: hydratedAlbum.releaseDate
+        })
+      };
+    }
+
     return this.withTransformedImages(hydratedAlbum);
   }
 
@@ -1491,6 +1504,18 @@ export class LidarrClient {
             },
             hydratedAlbum
           );
+        }
+
+        if (!hasUsableImageSet(hydratedAlbum.images)) {
+          hydratedAlbum = {
+            ...hydratedAlbum,
+            images: await getCoverFallbackImages({
+              foreignAlbumId: hydratedAlbum.foreignAlbumId,
+              artistName: hydratedAlbum.artistName,
+              albumTitle: hydratedAlbum.title,
+              releaseDate: hydratedAlbum.releaseDate
+            })
+          };
         }
 
         return this.withTransformedImages(hydratedAlbum);
