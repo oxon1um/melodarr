@@ -2,6 +2,7 @@
 
 import type { Route } from "next";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/logout-button";
@@ -62,9 +63,10 @@ export function AppHeader({ user }: Props) {
     >
       <div className="mx-auto flex w-full max-w-[min(1600px,calc(100vw-1.5rem))] flex-wrap items-center gap-3 px-4 sm:max-w-[min(1720px,calc(100vw-3rem))] sm:px-6">
         <Link
-          className="shrink-0 rounded-lg font-brand text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="flex shrink-0 items-center gap-2 rounded-lg font-brand text-2xl font-semibold tracking-tight text-accent transition-colors hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           href="/discover"
         >
+          <Image src="/brands/melodarr.svg" alt="" aria-hidden width={34} height={34} priority />
           Melodarr
         </Link>
 

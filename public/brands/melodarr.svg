@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Melodarr logo">
+  <defs>
+    <linearGradient id="melodarr-gold" x1="196" y1="146" x2="828" y2="878" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd24d"/>
+      <stop offset="0.48" stop-color="#ffb300"/>
+      <stop offset="1" stop-color="#f59b00"/>
+    </linearGradient>
+    <filter id="melodarr-shadow" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="14" stdDeviation="20" flood-color="#000" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+  <g filter="url(#melodarr-shadow)" stroke="#050505" stroke-width="28" stroke-linejoin="round" stroke-linecap="round">
+    <path fill="none" d="M229.4 653.5a345 345 0 1 1 565.2 0"/>
+    <path fill="none" d="M368.5 393.1a174 174 0 0 1 287 0"/>
+    <path fill="url(#melodarr-gold)" d="M317.5 388.5 512 568.2l194.5-179.7v363.2a74 74 0 1 0 74-74V388.5L512 638.2 243.5 388.5v289.2a74 74 0 1 0 74 74Z"/>
+    <circle cx="512" cy="454" r="52" fill="url(#melodarr-gold)"/>
+  </g>
+  <g fill="none" stroke="url(#melodarr-gold)" stroke-width="60" stroke-linecap="round">
+    <path d="M229.4 653.5a345 345 0 1 1 565.2 0"/>
+    <path d="M368.5 393.1a174 174 0 0 1 287 0"/>
+  </g>
+  <g fill="url(#melodarr-gold)">
+    <path d="M317.5 388.5 512 568.2l194.5-179.7v363.2a74 74 0 1 0 74-74V388.5L512 638.2 243.5 388.5v289.2a74 74 0 1 0 74 74Z"/>
+    <circle cx="512" cy="454" r="52"/>
+  </g>
+</svg>
