@@ -54,8 +54,17 @@ export function LoginForm({ isHttps }: LoginFormProps) {
       <div className="panel page-enter mx-auto w-full max-w-md space-y-8 p-6 sm:p-8">
         <div className="text-center space-y-3">
           <div className="flex justify-center">
-            <div className="relative">
+            <div className="relative flex flex-col items-center gap-2">
               <div className="absolute inset-0 blur-2xl bg-accent/20" />
+              <Image
+                className="relative h-20 w-20"
+                src="/brands/melodarr.svg"
+                alt=""
+                aria-hidden
+                width={80}
+                height={80}
+                priority
+              />
               <h1 className="relative font-display text-5xl font-bold tracking-tight text-accent">
                 Melodarr
               </h1>
@@ -123,8 +132,17 @@ export function LoginForm({ isHttps }: LoginFormProps) {
     <div className="panel page-enter mx-auto w-full max-w-5xl space-y-8 p-6 sm:p-8">
       <div className="text-center space-y-3">
         <div className="flex justify-center">
-          <div className="relative">
+          <div className="relative flex flex-col items-center gap-2">
             <div className="absolute inset-0 blur-2xl bg-accent/20" />
+            <Image
+              className="relative h-20 w-20"
+              src="/brands/melodarr.svg"
+              alt=""
+              aria-hidden
+              width={80}
+              height={80}
+              priority
+            />
             <h1 className="relative font-display text-5xl font-bold tracking-tight text-accent">
               Melodarr
             </h1>
