@@ -15,6 +15,26 @@ const getOrigin = (value: string | null): string | null => {
   }
 };
 
+const getFirstHeaderValue = (value: string | null): string | null => {
+  const first = value?.split(",")[0]?.trim();
+  return first || null;
+};
+
+const getHeaderOrigin = (input: {
+  protocol: string | null;
+  host: string | null;
+}): string | null => {
+  const protocol = getFirstHeaderValue(input.protocol)?.replace(/:$/, "").toLowerCase();
+  const host = getFirstHeaderValue(input.host);
+  if (!protocol || !host) return null;
+
+  try {
+    return new URL(`${protocol}://${host}`).origin;
+  } catch {
+    return null;
+  }
+};
+
 const getAllowedOrigin = async (): Promise<string> => {
   try {
     return new URL(await getEffectiveAppUrl()).origin;
@@ -31,6 +51,28 @@ const getRequestUrlOrigin = (url: string): string | null => {
   }
 };
 
+const getRequestOriginProtocol = (origin: string): string | null => {
+  try {
+    return new URL(origin).protocol.replace(/:$/, "");
+  } catch {
+    return null;
+  }
+};
+
+const getHeaderOrigins = (headers: Headers, requestOrigin: string): string[] => {
+  const requestProtocol = getRequestOriginProtocol(requestOrigin);
+  const forwardedProto = headers.get("x-forwarded-proto");
+  const forwardedHost = headers.get("x-forwarded-host");
+  const host = headers.get("host");
+
+  return [
+    getHeaderOrigin({ protocol: forwardedProto, host: forwardedHost }),
+    getHeaderOrigin({ protocol: forwardedProto, host }),
+    getHeaderOrigin({ protocol: requestProtocol, host: forwardedHost }),
+    getHeaderOrigin({ protocol: requestProtocol, host })
+  ].filter((origin): origin is string => Boolean(origin));
+};
+
 export const validateMutationRequest = async (
   req: Pick<NextRequest, "headers" | "method" | "url">
 ): Promise<NextResponse | null> => {
@@ -44,9 +86,13 @@ export const validateMutationRequest = async (
   const requestOrigin = getOrigin(req.headers.get("origin"));
   if (!requestOrigin) return null;
 
-  const allowedOrigin = await getAllowedOrigin();
-  const requestUrlOrigin = getRequestUrlOrigin(req.url);
-  if (requestOrigin !== allowedOrigin && requestOrigin !== requestUrlOrigin) {
+  const allowedOrigins = new Set([
+    await getAllowedOrigin(),
+    getRequestUrlOrigin(req.url),
+    ...getHeaderOrigins(req.headers, requestOrigin)
+  ].filter((origin): origin is string => Boolean(origin)));
+
+  if (!allowedOrigins.has(requestOrigin)) {
     return jsonError("Request origin is not allowed", 403);
   }
 

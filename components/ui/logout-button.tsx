@@ -3,26 +3,45 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { IconLogout } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/toast-provider";
+
+const DEFAULT_LOGOUT_ERROR = "Could not log out. Please refresh and try again.";
+
+const getLogoutError = async (response: Response): Promise<string> => {
+  try {
+    const payload = (await response.json()) as { error?: string };
+    return payload.error ?? DEFAULT_LOGOUT_ERROR;
+  } catch {
+    return DEFAULT_LOGOUT_ERROR;
+  }
+};
 
 export function LogoutButton() {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
 
   const onLogout = async () => {
     setLoading(true);
-    const response = await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "same-origin",
-      cache: "no-store"
-    });
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store"
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        toast.error(await getLogoutError(response), "Logout");
+        setLoading(false);
+        return;
+      }
+
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      toast.error(DEFAULT_LOGOUT_ERROR, "Logout");
       setLoading(false);
-      return;
     }
-
-    router.replace("/login");
-    router.refresh();
   };
 
   return (
