@@ -25,9 +25,14 @@ describe("LogoutButton", () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
+    const { ToastProvider } = await import("../components/ui/toast-provider");
     const { LogoutButton } = await import("../components/ui/logout-button");
 
-    render(<LogoutButton />);
+    render(
+      <ToastProvider>
+        <LogoutButton />
+      </ToastProvider>
+    );
 
     await user.click(screen.getByRole("button", { name: "Log out" }));
 
@@ -41,19 +46,50 @@ describe("LogoutButton", () => {
   });
 
   it("does not redirect when logout fails", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 403 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: "Request origin is not allowed" }), { status: 403 })
+      )
+    );
     const user = userEvent.setup();
+    const { ToastProvider } = await import("../components/ui/toast-provider");
     const { LogoutButton } = await import("../components/ui/logout-button");
 
-    render(<LogoutButton />);
+    render(
+      <ToastProvider>
+        <LogoutButton />
+      </ToastProvider>
+    );
 
     await user.click(screen.getByRole("button", { name: "Log out" }));
 
+    expect(await screen.findByText("Request origin is not allowed")).toBeDefined();
     await waitFor(() => {
       expect(screen.getByRole<HTMLButtonElement>("button", { name: "Log out" }).disabled).toBe(
         false
       );
     });
+    expect(replace).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("shows a failure message when logout cannot be requested", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("Network failed"); }));
+    const user = userEvent.setup();
+    const { ToastProvider } = await import("../components/ui/toast-provider");
+    const { LogoutButton } = await import("../components/ui/logout-button");
+
+    render(
+      <ToastProvider>
+        <LogoutButton />
+      </ToastProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Log out" }));
+
+    expect(await screen.findByText("Could not log out. Please refresh and try again.")).toBeDefined();
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
