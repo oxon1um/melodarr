@@ -80,6 +80,22 @@ describe("validateMutationRequest", () => {
     ).resolves.toBeNull();
   });
 
+  it("allows forwarded hosts when the request origin provides the protocol", async () => {
+    vi.mocked(getEffectiveAppUrl).mockResolvedValueOnce("https://configured.example.com");
+
+    await expect(
+      validateMutationRequest({
+        method: "POST",
+        headers: new Headers({
+          origin: "https://music.example.com",
+          "sec-fetch-site": "same-origin",
+          "x-forwarded-host": "music.example.com"
+        }),
+        url: "http://localhost:3000/api/auth/logout"
+      })
+    ).resolves.toBeNull();
+  });
+
   it("allows non-browser clients that omit origin and fetch metadata", async () => {
     await expect(validateMutationRequest(request({ method: "PATCH" }))).resolves.toBeNull();
   });
