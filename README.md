@@ -1,6 +1,6 @@
 <a id="readme-top"></a>
 
-# Melodarr
+# Melodarr - Self-hosted Music Discovery for Lidarr
 
 <!-- PROJECT SHIELDS -->
 [![Contributors][contributors-shield]][contributors-url]
@@ -14,9 +14,16 @@
 <br />
 <div align="center">
   <p align="center">
-    Self-hosted music discovery and requests for Lidarr with optional Jellyfin login.
+    Self-hosted music discovery, album requests, and Lidarr automation with optional
+    Jellyfin login.
     <br />
     <br />
+    <a href="https://github.com/oxon1um/melodarr">Repository</a>
+    &middot;
+    <a href="https://github.com/oxon1um/melodarr/pkgs/container/melodarr">Container Image</a>
+    &middot;
+    <a href="https://github.com/oxon1um/melodarr/releases">Releases</a>
+    &middot;
     <a href="https://github.com/oxon1um/melodarr/issues/new?labels=bug">Report Bug</a>
     &middot;
     <a href="https://github.com/oxon1um/melodarr/issues/new?labels=enhancement">Request Feature</a>
@@ -32,6 +39,7 @@
     <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
+        <li><a href="#project-links">Project Links</a></li>
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
@@ -56,14 +64,15 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-Melodarr is a self-hosted music discovery and request application for
-[Lidarr](https://lidarr.audio/), inspired by [Seerr](https://github.com/seerr-team/seerr).
-It gives Lidarr users a friendlier way to discover artists, albums, and singles,
-including release matches found from song-title searches. Users can check whether music is
-already available and submit requests that can be reviewed, approved, and automatically sent
-to Lidarr. [Jellyfin](https://jellyfin.org/) can optionally
-be used for login, so household users can sign in with existing Jellyfin credentials instead
-of creating separate Melodarr-only accounts.
+Melodarr is a self-hosted music discovery and request app for
+[Lidarr](https://lidarr.audio/). It gives homelab and media-server users a friendlier way to
+search MusicBrainz-backed Lidarr results, find artists, albums, and singles, and submit music
+requests that can be reviewed, approved, and automatically added to Lidarr.
+
+Melodarr is inspired by [Seerr](https://github.com/seerr-team/seerr), but focused on music
+libraries. [Jellyfin](https://jellyfin.org/) can optionally be used for shared login, so
+household users can sign in with existing Jellyfin credentials instead of creating separate
+Melodarr-only accounts.
 
 Key features:
 
@@ -72,11 +81,28 @@ Key features:
 * Search by artist, release, or song title to find matching albums and singles
 * Request albums or full artist discographies, then submit them to Lidarr
 * Request status tracking from review to Lidarr submission through completed imports
+* Submitted-request sync that checks Lidarr availability before marking requests complete
+* Safer proxied artwork loading with cover fallbacks from public music metadata sources
 * Optional admin approval flow or auto-approve mode
 * Optional Jellyfin login alongside local accounts
 * Admin settings panel for Lidarr, Jellyfin, and request configuration
 * Rate limiting and audit logging
 * Persistent PostgreSQL and Redis storage
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+### Project Links
+
+| Resource | Link |
+|----------|------|
+| Source code | [github.com/oxon1um/melodarr](https://github.com/oxon1um/melodarr) |
+| Container image | [ghcr.io/oxon1um/melodarr](https://github.com/oxon1um/melodarr/pkgs/container/melodarr) |
+| Releases | [GitHub Releases](https://github.com/oxon1um/melodarr/releases) |
+| Issues and feature requests | [GitHub Issues](https://github.com/oxon1um/melodarr/issues) |
+
+Common use cases include Lidarr music requests, self-hosted music discovery, Jellyfin-backed
+household access, MusicBrainz-powered search, and Docker-based homelab deployments.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
