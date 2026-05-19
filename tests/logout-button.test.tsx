@@ -93,4 +93,23 @@ describe("LogoutButton", () => {
     expect(replace).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
+
+  it("falls back to the default error when logout returns a non-JSON failure body", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("Proxy failure", { status: 502 })));
+    const user = userEvent.setup();
+    const { ToastProvider } = await import("../components/ui/toast-provider");
+    const { LogoutButton } = await import("../components/ui/logout-button");
+
+    render(
+      <ToastProvider>
+        <LogoutButton />
+      </ToastProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Log out" }));
+
+    expect(await screen.findByText("Could not log out. Please refresh and try again.")).toBeDefined();
+    expect(replace).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+  });
 });
