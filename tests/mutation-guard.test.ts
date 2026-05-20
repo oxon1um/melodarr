@@ -96,6 +96,24 @@ describe("validateMutationRequest", () => {
     ).resolves.toBeNull();
   });
 
+  it("allows proxy header lists by using the first forwarded origin values", async () => {
+    vi.mocked(getEffectiveAppUrl).mockResolvedValueOnce("https://configured.example.com");
+
+    await expect(
+      validateMutationRequest({
+        method: "POST",
+        headers: new Headers({
+          host: "internal:3000, public.example.com",
+          origin: "https://public.example.com",
+          "sec-fetch-site": "same-origin",
+          "x-forwarded-host": "public.example.com, internal:3000",
+          "x-forwarded-proto": "HTTPS, http"
+        }),
+        url: "http://internal:3000/api/auth/logout"
+      })
+    ).resolves.toBeNull();
+  });
+
   it("allows non-browser clients that omit origin and fetch metadata", async () => {
     await expect(validateMutationRequest(request({ method: "PATCH" }))).resolves.toBeNull();
   });
