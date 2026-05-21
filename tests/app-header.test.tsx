@@ -12,13 +12,16 @@ vi.mock("next/image", () => ({
     alt,
     priority: _priority,
     src,
+    unoptimized: _unoptimized,
     ...props
   }: {
     alt?: string;
     priority?: boolean;
     src: string;
+    unoptimized?: boolean;
   }) => {
     void _priority;
+    void _unoptimized;
     // Rendering a plain img keeps the Next.js image mock deterministic in jsdom.
     // eslint-disable-next-line @next/next/no-img-element
     return <img alt={alt} src={src} {...props} />;
@@ -65,7 +68,7 @@ describe("AppHeader", () => {
     const { container } = render(<AppHeader user={{ username: "very-long-admin-username", role: "ADMIN" }} />);
 
     screen.getByRole("link", { name: "Melodarr" });
-    const brandLogo = container.querySelector('a[href="/discover"] img[src="/brands/melodarr.svg"]');
+    const brandLogo = container.querySelector('a[href="/discover"] img[src="/brands/melodarr.png"]');
     expect(brandLogo).not.toBeNull();
 
     const menuButton = screen.getByRole("button", { name: "Open navigation menu" });
